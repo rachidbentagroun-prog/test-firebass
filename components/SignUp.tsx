@@ -157,7 +157,7 @@ export default function SignUp() {
         {success && <div className="mt-4 text-sm text-green-400">{success}</div>}
 
         <div className="mt-6 text-center text-sm text-gray-400">
-          Already have an account? <button onClick={() => window.location.href = '/'} className="text-indigo-400 font-medium">Sign in</button>
+          Already have an account? <button onClick={() => window.location.href = '/'} className="text-indigo-400 font-medium">Login</button>
         </div>
       </div>
     </div>

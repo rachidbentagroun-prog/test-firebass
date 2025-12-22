@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Mail, Lock, User, AlertCircle, RefreshCw, Sparkles, ArrowLeft, Loader2, SendHorizontal, Inbox } from 'lucide-react';
 import { supabase } from '../services/supabase';
+import { auth } from '../services/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -33,21 +35,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
 
     try {
       if (isLogin) {
-        const { data, error: signInError } = await supabase.auth.signInWithPassword({ 
-          email: email.toLowerCase().trim(), 
-          password 
-        });
-        
-        if (signInError) throw signInError;
+        // Use Firebase sign-in and enforce email verification
+        const userCredential = await signInWithEmailAndPassword(auth, email.toLowerCase().trim(), password);
 
-        // Force verification check even on login
-        if (data?.user && !data.user.email_confirmed_at) {
-          await supabase.auth.signOut();
-          setError("Please verify your email before logging in.");
-          setStep('check-email');
+        if (!userCredential.user.emailVerified) {
+          alert('Please verify your email first');
           return;
         }
-        
+
         onLoginSuccess();
         onClose();
       } else {

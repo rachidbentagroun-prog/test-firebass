@@ -251,7 +251,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onLoginClick, on
                     className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-dark-950 font-bold hover:bg-gray-100 transition-colors shadow-lg"
                   >
                     <UserIcon className="w-4 h-4" />
-                    Sign In
+                    Login
                   </button>
                 </div>
               )}
@@ -298,7 +298,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onLoginClick, on
             {user?.isRegistered ? (
                <button onClick={onLogout} className="block w-full text-left text-base font-medium text-red-400 hover:text-red-300 py-2">Sign Out</button>
             ) : (
-               <button onClick={() => { onLoginClick(); setIsMobileMenuOpen(false); }} className="block w-full text-center py-3 bg-indigo-600 rounded-lg text-white font-bold">Sign In</button>
+               <button onClick={() => { onLoginClick(); setIsMobileMenuOpen(false); }} className="block w-full text-center py-3 bg-indigo-600 rounded-lg text-white font-bold">Login</button>
             )}
         </div>
       )}
