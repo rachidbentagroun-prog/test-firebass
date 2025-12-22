@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Mail, Lock, User, AlertCircle, RefreshCw, Sparkles, ArrowLeft, Loader2, SendHorizontal, Inbox } from 'lucide-react';
-import { auth, signUpWithFirebase } from '../services/firebase';
+import { auth, signUpWithFirebase, grantDefaultEntitlements } from '../services/firebase';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, signOut } from 'firebase/auth';
 
 interface AuthModalProps {
@@ -49,6 +49,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         const cred = await signUpWithFirebase(email.toLowerCase().trim(), password, name.trim());
         if (cred?.user) {
           // Firebase sends a verification email inside signUpWithFirebase
+          // Also create a minimal user doc so entitlements can be granted after verification
+          try {
+            await grantDefaultEntitlements(cred.user.uid); // will set entitlements when verified later
+          } catch (err) {
+            console.warn('Could not pre-create user entitlements document', err);
+          }
           alert('Verification email sent! Please check your inbox.');
           setStep('check-email');
         } else {

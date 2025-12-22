@@ -16,6 +16,7 @@ import { Showcase } from './components/Showcase.tsx';
 import { MultimodalSection } from './components/MultimodalSection.tsx';
 import { ChatWidget } from './components/ChatWidget.tsx';
 import SignUp from './components/SignUp.tsx';
+import PostVerify from './components/PostVerify';
 import { User, GeneratedImage, GeneratedVideo, GeneratedAudio, SiteConfig } from './types.ts';
 import { supabase } from './services/supabase.ts';
 import { 
@@ -96,7 +97,15 @@ const App: React.FC = () => {
     } catch (e) { return DEFAULT_CONFIG; }
   });
 
-  const [currentPage, setCurrentPage] = useState<string>('home');
+  const [currentPage, setCurrentPage] = useState<string>(() => {
+    // If app is opened via verification action URL, show the post-verify page
+    try {
+      if (typeof window !== 'undefined' && window.location.pathname.startsWith('/auth/post-verify')) {
+        return 'post-verify';
+      }
+    } catch (e) {}
+    return 'home';
+  });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -282,6 +291,8 @@ const App: React.FC = () => {
         return user ? <UserProfile user={user} gallery={gallery} videoGallery={videoGallery} audioGallery={audioGallery} onLogout={handleLogout} onBack={() => setCurrentPage('home')} onUpdateUser={() => {}} onGalleryImport={() => {}} /> : null;
       case 'signup':
         return <SignUp />;
+      case 'post-verify':
+        return <PostVerify />;
       default:
         return null;
     }
