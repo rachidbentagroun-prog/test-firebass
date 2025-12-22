@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Mail, Lock, User, AlertCircle, RefreshCw, Sparkles, ArrowLeft, Loader2, SendHorizontal, Inbox } from 'lucide-react';
-import { supabase } from '../services/supabase';
-import { auth } from '../services/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, signUpWithFirebase } from '../services/firebase';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -46,30 +45,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         onLoginSuccess();
         onClose();
       } else {
-        // Sign Up process
-        const { data, error: signUpError } = await supabase.auth.signUp({ 
-          email: email.toLowerCase().trim(), 
-          password,
-          options: {
-            data: { full_name: name.trim() },
-            emailRedirectTo: window.location.origin
-          }
-        });
-
-        if (signUpError) throw signUpError;
-
-        // Immediate enforcement: even if Supabase creates a session, we destroy it
-        // until the email link is clicked.
-        if (data?.user && !data.user.email_confirmed_at) {
-          await supabase.auth.signOut();
-          alert("Verification email sent! Please check your inbox.");
+        // Sign Up process (Firebase)
+        const cred = await signUpWithFirebase(email.toLowerCase().trim(), password, name.trim());
+        if (cred?.user) {
+          // Firebase sends a verification email inside signUpWithFirebase
+          alert('Verification email sent! Please check your inbox.');
           setStep('check-email');
-        } else if (data?.session) {
-          // If auto-confirm is on (dev), allow it
-          onLoginSuccess();
-          onClose();
         } else {
-          setStep('check-email');
+          setError('Firebase signup failed.');
         }
       }
     } catch (err: any) {
@@ -83,13 +66,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     e.preventDefault();
     setIsLoading(true);
     try {
-      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
-      if (updateError) throw updateError;
-      alert("Password updated successfully.");
-      onLoginSuccess();
-      onClose();
+      // For non-authenticated users, send a password reset email
+      await sendPasswordResetEmail(auth, email.toLowerCase().trim());
+      alert('Password reset email sent. Check your inbox.');
+      setStep('auth');
     } catch (err: any) {
-      setError(err.message || "Password update failed.");
+      setError(err.message || 'Password reset failed.');
     } finally {
       setIsLoading(false);
     }
