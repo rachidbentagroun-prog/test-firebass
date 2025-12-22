@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Mail, Lock, User, AlertCircle, RefreshCw, Sparkles, ArrowLeft, Loader2, SendHorizontal, Inbox } from 'lucide-react';
 import { auth, signUpWithFirebase } from '../services/firebase';
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, signOut } from 'firebase/auth';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -72,6 +72,46 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
       setStep('auth');
     } catch (err: any) {
       setError(err.message || 'Password reset failed.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Check whether the user has completed email verification and sign them in
+  const handleCheckVerification = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // Try to sign in to obtain the latest user state
+      const userCredential = await signInWithEmailAndPassword(auth, email.toLowerCase().trim(), password);
+      if (!userCredential.user.emailVerified) {
+        setError('Email not verified yet. Please check your inbox or spam folder.');
+        await signOut(auth); // keep user signed out until verified
+        setIsLoading(false);
+        return;
+      }
+
+      // Verified: proceed to login success
+      onLoginSuccess();
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'Verification check failed.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Resend verification email by signing in temporarily then sending verification and signing out
+  const handleResendVerification = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email.toLowerCase().trim(), password);
+      await sendEmailVerification(userCredential.user);
+      alert('Verification email resent. Check your inbox.');
+      await signOut(auth);
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend verification email.');
     } finally {
       setIsLoading(false);
     }
@@ -195,17 +235,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             </p>
             
             <div className="space-y-4 px-4">
-              <button 
-                onClick={() => setStep('auth')} 
-                className="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[10px] font-black text-gray-400 hover:text-white uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" /> RETURN TO LOGIN
-              </button>
-              
-              <div className="p-4 bg-indigo-500/5 rounded-2xl border border-indigo-500/10">
-                 <p className="text-[9px] text-indigo-400/60 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
-                   <Inbox className="w-3 h-3" /> Check your spam folder if the email is not in your inbox.
-                 </p>
+              <div className="space-y-3">
+                <button
+                  onClick={handleCheckVerification}
+                  className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 border border-indigo-600/20 rounded-2xl text-[12px] font-black text-white uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2"
+                >
+                  {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'I\'ve verified — Continue'}
+                </button>
+
+                <button
+                  onClick={handleResendVerification}
+                  className="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[12px] font-black text-gray-400 hover:text-white uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2"
+                >
+                  Resend verification email
+                </button>
+
+                <button 
+                  onClick={() => setStep('auth')} 
+                  className="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[10px] font-black text-gray-400 hover:text-white uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" /> RETURN TO LOGIN
+                </button>
+
+                <div className="p-4 bg-indigo-500/5 rounded-2xl border border-indigo-500/10">
+                  <p className="text-[9px] text-indigo-400/60 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                    <Inbox className="w-3 h-3" /> Check your spam folder if the email is not in your inbox.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
