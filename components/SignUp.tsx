@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
 import { signUpWithFirebase } from '../services/firebase';
-import { Sparkles, User, Mail, Lock } from 'lucide-react';
+import { Sparkles, User, Mail, Lock, Database, Zap } from 'lucide-react';
 
 type Provider = 'supabase' | 'firebase';
 
@@ -75,9 +75,27 @@ export default function SignUp() {
           </button>
         </div>
 
-        <div className="flex items-center justify-center gap-2 text-xs text-gray-500 mb-4">
-          <button className={`px-3 py-1 rounded-full ${provider === 'supabase' ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-300'}`} onClick={() => setProvider('supabase')}>Supabase</button>
-          <button className={`px-3 py-1 rounded-full ${provider === 'firebase' ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-300'}`} onClick={() => setProvider('firebase')}>Firebase</button>
+        <div className="flex items-center justify-center gap-2 mb-4" role="tablist" aria-label="Auth provider toggle">
+          <button
+            type="button"
+            className={`p-2 rounded-full ${provider === 'supabase' ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-300'}`}
+            onClick={() => setProvider('supabase')}
+            aria-pressed={provider === 'supabase'}
+            aria-label="Use Supabase"
+          >
+            <Database className="w-5 h-5" />
+            <span className="sr-only">Supabase</span>
+          </button>
+          <button
+            type="button"
+            className={`p-2 rounded-full ${provider === 'firebase' ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-300'}`}
+            onClick={() => setProvider('firebase')}
+            aria-pressed={provider === 'firebase'}
+            aria-label="Use Firebase"
+          >
+            <Zap className="w-5 h-5" />
+            <span className="sr-only">Firebase</span>
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
