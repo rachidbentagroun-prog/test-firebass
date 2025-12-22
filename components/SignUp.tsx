@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
 import { signUpWithFirebase } from '../services/firebase';
+import { Sparkles, User, Mail, Lock } from 'lucide-react';
 
 type Provider = 'supabase' | 'firebase';
 
@@ -35,7 +36,6 @@ export default function SignUp() {
           setPassword('');
         }
       } else {
-        // Firebase flow
         const cred = await signUpWithFirebase(email, password, name);
         if (cred?.user) {
           setSuccess('Account created with Firebase.');
@@ -54,81 +54,94 @@ export default function SignUp() {
   }
 
   return (
-    <div style={{ maxWidth: 420, margin: '0 auto', padding: 20 }}>
-      <h2>Sign up</h2>
+    <div className="min-h-screen flex items-center justify-center p-6 bg-dark-950">
+      <div className="w-full max-w-md bg-dark-900/60 backdrop-blur-lg border border-white/6 rounded-3xl p-8 shadow-2xl">
+        <div className="text-center mb-6">
+          <div className="mx-auto mb-3 w-14 h-14 bg-gradient-to-tr from-indigo-600 to-purple-500 rounded-lg flex items-center justify-center">
+            <Sparkles className="w-7 h-7 text-white" />
+          </div>
+          <h2 className="text-2xl font-extrabold text-white">Create your account</h2>
+          <p className="text-sm text-gray-400 mt-1">Get started — 3 free credits included</p>
+        </div>
 
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ marginRight: 12 }}>
-          <input
-            type="radio"
-            checked={provider === 'supabase'}
-            onChange={() => setProvider('supabase')}
-          />{' '}
-          Supabase
-        </label>
-        <label>
-          <input
-            type="radio"
-            checked={provider === 'firebase'}
-            onChange={() => setProvider('firebase')}
-          />{' '}
-          Firebase
-        </label>
+        <div className="flex gap-2 mb-4">
+          <button
+            type="button"
+            onClick={() => alert('Social sign-up not configured')}
+            className="flex-1 bg-white/6 hover:bg-white/10 text-white py-2 rounded-lg flex items-center justify-center gap-2 border border-white/6"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M533.5 278.4c0-17.9-1.6-35-4.6-51.4H272v97.3h146.9c-6.3 34-25.8 62.8-54.7 82v68.1h88.4c51.6-47.5 81.9-117.6 81.9-196z"/><path fill="#34A853" d="M272 544.3c73.8 0 135.8-24.5 181.1-66.5l-88.4-68.1c-24.6 16.6-55.9 26.5-92.7 26.5-71 0-131.1-47.8-152.6-112.1H30.6v70.9C75.9 486 168 544.3 272 544.3z"/><path fill="#FBBC05" d="M119.4 324.1c-8.6-25.8-8.6-53.4 0-79.2V174.1H30.6c-36.6 72.8-36.6 158.1 0 230.9l88.8-80.9z"/><path fill="#EA4335" d="M272 108.9c38 0 72.2 13.4 99.2 39.6l74.4-74.4C407.7 24.4 345.7 0 272 0 168 0 75.9 58.3 30.6 153.3l88.8 70.9C140.9 156.7 201 108.9 272 108.9z"/></svg>
+            <span className="text-sm font-medium">Sign up with Google</span>
+          </button>
+        </div>
+
+        <div className="flex items-center justify-center gap-2 text-xs text-gray-500 mb-4">
+          <button className={`px-3 py-1 rounded-full ${provider === 'supabase' ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-300'}`} onClick={() => setProvider('supabase')}>Supabase</button>
+          <button className={`px-3 py-1 rounded-full ${provider === 'firebase' ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-300'}`} onClick={() => setProvider('firebase')}>Firebase</button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <label className="block">
+            <span className="sr-only">Full name</span>
+            <div className="flex items-center gap-3">
+              <User className="w-5 h-5 text-gray-400" />
+              <input
+                className="flex-1 bg-dark-900/40 border border-white/6 rounded-lg px-3 py-2 text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+          </label>
+
+          <label className="block">
+            <span className="sr-only">Email address</span>
+            <div className="flex items-center gap-3">
+              <Mail className="w-5 h-5 text-gray-400" />
+              <input
+                type="email"
+                className="flex-1 bg-dark-900/40 border border-white/6 rounded-lg px-3 py-2 text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+          </label>
+
+          <label className="block">
+            <span className="sr-only">Password</span>
+            <div className="flex items-center gap-3">
+              <Lock className="w-5 h-5 text-gray-400" />
+              <input
+                type="password"
+                className="flex-1 bg-dark-900/40 border border-white/6 rounded-lg px-3 py-2 text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Create a password (min 6 chars)"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={6}
+                required
+              />
+            </div>
+          </label>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg font-semibold disabled:opacity-60"
+          >
+            {loading ? 'Signing up…' : `Create account`}
+          </button>
+        </form>
+
+        {error && <div className="mt-4 text-sm text-red-400">{error}</div>}
+        {success && <div className="mt-4 text-sm text-green-400">{success}</div>}
+
+        <div className="mt-6 text-center text-sm text-gray-400">
+          Already have an account? <button onClick={() => window.location.href = '/'} className="text-indigo-400 font-medium">Sign in</button>
+        </div>
       </div>
-
-      <form onSubmit={handleSubmit}>
-        <label style={{ display: 'block', marginBottom: 8 }}>
-          Name
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Full name"
-            required
-            style={{ display: 'block', width: '100%', padding: 8, marginTop: 4 }}
-          />
-        </label>
-
-        <label style={{ display: 'block', marginBottom: 8 }}>
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            required
-            style={{ display: 'block', width: '100%', padding: 8, marginTop: 4 }}
-          />
-        </label>
-
-        <label style={{ display: 'block', marginBottom: 8 }}>
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Create a password"
-            required
-            minLength={6}
-            style={{ display: 'block', width: '100%', padding: 8, marginTop: 4 }}
-          />
-        </label>
-
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ padding: '10px 16px', marginTop: 8 }}
-        >
-          {loading ? 'Signing up…' : `Sign up with ${provider}`}
-        </button>
-      </form>
-
-      {error && (
-        <div style={{ color: 'red', marginTop: 12 }}>{error}</div>
-      )}
-
-      {success && (
-        <div style={{ color: 'green', marginTop: 12 }}>{success}</div>
-      )}
     </div>
   );
 }
