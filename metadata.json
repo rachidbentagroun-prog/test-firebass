@@ -1,0 +1,8 @@
+{
+  "name": "ImaginAI - AI Multimodal Lab",
+  "description": "A powerful AI workstation offering image generation, cinematic video via Veo, and neural voice synthesis.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
