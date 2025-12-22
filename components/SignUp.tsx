@@ -38,7 +38,7 @@ export default function SignUp() {
       } else {
         const cred = await signUpWithFirebase(email, password, name);
         if (cred?.user) {
-          setSuccess('Account created with Firebase.');
+          setSuccess('Account created — check your email for a verification link.');
           setName('');
           setEmail('');
           setPassword('');
