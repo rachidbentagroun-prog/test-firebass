@@ -239,13 +239,21 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onLoginClick, on
                   </div>
                 </div>
               ) : (
-                <button
-                  onClick={onLoginClick}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-dark-950 font-bold hover:bg-gray-100 transition-colors shadow-lg"
-                >
-                  <UserIcon className="w-4 h-4" />
-                  Sign In
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => onNavigate('signup')}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 text-white hover:bg-white/5 transition-colors"
+                  >
+                    Sign Up
+                  </button>
+                  <button
+                    onClick={onLoginClick}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-dark-950 font-bold hover:bg-gray-100 transition-colors shadow-lg"
+                  >
+                    <UserIcon className="w-4 h-4" />
+                    Sign In
+                  </button>
+                </div>
               )}
             </div>
           </div>

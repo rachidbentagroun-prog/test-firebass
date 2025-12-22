@@ -15,6 +15,7 @@ import { UserProfile } from './components/UserProfile.tsx';
 import { Showcase } from './components/Showcase.tsx';
 import { MultimodalSection } from './components/MultimodalSection.tsx';
 import { ChatWidget } from './components/ChatWidget.tsx';
+import SignUp from './components/SignUp.tsx';
 import { User, GeneratedImage, GeneratedVideo, GeneratedAudio, SiteConfig } from './types.ts';
 import { supabase } from './services/supabase.ts';
 import { 
@@ -279,6 +280,8 @@ const App: React.FC = () => {
         return user?.role === 'admin' ? <AdminDashboard users={allUsers} siteConfig={siteConfig} onUpdateConfig={setSiteConfig} onDeleteUser={() => {}} onUpdateUser={() => {}} onSendMessageToUser={() => {}} onBroadcastMessage={() => {}} onSupportReply={() => {}} hasApiKey={hasApiKey} onSelectKey={() => {}} /> : null;
       case 'profile':
         return user ? <UserProfile user={user} gallery={gallery} videoGallery={videoGallery} audioGallery={audioGallery} onLogout={handleLogout} onBack={() => setCurrentPage('home')} onUpdateUser={() => {}} onGalleryImport={() => {}} /> : null;
+      case 'signup':
+        return <SignUp />;
       default:
         return null;
     }
