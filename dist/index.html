@@ -1,0 +1,138 @@
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ImaginAI - The Multimodal Frontier</title>
+    
+    <!-- Primary Meta Tags -->
+    <meta name="title" content="ImaginAI - Create with Intelligence">
+    <meta name="description" content="A world-class neural workstation for high-fidelity images, cinematic videos, and expressive speech.">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/react-image-crop/dist/ReactCrop.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Plus Jakarta Sans', 'sans-serif'],
+            },
+            colors: {
+              indigo: {
+                400: '#818cf8',
+                500: '#6366f1',
+                600: '#4f46e5',
+                950: '#0a0a1a',
+              },
+              dark: {
+                800: '#11111e',
+                900: '#070712',
+                950: '#030308',
+              }
+            },
+            animation: {
+              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'fade-in': 'fadeIn 0.6s ease-out forwards',
+              'fade-in-up': 'fadeInUp 0.7s ease-out forwards',
+              'scale-in': 'scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'bounce-in': 'bounceIn 0.6s cubic-bezier(0.68, -0.6, 0.32, 1.6) forwards',
+              'float': 'float 6s ease-in-out infinite',
+              'glow': 'glow 3s ease-in-out infinite',
+            },
+            keyframes: {
+              fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+              fadeInUp: { '0%': { opacity: '0', transform: 'translateY(30px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+              scaleIn: { '0%': { opacity: '0', transform: 'scale(0.95)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
+              float: {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-20px)' },
+              },
+              glow: {
+                '0%, 100%': { opacity: '0.8', filter: 'brightness(1)' },
+                '50%': { opacity: '1', filter: 'brightness(1.5)' },
+              },
+              bounceIn: {
+                '0%': { opacity: '0', transform: 'scale(0.3)' },
+                '50%': { opacity: '1', transform: 'scale(1.05)' },
+                '100%': { transform: 'scale(1)' }
+              }
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      body { 
+        background-color: #030308; 
+        color: #f8fafc; 
+        margin: 0; 
+        overflow-x: hidden;
+      }
+      
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: 
+          radial-gradient(circle at 0% 0%, rgba(79, 70, 229, 0.08) 0%, transparent 40%),
+          radial-gradient(circle at 100% 100%, rgba(219, 39, 119, 0.08) 0%, transparent 40%),
+          radial-gradient(circle at 50% 50%, rgba(15, 15, 30, 1) 0%, rgba(3, 3, 8, 1) 100%);
+        z-index: -1;
+      }
+
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: #030308; }
+      ::-webkit-scrollbar-thumb { background: #1a1a2e; border-radius: 10px; }
+      ::-webkit-scrollbar-thumb:hover { background: #312e81; }
+
+      .glass {
+        background: rgba(10, 10, 26, 0.7);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .workstation-border {
+        border: 1px solid rgba(99, 102, 241, 0.15);
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(99, 102, 241, 0.02);
+      }
+
+      .text-glow {
+        text-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+      }
+
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+
+  <link rel="stylesheet" href="/index.css">
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.33.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.561.0",
+    "react-image-crop": "https://esm.sh/react-image-crop@^11.0.10",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.45.0",
+    "vite": "https://esm.sh/vite@^7.3.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "@supabase/auth-helpers-nextjs": "https://esm.sh/@supabase/auth-helpers-nextjs@^0.15.0",
+    "next/": "https://esm.sh/next@^16.1.0/"
+  }
+}
+</script>
+  <script type="module" crossorigin src="/assets/index-Cl9hOpQH.js"></script>
+</head>
+  <body class="selection:bg-indigo-500/30 selection:text-white">
+    <div id="root"></div>
+    <!-- Entry point updated for better reliability across environments -->
+</body>
+</html>

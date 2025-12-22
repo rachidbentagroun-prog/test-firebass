@@ -1,28 +1,11 @@
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 
-{
-  "hosting": {
-    "public": "dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ],
-    "headers": [
-      {
-        "source": "**/*.@(jpg|jpeg|gif|png|svg|webp|js|css|woff2)",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "max-age=31536000"
-          }
-        ]
-      }
-    ]
-  }
-}
+const firebaseConfig = {
+  apiKey: "AIzaSyAn0LrM0rtXoXvOA8m4JqkGQ8KJR_NKgYA",
+  authDomain: "image-ai-generator-adf8c.firebaseapp.com",
+  projectId: "image-ai-generator-adf8c",
+};
+
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
