@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { supabase } from '../services/supabase';
 import { signUpWithFirebase } from '../services/firebase';
-import { Sparkles, User, Mail, Lock, Database, Zap } from 'lucide-react';
+import { Sparkles, User, Mail, Lock } from 'lucide-react';
 
-type Provider = 'supabase' | 'firebase';
 
 export default function SignUp() {
-  const [provider, setProvider] = useState<Provider>('supabase');
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,30 +19,14 @@ export default function SignUp() {
     setLoading(true);
 
     try {
-      if (provider === 'supabase') {
-        const { data, error: signUpError } = await supabase.auth.signUp(
-          { email, password },
-          { data: { full_name: name } }
-        );
-
-        if (signUpError) {
-          setError(signUpError.message || 'Signup failed');
-        } else {
-          setSuccess('Check your email for a confirmation link (if required).');
-          setName('');
-          setEmail('');
-          setPassword('');
-        }
+      const cred = await signUpWithFirebase(email, password, name);
+      if (cred?.user) {
+        setSuccess('Account created — check your email for a verification link.');
+        setName('');
+        setEmail('');
+        setPassword('');
       } else {
-        const cred = await signUpWithFirebase(email, password, name);
-        if (cred?.user) {
-          setSuccess('Account created — check your email for a verification link.');
-          setName('');
-          setEmail('');
-          setPassword('');
-        } else {
-          setError('Firebase signup failed');
-        }
+        setError('Firebase signup failed');
       }
     } catch (err: any) {
       setError(err?.message || String(err));
@@ -75,28 +57,7 @@ export default function SignUp() {
           </button>
         </div>
 
-        <div className="flex items-center justify-center gap-2 mb-4" role="tablist" aria-label="Auth provider toggle">
-          <button
-            type="button"
-            className={`p-2 rounded-full ${provider === 'supabase' ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-300'}`}
-            onClick={() => setProvider('supabase')}
-            aria-pressed={provider === 'supabase'}
-            aria-label="Use Supabase"
-          >
-            <Database className="w-5 h-5" />
-            <span className="sr-only">Supabase</span>
-          </button>
-          <button
-            type="button"
-            className={`p-2 rounded-full ${provider === 'firebase' ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-300'}`}
-            onClick={() => setProvider('firebase')}
-            aria-pressed={provider === 'firebase'}
-            aria-label="Use Firebase"
-          >
-            <Zap className="w-5 h-5" />
-            <span className="sr-only">Firebase</span>
-          </button>
-        </div>
+
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <label className="block">
