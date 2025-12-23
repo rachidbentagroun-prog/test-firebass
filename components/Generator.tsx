@@ -61,6 +61,7 @@ const PROMPT_HISTORY_KEY = 'imaginai_prompt_history';
 
 export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUsed, onUpgradeRequired, onImageGenerated, onDeleteImage, onUpdateUser, initialPrompt }) => {
   const [genMode, setGenMode] = useState<'tti' | 'iti'>('tti');
+  const [imageEngine, setImageEngine] = useState<'klingai' | 'gemini'>('klingai');
   const [prompt, setPrompt] = useState(initialPrompt || '');
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [selectedStyle, setSelectedStyle] = useState('none');
@@ -278,13 +279,36 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
 
       const supportedRatio = aspectRatio === '1:2' ? '9:16' : aspectRatio;
 
-      const generatedDataUrl = await generateImageWithGemini(
-        finalPrompt, 
-        base64Image, 
-        mimeType, 
-        supportedRatio,
-        isProMode
-      );
+      let generatedDataUrl: string;
+
+      if (imageEngine === 'klingai') {
+        // KlingAI generation
+        console.log('[Generator] Generating with KlingAI:', { prompt: finalPrompt, aspect_ratio: supportedRatio, mode: isProMode ? 'pro' : 'standard' });
+        const { generateImageWithKlingAI } = await import('../services/klingaiImageService').then(m => ({ generateImageWithKlingAI: (m as any).generateImageWithKlingAI }));
+        const body: any = {
+          prompt: finalPrompt,
+          aspect_ratio: supportedRatio,
+          mode: isProMode ? 'pro' : 'standard',
+          image_count: 1
+        };
+        if (base64Image) {
+          body.image_url = `data:${mimeType};base64,${base64Image}`;
+        }
+        console.log('[Generator] Calling KlingAI API');
+        generatedDataUrl = await generateImageWithKlingAI(body);
+        console.log('[Generator] KlingAI responded with URL:', generatedDataUrl);
+      } else {
+        // Gemini generation
+        console.log('[Generator] Generating with Gemini:', { prompt: finalPrompt, aspectRatio: supportedRatio, isProMode });
+        generatedDataUrl = await generateImageWithGemini(
+          finalPrompt, 
+          base64Image, 
+          mimeType, 
+          supportedRatio,
+          isProMode
+        );
+        console.log('[Generator] Gemini responded');
+      }
       
       if (!generatedDataUrl || !generatedDataUrl.startsWith('data:')) {
          throw new Error("Handshake failed: Engine returned invalid visual signal.");
@@ -385,6 +409,25 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
             >
               <FileImage className="w-3.5 h-3.5" /> IMAGE TO IMAGE
             </button>
+          </div>
+
+          {/* AI Engine Selector */}
+          <div className="relative z-10">
+            <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-2 block">AI Engine</label>
+            <div className="flex bg-black/50 p-1.5 rounded-xl border border-white/5 w-fit">
+              <button 
+                onClick={() => setImageEngine('klingai')}
+                className={`px-6 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${imageEngine === 'klingai' ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+              >
+                KlingAI
+              </button>
+              <button 
+                onClick={() => setImageEngine('gemini')}
+                className={`px-6 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${imageEngine === 'gemini' ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+              >
+                Gemini 2.5
+              </button>
+            </div>
           </div>
 
           {/* Input Core */}
