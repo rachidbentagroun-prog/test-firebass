@@ -40,6 +40,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
   const [moteurMode, setMoteurMode] = useState<'text' | 'video'>('text');
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16'>('16:9');
   const [resolution, setResolution] = useState<'720p' | '1080p'>('720p');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const [isDimMenuOpen, setIsDimMenuOpen] = useState(false);
   const [isQualityMenuOpen, setIsQualityMenuOpen] = useState(false);
@@ -79,12 +80,47 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
   );
 
   const { hero, scriptToCinema, refineExtend, showcase } = config;
-
-  const handleCTAClick = () => {
-    if (user?.isRegistered) {
-      onStartCreating();
-    } else {
+  const handleCTAClick = async () => {
+    // Require login/registration first
+    if (!user?.isRegistered) {
       onLoginClick();
+      return;
+    }
+
+    // Enforce identity check gating
+    if (showIdentityCheck) {
+      alert('A verification link was sent to your email. Please confirm your identity to proceed.');
+      return;
+    }
+
+    // Ensure API key is configured
+    if (!hasApiKey) {
+      onSelectKey();
+      return;
+    }
+
+    const prompt = window.prompt('Describe the video you want to generate (Sora 2):', 'UGC style product demo with close-ups, natural lighting');
+    if (!prompt) return;
+
+    // Map UI selections to Sora size + duration
+    const size = aspectRatio === '16:9'
+      ? (resolution === '1080p' ? '1920x1080' : '1280x720')
+      : (resolution === '1080p' ? '1080x1920' : '720x1280');
+    const seconds = resolution === '1080p' ? 10 : 8;
+
+    setIsGenerating(true);
+    try {
+      const { generateVideoWithSora } = await import('../services/soraService').then(m => ({ generateVideoWithSora: (m as any).generateVideoWithSora }));
+      const url = await generateVideoWithSora({ model: 'sora-2', prompt, size, seconds });
+      if (url && typeof url === 'string') {
+        window.open(url, '_blank', 'noopener');
+      } else {
+        alert('Sora responded without a video URL. Please check your generation queue.');
+      }
+    } catch (e: any) {
+      alert(`Failed to start Sora generation: ${e?.message || e}`);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -183,7 +219,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                           <div className="animate-fade-in">
                              <div className="flex justify-between mb-2">
                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Directorial Script</label>
-                               <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">Veo 3.1 LLM</span>
+                               <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">Sora 2</span>
                              </div>
                              <textarea 
                                placeholder="Describe the cinematic motion, lighting, and textures..."
@@ -251,8 +287,8 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                           </div>
                        </div>
 
-                       <button onClick={handleCTAClick} className="w-full py-6 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02] active:scale-[0.98]">
-                         <Zap className="w-5 h-5 fill-white" /> {user?.isRegistered ? 'Start Ai Video Synthesis' : 'Generate Free Now'}
+                       <button onClick={handleCTAClick} disabled={isGenerating || showIdentityCheck} className="w-full py-6 bg-indigo-600 hover:bg-indigo-500 disabled:bg-white/10 disabled:text-white/50 disabled:cursor-not-allowed text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02] active:scale-[0.98]">
+                         {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5 fill-white" />} {user?.isRegistered ? (isGenerating ? 'Generating…' : 'Start Ai Video Synthesis') : 'Generate Free Now'}
                        </button>
                     </div>
                  </div>
@@ -278,8 +314,8 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
       <section className="py-32 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 text-center">
            <h2 className="text-5xl md:text-8xl font-black text-white uppercase italic tracking-tighter mb-8 leading-none">Ready to <br /> Direct the Future?</h2>
-           <button onClick={handleCTAClick} disabled={showIdentityCheck} className={`px-16 py-8 rounded-[2rem] font-black text-3xl uppercase italic tracking-widest shadow-2xl transition-transform hover:scale-105 active:scale-95 ${showIdentityCheck ? 'bg-white/5 opacity-60 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`} title={showIdentityCheck ? 'A verification link was sent to your email. Please confirm your identity to proceed.' : undefined}>
-              {showIdentityCheck ? 'VERIFY EMAIL TO PROCEED' : (user?.isRegistered ? 'Enter Ai Video Production' : 'Generate Free Now')}
+            <button onClick={handleCTAClick} disabled={showIdentityCheck || isGenerating} className={`px-16 py-8 rounded-[2rem] font-black text-3xl uppercase italic tracking-widest shadow-2xl transition-transform hover:scale-105 active:scale-95 ${showIdentityCheck || isGenerating ? 'bg-white/5 opacity-60 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`} title={showIdentityCheck ? 'A verification link was sent to your email. Please confirm your identity to proceed.' : undefined}>
+              {showIdentityCheck ? 'VERIFY EMAIL TO PROCEED' : (user?.isRegistered ? (isGenerating ? 'Starting Sora…' : 'Enter Ai Video Production') : 'Generate Free Now')}
            </button>
         </div>
       </section>
