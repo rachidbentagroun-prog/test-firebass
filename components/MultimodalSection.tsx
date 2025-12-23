@@ -26,7 +26,7 @@ export const MultimodalSection: React.FC<MultimodalSectionProps> = ({ onNavigate
       id: 'video',
       title: 'Ai Video',
       subtitle: 'Evolution Lab',
-      description: 'Create cinematic 1080p and 4K sequences with temporal consistency via Veo 3.1.',
+      description: 'Create cinematic 1080p and 4K sequences with temporal consistency via Sora 2.',
       icon: Video,
       color: 'purple',
       page: 'video-lab-landing',

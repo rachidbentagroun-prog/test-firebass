@@ -41,6 +41,9 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16'>('16:9');
   const [resolution, setResolution] = useState<'720p' | '1080p'>('720p');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [textPrompt, setTextPrompt] = useState('');
+  const [videoGuidance, setVideoGuidance] = useState('');
+  const [referenceFrame, setReferenceFrame] = useState<string | null>(null);
 
   const [isDimMenuOpen, setIsDimMenuOpen] = useState(false);
   const [isQualityMenuOpen, setIsQualityMenuOpen] = useState(false);
@@ -48,6 +51,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
 
   const dimMenuRef = useRef<HTMLDivElement>(null);
   const qualityMenuRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -81,26 +85,46 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
 
   const { hero, scriptToCinema, refineExtend, showcase } = config;
   const handleCTAClick = async () => {
+    console.log('[VideoLabLanding] CTA clicked', { 
+      isRegistered: user?.isRegistered, 
+      showIdentityCheck, 
+      hasApiKey, 
+      moteurMode,
+      textPrompt,
+      videoGuidance,
+      aspectRatio,
+      resolution
+    });
+
     // Require login/registration first
     if (!user?.isRegistered) {
+      console.log('[VideoLabLanding] User not registered, opening login');
       onLoginClick();
       return;
     }
 
     // Enforce identity check gating
     if (showIdentityCheck) {
+      console.log('[VideoLabLanding] Identity check required');
       alert('A verification link was sent to your email. Please confirm your identity to proceed.');
       return;
     }
 
     // Ensure API key is configured
     if (!hasApiKey) {
+      console.log('[VideoLabLanding] API key missing');
       onSelectKey();
       return;
     }
 
-    const prompt = window.prompt('Describe the video you want to generate (Sora 2):', 'UGC style product demo with close-ups, natural lighting');
-    if (!prompt) return;
+    // Validate prompt based on current mode
+    const prompt = moteurMode === 'text' ? textPrompt.trim() : videoGuidance.trim();
+    console.log('[VideoLabLanding] Prompt:', prompt);
+    
+    if (!prompt) {
+      alert('Please enter a prompt in the Directorial Script textarea before starting synthesis.');
+      return;
+    }
 
     // Map UI selections to Sora size + duration
     const size = aspectRatio === '16:9'
@@ -108,16 +132,27 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
       : (resolution === '1080p' ? '1080x1920' : '720x1280');
     const seconds = resolution === '1080p' ? 10 : 8;
 
+    console.log('[VideoLabLanding] Generating with:', { model: 'sora-2', prompt, size, seconds, hasReference: !!referenceFrame });
+
     setIsGenerating(true);
     try {
       const { generateVideoWithSora } = await import('../services/soraService').then(m => ({ generateVideoWithSora: (m as any).generateVideoWithSora }));
-      const url = await generateVideoWithSora({ model: 'sora-2', prompt, size, seconds });
+      const body: any = { model: 'sora-2', prompt, size, seconds };
+      if (moteurMode === 'video' && referenceFrame) {
+        body.input_reference = referenceFrame;
+      }
+      console.log('[VideoLabLanding] Calling Sora API with body:', body);
+      const url = await generateVideoWithSora(body);
+      console.log('[VideoLabLanding] Sora responded with URL:', url);
+      
       if (url && typeof url === 'string') {
+        alert(`Video generation started! Opening: ${url}`);
         window.open(url, '_blank', 'noopener');
       } else {
         alert('Sora responded without a video URL. Please check your generation queue.');
       }
     } catch (e: any) {
+      console.error('[VideoLabLanding] Generation failed:', e);
       alert(`Failed to start Sora generation: ${e?.message || e}`);
     } finally {
       setIsGenerating(false);
@@ -224,6 +259,8 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                              <textarea 
                                placeholder="Describe the cinematic motion, lighting, and textures..."
                                className="w-full h-44 bg-black/40 border border-white/10 rounded-[1.5rem] p-6 text-white text-sm outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none custom-scrollbar"
+                               value={textPrompt}
+                               onChange={(e) => setTextPrompt(e.target.value)}
                              />
                           </div>
                        ) : (
@@ -231,17 +268,24 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                              <div className="flex justify-between mb-2">
                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Temporal Anchor</label>
                              </div>
-                             <div className="aspect-video bg-black/60 border-2 border-dashed border-white/10 rounded-[1.5rem] flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 hover:border-indigo-500/30 transition-all group">
+                             <div onClick={() => fileInputRef.current?.click()} className="aspect-video bg-black/60 border-2 border-dashed border-white/10 rounded-[1.5rem] flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 hover:border-indigo-500/30 transition-all group">
                                 <Upload className="w-10 h-10 text-gray-600 mb-4 group-hover:text-indigo-400 group-hover:scale-110 transition-all" />
-                                <p className="text-[10px] font-black text-gray-500 uppercase">Upload Starting Frame</p>
+                                <p className="text-[10px] font-black text-gray-500 uppercase">{referenceFrame ? 'Frame Selected' : 'Upload Starting Frame'}</p>
+                                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  const reader = new FileReader();
+                                  reader.onload = () => setReferenceFrame(reader.result as string);
+                                  reader.readAsDataURL(file);
+                                }} />
                              </div>
                              <div className="space-y-2">
                                 <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Motion Guidance Script</label>
                                 <input 
                                   type="text" 
                                   placeholder="Transform into cyberpunk aesthetic..."
-                                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/50"
-                                />
+                                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/50"                                   value={videoGuidance}
+                                   onChange={(e) => setVideoGuidance(e.target.value)}                                />
                              </div>
                           </div>
                        )}

@@ -328,7 +328,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                   <div className="p-8 border-t border-white/10 bg-dark-900/80 backdrop-blur-xl flex items-center justify-between">
                     <div>
                        <p className="text-white font-black uppercase tracking-tight text-xs italic leading-none">Synthesis Complete</p>
-                       <p className="text-[9px] text-gray-500 uppercase tracking-[0.2em] mt-2">{resultVideo.resolution} • VEO 3.1 • {resultVideo.aspectRatio}</p>
+                       <p className="text-[9px] text-gray-500 uppercase tracking-[0.2em] mt-2">{resultVideo.resolution} • SORA 2 • {resultVideo.aspectRatio}</p>
                     </div>
                     <a href={resultVideo.url} download className="p-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg transition-all flex items-center gap-2 px-6">
                       <Download className="w-4 h-4" />
@@ -379,7 +379,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                              <Activity className="w-3.5 h-3.5 text-pink-400" />
                              <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Motion Core</span>
                           </div>
-                          <p className="text-[10px] font-bold text-white uppercase truncate">Veo 3.1 Adaptive</p>
+                          <p className="text-[10px] font-bold text-white uppercase truncate">Sora 2 Adaptive</p>
                        </div>
                     </div>
                   </div>

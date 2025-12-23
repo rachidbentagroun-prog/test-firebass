@@ -771,7 +771,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                  <div className="p-8 bg-black/40 border border-white/10 rounded-[2.5rem] flex flex-col justify-between">
                     <div>
                        <h4 className="text-lg font-black text-white uppercase italic mb-4 flex items-center gap-2"><VideoIcon className="w-5 h-5 text-indigo-400" /> TTV Moteur Status</h4>
-                       <p className="text-[11px] text-gray-500 font-medium leading-relaxed mb-8">The Text-To-Video engine requires a paid API Key with Veo 3.1 capabilities. Bonding a key here enables production for all registered nodes.</p>
+                       <p className="text-[11px] text-gray-500 font-medium leading-relaxed mb-8">The Text-To-Video engine requires a paid API Key with Sora 2 capabilities. Bonding a key here enables production for all registered nodes.</p>
                     </div>
                     <button onClick={onSelectKey} className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl transition-all flex items-center justify-center gap-3">
                        <ShieldCheck className="w-4 h-4" /> {hasApiKey ? 'Update Auth Token' : 'Authorize TTV Moteur'}

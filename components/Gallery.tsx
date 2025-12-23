@@ -225,7 +225,7 @@ const VideoCard: React.FC<{ video: GeneratedVideo; onPreview: () => void }> = ({
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:opacity-0 transition-opacity duration-300">
         <div className="p-6 bg-white/10 backdrop-blur-md rounded-full border border-white/10"><Play className="w-8 h-8 text-white fill-white" /></div>
       </div>
-      <div className="absolute top-6 left-6 px-4 py-1.5 bg-black/60 backdrop-blur-md rounded-full text-[9px] font-black text-indigo-400 border border-indigo-500/30 uppercase tracking-[0.2em]">{video.resolution} • VEO 3.1</div>
+      <div className="absolute top-6 left-6 px-4 py-1.5 bg-black/60 backdrop-blur-md rounded-full text-[9px] font-black text-indigo-400 border border-indigo-500/30 uppercase tracking-[0.2em]">{video.resolution} • SORA 2</div>
     </div>
     <div className="p-8">
       <div className="flex items-center justify-between mb-4">
