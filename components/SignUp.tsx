@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { signUpWithFirebase } from '../services/firebase';
+import { signUpWithFirebase, signInWithGoogle } from '../services/firebase';
 import { Sparkles, User, Mail, Lock } from 'lucide-react';
 
 
@@ -19,9 +19,14 @@ export default function SignUp() {
     setLoading(true);
 
     try {
-      const cred = await signUpWithFirebase(email, password, name);
+      const res = await signUpWithFirebase(email, password, name);
+      const cred = res?.userCredential;
       if (cred?.user) {
-        setSuccess('Account created — check your email for a verification link.');
+        if (res?.emailSent) {
+          setSuccess('Account created — check your email for a verification link.');
+        } else {
+          setSuccess('Account created — verification email failed to send. Please try resending from the login flow.');
+        }
         setName('');
         setEmail('');
         setPassword('');
@@ -49,11 +54,28 @@ export default function SignUp() {
         <div className="flex gap-2 mb-4">
           <button
             type="button"
-            onClick={() => alert('Social sign-up not configured')}
+            onClick={async () => {
+              setLoading(true);
+              setError(null);
+              try {
+                const res = await signInWithGoogle();
+                if (res?.error) {
+                  setError('Google sign-in failed: ' + res.error);
+                } else {
+                  setSuccess('Signed in with Google — redirecting...');
+                  // Redirect to dashboard or home where the app will handle auth state
+                  window.location.href = '/?goto=dashboard';
+                }
+              } catch (err: any) {
+                setError(err?.message || String(err));
+              } finally {
+                setLoading(false);
+              }
+            }}
             className="flex-1 bg-white/6 hover:bg-white/10 text-white py-2 rounded-lg flex items-center justify-center gap-2 border border-white/6"
           >
             <svg className="w-4 h-4" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M533.5 278.4c0-17.9-1.6-35-4.6-51.4H272v97.3h146.9c-6.3 34-25.8 62.8-54.7 82v68.1h88.4c51.6-47.5 81.9-117.6 81.9-196z"/><path fill="#34A853" d="M272 544.3c73.8 0 135.8-24.5 181.1-66.5l-88.4-68.1c-24.6 16.6-55.9 26.5-92.7 26.5-71 0-131.1-47.8-152.6-112.1H30.6v70.9C75.9 486 168 544.3 272 544.3z"/><path fill="#FBBC05" d="M119.4 324.1c-8.6-25.8-8.6-53.4 0-79.2V174.1H30.6c-36.6 72.8-36.6 158.1 0 230.9l88.8-80.9z"/><path fill="#EA4335" d="M272 108.9c38 0 72.2 13.4 99.2 39.6l74.4-74.4C407.7 24.4 345.7 0 272 0 168 0 75.9 58.3 30.6 153.3l88.8 70.9C140.9 156.7 201 108.9 272 108.9z"/></svg>
-            <span className="text-sm font-medium">Sign up with Google</span>
+            <span className="text-sm font-medium">{loading ? 'Signing in…' : 'Sign up with Google'}</span>
           </button>
         </div>
 

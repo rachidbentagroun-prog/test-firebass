@@ -43,6 +43,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
 
   const [isDimMenuOpen, setIsDimMenuOpen] = useState(false);
   const [isQualityMenuOpen, setIsQualityMenuOpen] = useState(false);
+  const [showIdentityCheck, setShowIdentityCheck] = useState(false);
 
   const dimMenuRef = useRef<HTMLDivElement>(null);
   const qualityMenuRef = useRef<HTMLDivElement>(null);
@@ -56,6 +57,20 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Check whether to show an identity verification notice
+  useEffect(() => {
+    try {
+      const pv = localStorage.getItem('pending_verification');
+      if ((user && !user.isVerified) || pv) {
+        setShowIdentityCheck(true);
+      } else {
+        setShowIdentityCheck(false);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [user]);
 
   if (!config) return (
     <div className="min-h-screen bg-dark-950 flex items-center justify-center">
@@ -113,10 +128,12 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
           <div className="flex flex-wrap items-center justify-center gap-6 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
             <button 
               onClick={handleCTAClick}
-              className="px-12 py-6 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-xl flex items-center gap-3 transition-all transform hover:scale-105 shadow-[0_20px_50px_rgba(79,70,229,0.3)] group"
+              disabled={showIdentityCheck}
+              className={`px-12 py-6 rounded-2xl font-black text-xl flex items-center gap-3 transition-all transform hover:scale-105 shadow-[0_20px_50px_rgba(79,70,229,0.3)] group ${showIdentityCheck ? 'bg-white/5 opacity-60 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`}
+              title={showIdentityCheck ? 'A verification link was sent to your email. Please confirm your identity to proceed.' : undefined}
             >
               <Zap className="w-6 h-6 fill-white group-hover:animate-pulse" /> 
-              Start Free Generation
+              {showIdentityCheck ? 'VERIFY EMAIL TO PROCEED' : 'Start Free Generation'}
             </button>
           </div>
         </div>
@@ -129,6 +146,16 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
               <h2 className="text-sm font-black text-indigo-400 uppercase tracking-[0.4em] mb-4">Live Production Engine</h2>
               <h3 className="text-5xl font-black text-white uppercase italic tracking-tighter">Ai Video Synthesis Moteur</h3>
            </div>
+
+           {showIdentityCheck && (
+             <div className="max-w-2xl mx-auto mb-6 p-4 rounded-2xl bg-amber-900/10 border border-amber-500/10 text-center">
+               <div className="flex items-center justify-center gap-3">
+                 <AlertCircle className="w-5 h-5 text-amber-300" />
+                 <h4 className="text-sm font-black uppercase text-amber-300">IDENTITY CHECK</h4>
+               </div>
+               <p className="text-gray-300 text-sm mt-2">A verification link was sent to your email. Access is strictly restricted until you confirm your identity via that link.</p>
+             </div>
+           )}
 
            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
               {/* Controls Column */}
@@ -251,8 +278,8 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
       <section className="py-32 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 text-center">
            <h2 className="text-5xl md:text-8xl font-black text-white uppercase italic tracking-tighter mb-8 leading-none">Ready to <br /> Direct the Future?</h2>
-           <button onClick={handleCTAClick} className="px-16 py-8 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[2rem] font-black text-3xl uppercase italic tracking-widest shadow-2xl transition-transform hover:scale-105 active:scale-95">
-              {user?.isRegistered ? 'Enter Ai Video Production' : 'Generate Free Now'}
+           <button onClick={handleCTAClick} disabled={showIdentityCheck} className={`px-16 py-8 rounded-[2rem] font-black text-3xl uppercase italic tracking-widest shadow-2xl transition-transform hover:scale-105 active:scale-95 ${showIdentityCheck ? 'bg-white/5 opacity-60 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`} title={showIdentityCheck ? 'A verification link was sent to your email. Please confirm your identity to proceed.' : undefined}>
+              {showIdentityCheck ? 'VERIFY EMAIL TO PROCEED' : (user?.isRegistered ? 'Enter Ai Video Production' : 'Generate Free Now')}
            </button>
         </div>
       </section>

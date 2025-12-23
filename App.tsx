@@ -21,9 +21,11 @@ import { User, GeneratedImage, GeneratedVideo, GeneratedAudio, SiteConfig } from
 import { supabase } from './services/supabase.ts';
 import { 
   getImagesFromDB, saveImageToDB, getVideosFromDB, 
-  saveVideoToDB, getAudioFromDB, saveAudioToDB, getAllUsersFromDB
+  saveVideoToDB, getAudioFromDB, saveAudioToDB
 } from './services/dbService.ts';
 import { Sparkles, RefreshCw, ArrowLeft, ShieldAlert } from 'lucide-react';
+import { auth, getUserProfile, getAllUsersFromFirestore } from './services/firebase';
+import { onAuthStateChanged, signOut as fbSignOut } from 'firebase/auth';
 
 const CONFIG_KEY = 'imaginai_site_config';
 const SUPER_ADMIN_EMAIL = 'isambk92@gmail.com';
@@ -47,7 +49,7 @@ const DEFAULT_CONFIG: SiteConfig = {
   articles: [],
   plans: [
     { id: 'free', name: 'Free Trial', price: '$0', credits: 3, features: ['3 Free Generations', 'Public Gallery'] },
-    { id: 'basic', name: 'Basic Creator', price: '$9.9', credits: 50, features: ['50 Generations / mo', 'Private Gallery'], recommended: true, buttonUrl: 'https://bentagroun.gumroad.com/l/huodf' },
+    { id: 'basic', name: 'Basic Creator', price: '$9.9', credits: 16, features: ['16 Generations / mo', 'Private Gallery'], recommended: true, buttonUrl: 'https://bentagroun.gumroad.com/l/huodf' },
     { id: 'premium', name: 'Premium', price: '$20', credits: 'Unlimited', features: ['Unlimited Access', 'Priority Rendering'], buttonUrl: 'https://bentagroun.gumroad.com/l/zrgraz' }
   ],
   topMenu: [],
@@ -103,119 +105,355 @@ const App: React.FC = () => {
       if (typeof window !== 'undefined' && window.location.pathname.startsWith('/auth/post-verify')) {
         return 'post-verify';
       }
+      // Support '?goto=dashboard' redirection after verification
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('goto') === 'dashboard') return 'dashboard';
+      }
     } catch (e) {}
     return 'home';
   });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authPrefillEmail, setAuthPrefillEmail] = useState<string | undefined>(undefined);
+  const [isIdentityCheckActive, setIsIdentityCheckActive] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [initialPrompt, setInitialPrompt] = useState('');
   const [hasApiKey, setHasApiKey] = useState(false);
+  // Track whether auth initialization timed out so we render a helpful message instead of an unending spinner
+  const [authInitTimedOut, setAuthInitTimedOut] = useState(false);
 
   useEffect(() => {
     const checkApiKey = async () => {
       const anyWindow = window as any;
+      const hasEnvKey = !!(process.env.SORA_API_KEY && process.env.SORA_API_KEY !== '""') || !!(process.env.API_KEY && process.env.API_KEY !== '""');
+      let hasUiKey = false;
       if (anyWindow.aistudio && typeof anyWindow.aistudio.hasSelectedApiKey === 'function') {
-        const hasKey = await anyWindow.aistudio.hasSelectedApiKey();
-        setHasApiKey(hasKey);
+        hasUiKey = await anyWindow.aistudio.hasSelectedApiKey();
       }
+      setHasApiKey(hasEnvKey || hasUiKey);
     };
     checkApiKey();
   }, []);
 
   useEffect(() => {
-    const syncUserProfile = async (supabaseUser: any) => {
-      if (!supabaseUser) {
-        setUser(null);
-        setIsInitializing(false);
-        return;
-      }
+    let didCancel = false;
+    let timeoutId: number | undefined;
 
-      // STRICT VERIFICATION CHECK: Query Supabase directly for the latest confirmation status
-      const { data: { user: freshUser } } = await supabase.auth.getUser();
-      const isSuperAdmin = freshUser?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
-      
-      // If user exists but email is not confirmed, force logout and verification screen
-      if (freshUser && !freshUser.email_confirmed_at && !isSuperAdmin) {
-        await supabase.auth.signOut();
-        setUser(null);
-        setCurrentPage('verify-email');
-        setIsInitializing(false);
-        return;
-      }
+    const safeSetInitFalse = () => { if (!didCancel) setIsInitializing(false); };
 
-      try {
-        let { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', supabaseUser.id)
-          .maybeSingle();
+    try {
+      console.debug('Initializing Firebase auth listener');
 
-        if (!profile) {
-          const { data: newProfile } = await supabase
-            .from('profiles')
-            .insert([{
-              id: supabaseUser.id,
-              full_name: supabaseUser.user_metadata?.full_name || 'Creator',
-              email: supabaseUser.email,
-              credits: 3,
-              plan: 'free',
-              role: 'user'
-            }])
-            .select()
-            .single();
-          profile = newProfile;
+      // If auth doesn't respond within 5s, show a helpful timeout message instead of an infinite spinner
+      timeoutId = window.setTimeout(() => {
+        console.warn('Auth init timed out after 5s');
+        setAuthInitTimedOut(true);
+        safeSetInitFalse();
+      }, 5000);
+
+      const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+        try {
+          if (timeoutId) { clearTimeout(timeoutId); timeoutId = undefined; }
+
+          if (!fbUser) {
+            setUser(null);
+            setGallery([]);
+            setVideoGallery([]);
+            setAudioGallery([]);
+            safeSetInitFalse();
+            return;
+          }
+
+          // Set a lightweight user immediately so the UI can render the dashboard quickly
+          const isQuickSuperAdmin = fbUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+          const quickUser: User = {
+            id: fbUser.uid,
+            name: (fbUser.displayName || fbUser.email?.split('@')[0] || 'Creator') as string,
+            email: fbUser.email || '',
+            role: isQuickSuperAdmin ? 'admin' : 'user',
+            plan: isQuickSuperAdmin ? 'premium' : 'free',
+            credits: isQuickSuperAdmin ? 99999 : 3,
+            isRegistered: true,
+            isVerified: isQuickSuperAdmin || !!fbUser.emailVerified,
+            gallery: [],
+          };
+
+          setUser(quickUser);
+          safeSetInitFalse();
+
+          // Perform heavier profile/entitlements fetches in the background and update the user when ready
+          (async () => {
+            try {
+              const profile = await getUserProfile(fbUser.uid);
+
+              // Grant entitlements when verified or for the super-admin regardless of verification
+              try {
+                const { grantDefaultEntitlements } = await import('./services/firebase');
+                if ((fbUser.emailVerified && !(profile?.entitlements?.image)) || fbUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) {
+                  grantDefaultEntitlements(fbUser.uid).catch((err) => console.warn('Failed to grant entitlements on auth bg task', err));
+                }
+              } catch (err) {
+                console.warn('Failed to import grantDefaultEntitlements', err);
+              }
+
+              const isSuperAdmin = fbUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+
+              const updatedUser: User = {
+                id: fbUser.uid,
+                name: (fbUser.displayName || profile?.name || fbUser.email?.split('@')[0] || 'Creator') as string,
+                email: fbUser.email || '',
+                role: isSuperAdmin ? 'admin' : (profile?.role || 'user'),
+                plan: isSuperAdmin ? 'premium' : (profile?.plan || 'free'),
+                credits: isSuperAdmin ? 99999 : (profile?.credits ?? 3),
+                isRegistered: true,
+                // Auto-verify the super-admin email so they can access the Admin Dashboard without an email verification
+                isVerified: isSuperAdmin || !!fbUser.emailVerified || !!profile?.verified,
+                gallery: [],
+              };
+
+              setUser(updatedUser);
+
+              // Admins: fetch all users but don't block UI
+              if (updatedUser.role === 'admin') {
+                try {
+                  const users = await getAllUsersFromFirestore();
+                  setAllUsers(users);
+                } catch (err) {
+                  console.warn('Failed to fetch all users from Firestore:', err);
+                }
+              }
+            } catch (err) {
+              console.warn('Background auth tasks failed', err);
+            }
+          })();
+        } catch (err) {
+          console.error('Auth sync error', err);
+          safeSetInitFalse();
         }
+      });
 
-        const userData: User = {
-          id: supabaseUser.id,
-          name: profile?.full_name || 'Creator',
-          email: supabaseUser.email!,
-          role: isSuperAdmin ? 'admin' : (profile?.role || 'user'),
-          plan: isSuperAdmin ? 'premium' : (profile?.plan || 'free'),
-          credits: isSuperAdmin ? 99999 : (profile?.credits ?? 3),
-          isRegistered: true,
-          isVerified: true,
-          gallery: [],
-        };
-        
-        setUser(userData);
-        setIsInitializing(false);
-
-        const images = await getImagesFromDB(supabaseUser.id);
-        const videos = await getVideosFromDB(supabaseUser.id);
-        const audios = await getAudioFromDB(supabaseUser.id);
-        
-        setGallery(images);
-        setVideoGallery(videos);
-        setAudioGallery(audios);
-        
-        if (userData.role === 'admin') {
-          const users = await getAllUsersFromDB();
-          setAllUsers(users);
-        }
-      } catch (err) {
-        console.error("Critical sync error", err);
-        setIsInitializing(false);
-      }
-    };
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-        syncUserProfile(session?.user ?? null);
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setGallery([]);
-        setVideoGallery([]);
-        setAudioGallery([]);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+      return () => { didCancel = true; if (timeoutId) clearTimeout(timeoutId); unsubscribe(); };
+    } catch (err) {
+      console.error('Auth listener setup failed', err);
+      setAuthInitTimedOut(true);
+      setIsInitializing(false);
+    }
   }, []);
 
+  // Log visits and referrers for basic analytics (soft fail if analytics table doesn't exist)
+  useEffect(() => {
+    try {
+      const track = async () => {
+        try {
+          const { logTrafficEvent } = await import('./services/dbService');
+          await logTrafficEvent({ path: window.location.pathname, referrer: document.referrer || 'direct', userAgent: navigator.userAgent, userId: user?.id || null });
+        } catch (e) {
+          // ignore
+        }
+      };
+      track();
+    } catch (e) {
+      // ignore
+    }
+  }, [currentPage, user]);
+
+  // Admin action handlers
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      const { deleteUserFromDB } = await import('./services/dbService');
+      await deleteUserFromDB(userId);
+      setAllUsers(prev => prev.filter(u => u.id !== userId));
+    } catch (e) {
+      console.warn('Failed to delete user:', e);
+      alert('Failed to delete user.');
+    }
+  };
+
+  const handleUpdateUser = async (u: User) => {
+    try {
+      const { updateUserProfile, updateUserCredits } = await import('./services/dbService');
+      await updateUserProfile(u.id, { name: u.name, email: u.email, plan: u.plan, status: u.status });
+      await updateUserCredits(u.id, u.credits);
+      setAllUsers(prev => prev.map(p => p.id === u.id ? u : p));
+      alert('User updated.');
+    } catch (e) {
+      console.warn('Failed to update user:', e);
+      alert('Failed to update user.');
+    }
+  };
+
+  const handleSendMessageToUser = async (userId: string, message: {subject: string, content: string}) => {
+    try {
+      const { sendMessageToUserInDB, sendEmailToUser } = await import('./services/dbService');
+      await sendMessageToUserInDB(userId, { subject: message.subject, content: message.content });
+      // also attempt to deliver as an email for real-world admin workflows
+      const target = allUsers.find(u => u.id === userId);
+      if (target && target.email) await sendEmailToUser(target.email, message.subject, message.content);
+      alert('Message queued.');
+    } catch (e) {
+      console.warn('Failed to send message to user:', e);
+      alert('Message dispatch failed.');
+    }
+  };
+
+  const handleBroadcastMessage = async (msg: {subject: string, content: string}) => {
+    try {
+      const { broadcastMessageToAllInDB } = await import('./services/dbService');
+      await broadcastMessageToAllInDB(msg);
+      alert('Broadcast queued.');
+    } catch (e) {
+      console.warn('Failed to broadcast message:', e);
+      alert('Broadcast failed.');
+    }
+  };
+
+  // Allow admin to trigger a Firebase sync on demand
+  const handleSyncFirebaseUsers = async () => {
+    try {
+      const { getAllFirebaseUsers } = await import('./services/firebase');
+      const fbUsers = await getAllFirebaseUsers();
+      if (!fbUsers || fbUsers.length === 0) {
+        alert('No Firebase users found or the operation failed.');
+        return;
+      }
+      // Merge into current allUsers (preferring existing Supabase entries)
+      const byEmail = new Map(allUsers.map(u => [u.email?.toLowerCase(), u]));
+      const merged = [...allUsers];
+      fbUsers.forEach((fb: any) => {
+        if (!fb.email) return;
+        const key = fb.email.toLowerCase();
+        if (!byEmail.has(key)) {
+          merged.push({
+            id: fb.id,
+            name: fb.name || 'Creator',
+            email: fb.email,
+            role: fb.role || 'user',
+            plan: fb.plan || 'free',
+            credits: fb.credits ?? 0,
+            isRegistered: true,
+            isVerified: !!fb.verified,
+            avatarUrl: fb.avatarUrl || null,
+            status: fb.status || 'active',
+            gallery: []
+          });
+        } else {
+          const existing = byEmail.get(key)!;
+          existing.role = existing.role || fb.role;
+          existing.plan = existing.plan || fb.plan;
+          existing.credits = existing.credits ?? fb.credits ?? existing.credits;
+        }
+      });
+      setAllUsers(merged);
+      alert('Firebase users synced into admin directory.');
+    } catch (e) {
+      console.warn('Sync failed:', e);
+      alert('Sync failed.');
+    }
+  };
+
+  // Developer helpers: support dev-only URL actions for testing flows
+  useEffect(() => {
+    try {
+      if (!import.meta.env.DEV) return; // only in dev
+      const params = new URLSearchParams(window.location.search);
+      const action = params.get('action');
+
+      if (action === 'devVerify') {
+        const uid = params.get('uid');
+        if (uid) {
+          (async () => {
+            try {
+              const { grantDefaultEntitlements } = await import('./services/firebase');
+              await grantDefaultEntitlements(uid);
+              console.log('Dev: granted entitlements to', uid);
+              window.location.href = `${window.location.origin}/?goto=dashboard`;
+            } catch (err) {
+              console.error('Dev verify failed', err);
+            }
+          })();
+        }
+      }
+
+      if (action === 'devAutoLogin') {
+        const email = params.get('email');
+        const password = params.get('password');
+        if (email && password) {
+          (async () => {
+            try {
+              const { signInWithEmailAndPassword } = await import('firebase/auth');
+              const { auth } = await import('./services/firebase');
+              await signInWithEmailAndPassword(auth, email, password);
+              window.location.href = `${window.location.origin}/?goto=dashboard`;
+            } catch (err) {
+              console.error('Dev auto-login failed', err);
+            }
+          })();
+        }
+      }
+    } catch (e) {
+      console.warn('Dev helper handler error', e);
+    }
+  }, []);
+
+  // If a verification flow redirected the user here and they need to log in,
+  // support opening the auth modal automatically via a URL flag `openAuth=1`.
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('openAuth')) {
+        setIsAuthModalOpen(true);
+
+        // Try to prefill the email for convenience:
+        // 1) Use pending_verification in localStorage (set during signup)
+        // 2) Fallback to an explicit `email` query param if present
+        try {
+          let prefill: string | undefined;
+          const pv = localStorage.getItem('pending_verification');
+          if (pv) {
+            try {
+              const parsed = JSON.parse(pv);
+              if (parsed?.email) prefill = parsed.email;
+            } catch (e) {
+              console.warn('Failed to parse pending_verification', e);
+            }
+          }
+          if (!prefill && params.get('email')) {
+            prefill = params.get('email') || undefined;
+          }
+          if (prefill) setAuthPrefillEmail(prefill);
+        } catch (e) {
+          console.warn('prefill email parse error', e);
+        }
+
+        // Remove param so it doesn't persist in history
+        params.delete('openAuth');
+        const search = params.toString();
+        const newUrl = search ? `${window.location.pathname}?${search}` : window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    } catch (e) {
+      console.warn('openAuth handler error', e);
+    }
+  }, []);
+
+  // Keep a simple app-level flag in sync with auth and pending verification info
+  useEffect(() => {
+    try {
+      const pv = typeof window !== 'undefined' && localStorage.getItem('pending_verification');
+      if ((user && !user.isVerified) || pv) setIsIdentityCheckActive(true);
+      else setIsIdentityCheckActive(false);
+    } catch (e) {
+      console.warn('identity check handler error', e);
+    }
+  }, [user]);
+
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await fbSignOut(auth);
+    } catch (err) {
+      console.warn('Firebase sign out failed:', err);
+    }
     setUser(null);
     setCurrentPage('home');
   };
@@ -264,13 +502,14 @@ const App: React.FC = () => {
               subtitle={siteConfig.heroSubtitle} 
               slideshowImages={siteConfig.slideshow} 
             />
-            <MultimodalSection onNavigate={setCurrentPage} onLoginClick={() => setIsAuthModalOpen(true)} isRegistered={!!user} />
+            <MultimodalSection onNavigate={setCurrentPage} onLoginClick={() => setIsAuthModalOpen(true)} isRegistered={!!user} isIdentityCheckActive={isIdentityCheckActive} />
             <Showcase images={siteConfig.showcaseImages} />
             <Pricing plans={siteConfig.plans} onSelectPlan={() => setIsAuthModalOpen(true)} />
           </>
         );
       case 'dashboard':
         if (!user) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
+        if (!user.isVerified) { setCurrentPage('verify-email'); return null; }
         return <Generator user={user} gallery={gallery} onCreditUsed={() => {}} onUpgradeRequired={() => setIsUpgradeModalOpen(true)} onImageGenerated={(img) => { setGallery(p => [img, ...p]); saveImageToDB(img, user!.id); }} initialPrompt={initialPrompt} />;
       case 'video-lab-landing':
         return <VideoLabLanding user={user} config={siteConfig.videoLab} onStartCreating={() => setCurrentPage('video-generator')} onLoginClick={() => setIsAuthModalOpen(true)} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
@@ -286,7 +525,7 @@ const App: React.FC = () => {
         if (!user) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
         return <Gallery images={gallery} videos={videoGallery} audioGallery={audioGallery} onDelete={() => {}} />;
       case 'admin':
-        return user?.role === 'admin' ? <AdminDashboard users={allUsers} siteConfig={siteConfig} onUpdateConfig={setSiteConfig} onDeleteUser={() => {}} onUpdateUser={() => {}} onSendMessageToUser={() => {}} onBroadcastMessage={() => {}} onSupportReply={() => {}} hasApiKey={hasApiKey} onSelectKey={() => {}} /> : null;
+        return user?.role === 'admin' ? <AdminDashboard users={allUsers} siteConfig={siteConfig} onUpdateConfig={setSiteConfig} onDeleteUser={handleDeleteUser} onUpdateUser={handleUpdateUser} onSendMessageToUser={handleSendMessageToUser} onBroadcastMessage={handleBroadcastMessage} onSupportReply={() => {}} hasApiKey={hasApiKey} onSelectKey={() => {}} onSyncFirebase={handleSyncFirebaseUsers} /> : null;
       case 'profile':
         return user ? <UserProfile user={user} gallery={gallery} videoGallery={videoGallery} audioGallery={audioGallery} onLogout={handleLogout} onBack={() => setCurrentPage('home')} onUpdateUser={() => {}} onGalleryImport={() => {}} /> : null;
       case 'signup':
@@ -302,7 +541,17 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-dark-950 flex flex-col items-center justify-center">
         <Sparkles className="w-12 h-12 text-indigo-500 animate-spin mb-4" />
-        <p className="text-indigo-400 font-black uppercase tracking-[0.3em] text-[10px]">Initializing Neural Link...</p>
+        {authInitTimedOut ? (
+          <div className="text-center">
+            <p className="text-red-400 font-bold mb-4">Authentication initialization timed out. The app couldn't connect to Firebase Auth.</p>
+            <div className="flex gap-2 justify-center">
+              <button onClick={() => window.location.reload()} className="px-4 py-2 bg-indigo-600 text-white rounded-lg">Retry</button>
+              <button onClick={() => setIsInitializing(false)} className="px-4 py-2 bg-white/5 text-gray-200 rounded-lg">Continue (limited)</button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-indigo-400 font-black uppercase tracking-[0.3em] text-[10px]">Initializing Neural Link...</p>
+        )}
       </div>
     );
   }
@@ -326,8 +575,9 @@ const App: React.FC = () => {
       
       <AuthModal 
         isOpen={isAuthModalOpen} 
-        onClose={() => setIsAuthModalOpen(false)} 
-        onLoginSuccess={() => { setIsAuthModalOpen(false); if (user) setCurrentPage('dashboard'); }} 
+        onClose={() => { setIsAuthModalOpen(false); setAuthPrefillEmail(undefined); }}
+        onLoginSuccess={() => { setIsAuthModalOpen(false); setAuthPrefillEmail(undefined); setCurrentPage('dashboard'); }}
+        initialEmail={authPrefillEmail}
       />
       <UpgradeModal 
         isOpen={isUpgradeModalOpen} 

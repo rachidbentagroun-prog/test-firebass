@@ -105,6 +105,16 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
     }
   });
 
+  const [showIdentityCheck, setShowIdentityCheck] = useState(false);
+
+  useEffect(() => {
+    try {
+      const pv = localStorage.getItem('pending_verification');
+      if ((user && !user.isVerified) || pv) setShowIdentityCheck(true);
+      else setShowIdentityCheck(false);
+    } catch (e) { /* ignore */ }
+  }, [user]);
+
   const isLimitReached = user?.plan === 'free' && modeUses[mode] >= 2;
 
   useEffect(() => {
@@ -275,6 +285,16 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
              <h2 className="text-sm font-black text-indigo-400 uppercase tracking-[0.4em] mb-4">Neural Vocalization Engine</h2>
              <h3 className="text-4xl font-black text-white uppercase italic tracking-tighter">Ai Voice & Audio Workstation</h3>
           </div>
+
+          {showIdentityCheck && (
+            <div className="max-w-2xl mx-auto mb-6 p-4 rounded-2xl bg-amber-900/10 border border-amber-500/10 text-center">
+              <div className="flex items-center justify-center gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-300" />
+                <h4 className="text-sm font-black uppercase text-amber-300">IDENTITY CHECK</h4>
+              </div>
+              <p className="text-gray-300 text-sm mt-2">A verification link was sent to your email. Access is strictly restricted until you confirm your identity via that link.</p>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
             <div className="lg:col-span-5 space-y-8">
@@ -458,9 +478,9 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
                   )}
 
                   {mode !== 'stt' && (
-                    <button onClick={handleMoteurGenerate} disabled={isSynthesizing || isTranscoding} className={`w-full py-6 rounded-2xl font-black text-lg flex items-center justify-center gap-4 transition-all shadow-2xl ${isSynthesizing ? 'bg-gray-800 text-gray-600' : isLimitReached ? 'bg-amber-600 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`}>
+                    <button onClick={handleMoteurGenerate} disabled={isSynthesizing || isTranscoding || showIdentityCheck} className={`w-full py-6 rounded-2xl font-black text-lg flex items-center justify-center gap-4 transition-all shadow-2xl ${isSynthesizing ? 'bg-gray-800 text-gray-600' : (showIdentityCheck ? 'bg-white/5 opacity-60 cursor-not-allowed' : (isLimitReached ? 'bg-amber-600 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-white'))}`} title={showIdentityCheck ? 'A verification link was sent to your email. Please confirm your identity to proceed.' : undefined}>
                       {isSynthesizing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Zap className="w-6 h-6 fill-white" />}
-                      <span className="uppercase tracking-[0.2em] italic">Start Ai Voice & Audio production</span>
+                      <span className="uppercase tracking-[0.2em] italic">{showIdentityCheck ? 'VERIFY EMAIL TO PROCEED' : 'Start Ai Voice & Audio production'}</span>
                     </button>
                   )}
                 </div>
@@ -500,8 +520,8 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
       <section className="py-32 relative overflow-hidden">
         <div className="max-w-4xl mx-auto px-4 text-center">
            <h2 className="text-4xl md:text-8xl font-black text-white uppercase italic tracking-tighter mb-10 leading-none">Ready to Narrate <br /> the Future?</h2>
-           <button onClick={user?.isRegistered ? onStartCreating : onLoginClick} className="px-20 py-8 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[2.5rem] font-black text-3xl uppercase italic tracking-widest shadow-2xl transition-transform hover:scale-105 active:scale-95">
-              {user?.isRegistered ? 'Open Ai Voice & Audio Workstation' : 'Generate Free Now'}
+           <button onClick={() => { if (showIdentityCheck) { alert('Access restricted: Please verify your email to proceed.'); return; } return user?.isRegistered ? onStartCreating() : onLoginClick(); }} disabled={showIdentityCheck} className={`px-20 py-8 rounded-[2.5rem] font-black text-3xl uppercase italic tracking-widest shadow-2xl transition-transform hover:scale-105 active:scale-95 ${showIdentityCheck ? 'bg-white/5 opacity-60 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`} title={showIdentityCheck ? 'A verification link was sent to your email. Please confirm your identity to proceed.' : undefined}>
+              {showIdentityCheck ? 'VERIFY EMAIL TO PROCEED' : (user?.isRegistered ? 'Open Ai Voice & Audio Workstation' : 'Generate Free Now')}
            </button>
         </div>
       </section>

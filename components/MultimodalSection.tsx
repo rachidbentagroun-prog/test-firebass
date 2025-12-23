@@ -6,9 +6,10 @@ interface MultimodalSectionProps {
   onNavigate: (page: string) => void;
   onLoginClick: () => void;
   isRegistered: boolean;
+  isIdentityCheckActive?: boolean;
 }
 
-export const MultimodalSection: React.FC<MultimodalSectionProps> = ({ onNavigate, onLoginClick, isRegistered }) => {
+export const MultimodalSection: React.FC<MultimodalSectionProps> = ({ onNavigate, onLoginClick, isRegistered, isIdentityCheckActive = false }) => {
   const services = [
     {
       id: 'image',

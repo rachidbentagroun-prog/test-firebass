@@ -84,6 +84,15 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isTranscoding, setIsTranscoding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [showIdentityCheck, setShowIdentityCheck] = useState(false);
+
+  useEffect(() => {
+    try {
+      const pv = localStorage.getItem('pending_verification');
+      setShowIdentityCheck((user && !user.isVerified) || !!pv);
+    } catch (e) { /* ignore */ }
+  }, [user]);
   
   const [currentAudio, setCurrentAudio] = useState<GeneratedAudio | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);

@@ -14,6 +14,15 @@ const getAI = () => {
   return new GoogleGenAI({ apiKey: key });
 };
 
+// Prefer SORA_API_KEY for video generation; fall back to API_KEY if not provided
+const getVideoAI = () => {
+  const key = process.env.SORA_API_KEY || process.env.API_KEY;
+  if (!key || key === '""' || key === "undefined" || key.trim() === "") {
+    throw new Error("NEURAL_LINK_FAILURE: Video API Key is missing. Set SORA_API_KEY (preferred) or API_KEY.");
+  }
+  return new GoogleGenAI({ apiKey: key });
+};
+
 /**
  * Converts a Blob to a permanent Data URL for database storage.
  */
@@ -207,7 +216,7 @@ export const generateImageWithGemini = async (
  * Video Generation Logic
  */
 export const generateVideoWithVeo = async (prompt: string, options: any): Promise<any> => {
-  const ai = getAI();
+  const ai = getVideoAI();
   const model = options.resolution === '1080p' ? 'veo-3.1-generate-preview' : 'veo-3.1-fast-generate-preview';
   
   const request: any = {
@@ -240,7 +249,7 @@ export const generateVideoWithVeo = async (prompt: string, options: any): Promis
 };
 
 export const pollVideoOperation = async (operation: any): Promise<string> => {
-  const ai = getAI();
+  const ai = getVideoAI();
   let currentOp = operation;
   while (!currentOp.done) {
     await new Promise(resolve => setTimeout(resolve, 10000));
@@ -254,7 +263,8 @@ export const pollVideoOperation = async (operation: any): Promise<string> => {
   const downloadLink = currentOp.response?.generatedVideos?.[0]?.video?.uri;
   if (!downloadLink) throw new Error("Synthesis completed but no video URI was returned.");
   
-  const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+  const videoKey = process.env.SORA_API_KEY || process.env.API_KEY;
+  const response = await fetch(`${downloadLink}&key=${videoKey}`);
   if (!response.ok) throw new Error(`Fetch failed: ${response.statusText}`);
   
   const blob = await response.blob();

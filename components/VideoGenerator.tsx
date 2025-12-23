@@ -3,7 +3,8 @@ import {
   Video, Play, Sparkles, Upload, X, Download, RefreshCw, AlertCircle, 
   Film, Zap, Gauge, Binary, Activity, History, RectangleHorizontal, RectangleVertical, Monitor, ChevronDown, Lock
 } from 'lucide-react';
-import { generateVideoWithVeo, pollVideoOperation, convertBlobToBase64 } from '../services/geminiService';
+import { convertBlobToBase64 } from '../services/geminiService';
+import { generateVideoWithSora } from '../services/soraService';
 import { User, GeneratedVideo } from '../types';
 import { saveWorkState, getWorkState } from '../services/dbService';
 
@@ -59,6 +60,15 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
   const [generationProgress, setGenerationProgress] = useState(0);
   const [resultVideo, setResultVideo] = useState<GeneratedVideo | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [showIdentityCheck, setShowIdentityCheck] = useState(false);
+
+  useEffect(() => {
+    try {
+      const pv = localStorage.getItem('pending_verification');
+      setShowIdentityCheck((user && !user.isVerified) || !!pv);
+    } catch (e) { /* ignore */ }
+  }, [user]);
 
   const isOutOfCredits = user && user.plan !== 'premium' && user.credits <= 0;
 
@@ -136,19 +146,32 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
     setResultVideo(null);
 
     try {
-      let startImgData = undefined;
+      // Map resolution/aspect to Sora size
+      const size = (() => {
+        if (aspectRatio === '9:16') {
+          return resolution === '1080p' ? '1080x1920' : '720x1280';
+        }
+        return resolution === '1080p' ? '1920x1080' : '1280x720';
+      })();
+
+      let input_reference: string | undefined;
       if (startImage) {
         const base64 = await convertBlobToBase64(startImage.file);
-        startImgData = { data: base64, mimeType: startImage.file.type };
+        input_reference = base64; // data URL accepted per docs
       }
 
-      const operation = await generateVideoWithVeo(prompt, { aspectRatio, resolution, startImage: startImgData });
-      const videoUrl = await pollVideoOperation(operation);
+      const videoUrl = await generateVideoWithSora({
+        model: 'sora-2',
+        prompt,
+        size,
+        seconds: resolution === '1080p' ? 10 : 8,
+        input_reference,
+      });
       
       const newVideo: GeneratedVideo = {
         id: Date.now().toString(),
         url: videoUrl,
-        uri: operation.name || '',
+        uri: videoUrl,
         prompt: prompt || 'Synthesized sequence',
         createdAt: Date.now(),
         aspectRatio: aspectRatio,
@@ -162,12 +185,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
       }
     } catch (err: any) {
       console.error("Generation Error:", err);
-      if (err.message?.includes("entity was not found")) {
-        onResetKey();
-        setError("API session failure. Please re-authorize your key.");
-      } else {
-        setError(err.message || "Temporal synthesis failed. Please try again.");
-      }
+      setError(err.message || "Video synthesis failed. Please try again.");
     } finally {
       setIsGenerating(false);
     }
@@ -189,7 +207,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                  <div className="p-2.5 bg-indigo-600 rounded-2xl shadow-xl">
                    <Video className="w-6 h-6 text-white" />
                  </div>
-                 Video Production
+                 Generate UGC Video
                </h2>
                {user && (
                  <div className={`px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${isOutOfCredits ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-indigo-600/10 border-indigo-500/20 text-indigo-400'}`}>
@@ -288,11 +306,12 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               )}
 
               <button
-                onClick={handleGenerate} disabled={isGenerating}
-                className={`w-full py-6 rounded-2xl font-black text-lg flex items-center justify-center gap-4 transition-all transform active:scale-95 shadow-2xl ${isGenerating ? 'bg-gray-800 text-gray-600' : (isOutOfCredits ? 'bg-amber-600 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/20')}`}
+                onClick={handleGenerate} disabled={isGenerating || showIdentityCheck}
+                className={`w-full py-6 rounded-2xl font-black text-lg flex items-center justify-center gap-4 transition-all transform active:scale-95 shadow-2xl ${isGenerating ? 'bg-gray-800 text-gray-600' : (showIdentityCheck ? 'bg-white/5 opacity-60 cursor-not-allowed' : (isOutOfCredits ? 'bg-amber-600 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/20'))}`}
+                title={showIdentityCheck ? 'A verification link was sent to your email. Please confirm your identity to proceed.' : undefined}
               >
                 {isGenerating ? <RefreshCw className="w-6 h-6 animate-spin" /> : (isOutOfCredits ? <Lock className="w-6 h-6" /> : <Zap className="w-6 h-6 fill-white" />)}
-                <span className="uppercase tracking-[0.2em] italic">{isGenerating ? 'Synthesis Active' : 'Start Synthesis'}</span>
+                <span className="uppercase tracking-[0.2em] italic">{isGenerating ? 'Synthesis Active' : (showIdentityCheck ? 'VERIFY EMAIL TO PROCEED' : 'Start Synthesis')}</span>
               </button>
             </div>
           </div>

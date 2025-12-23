@@ -29,6 +29,7 @@ interface AdminDashboardProps {
   onSupportReply: (userId: string, text: string) => void;
   hasApiKey: boolean;
   onSelectKey: () => void;
+  onSyncFirebase?: () => Promise<void>;
 }
 
 const INITIAL_JOBS: AIJob[] = [
@@ -40,7 +41,7 @@ const INITIAL_JOBS: AIJob[] = [
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
   users, siteConfig, onUpdateConfig, onDeleteUser, onUpdateUser, 
-  onSendMessageToUser, onBroadcastMessage, onSupportReply, hasApiKey, onSelectKey
+  onSendMessageToUser, onBroadcastMessage, onSupportReply, hasApiKey, onSelectKey, onSyncFirebase
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'users' | 'support' | 'broadcast' | 'api' | 'cms'>('overview');
   const [cmsTab, setCmsTab] = useState<'general' | 'plans' | 'landing'>('general');
@@ -100,6 +101,75 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const activeSession = sessions.find(s => s.id === activeSessionId);
+
+  // Traffic analytics state
+  const [trafficEvents, setTrafficEvents] = useState<any[]>([]);
+  const [dailyTraffic, setDailyTraffic] = useState<Array<{date: string, visits: number, uniqueVisitors: number}>>([]);
+  const [countries, setCountries] = useState<Array<{country: string, count: number, percentage: number}>>([]);
+  const [referrers, setReferrers] = useState<Array<{referrer: string, count: number, percentage: number}>>([]);
+  const [trafficLoading, setTrafficLoading] = useState(false);
+
+  const fetchTraffic = async () => {
+    setTrafficLoading(true);
+    try {
+      const { getTrafficEvents } = await import('../services/dbService');
+      const events = await getTrafficEvents(30);
+      setTrafficEvents(events);
+      const total = events.length || 1;
+
+      // Calculate daily traffic volume
+      const dailyMap: Record<string, { visits: Set<string>, totalVisits: number }> = {};
+      events.forEach((ev: any) => {
+        const date = new Date(ev.timestamp || ev.created_at).toISOString().split('T')[0];
+        if (!dailyMap[date]) {
+          dailyMap[date] = { visits: new Set(), totalVisits: 0 };
+        }
+        dailyMap[date].totalVisits++;
+        if (ev.userId || ev.sessionId) {
+          dailyMap[date].visits.add(ev.userId || ev.sessionId);
+        }
+      });
+
+      const dailyArray = Object.entries(dailyMap)
+        .map(([date, data]) => ({
+          date,
+          visits: data.totalVisits,
+          uniqueVisitors: data.visits.size
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(-14); // Last 14 days
+
+      setDailyTraffic(dailyArray);
+
+      // Countries
+      const countryCounts: Record<string, number> = {};
+      events.forEach((ev: any) => { const c = ev.country || 'Unknown'; countryCounts[c] = (countryCounts[c] || 0) + 1; });
+      const countryArr = Object.entries(countryCounts).map(([country, count]) => ({ country, count: count as number, percentage: ((count as number) / total) * 100 })).sort((a, b) => b.count - a.count).slice(0, 6);
+      setCountries(countryArr);
+
+      // Referrers (extract hostname)
+      const refCounts: Record<string, number> = {};
+      events.forEach((ev: any) => {
+        const raw = ev.referrer || 'direct';
+        let host = 'direct';
+        try { if (raw && raw !== 'direct') host = new URL(raw).hostname.replace('www.', ''); } catch (e) { host = raw || 'direct'; }
+        refCounts[host] = (refCounts[host] || 0) + 1;
+      });
+      const refArr = Object.entries(refCounts).map(([referrer, count]) => ({ referrer, count: count as number, percentage: ((count as number) / total) * 100 })).sort((a, b) => b.count - a.count).slice(0, 6);
+      setReferrers(refArr);
+    } catch (e) {
+      console.warn('Failed to fetch analytics:', e);
+      setDailyTraffic([]);
+      setCountries([]);
+      setReferrers([]);
+    } finally {
+      setTrafficLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'analytics') fetchTraffic();
+  }, [activeTab]);
 
   // Simulated live job updates for the overview tab
   useEffect(() => {
@@ -246,7 +316,88 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       {activeTab === 'analytics' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
+        <div className="space-y-8 animate-fade-in">
+           {/* Daily Traffic Volume Chart */}
+           <div className="bg-dark-900 border border-white/10 rounded-[3rem] p-10 shadow-2xl">
+              <div className="flex items-center justify-between mb-10">
+                <div>
+                  <h3 className="text-xl font-black text-white uppercase italic flex items-center gap-3">
+                    <Activity className="w-6 h-6 text-indigo-400" /> Daily Traffic Volume
+                  </h3>
+                  <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest mt-1">Last 14 Days</p>
+                </div>
+                <button 
+                  onClick={fetchTraffic}
+                  className="px-4 py-2 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-600/20 rounded-xl text-xs font-bold text-indigo-400 transition-all flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${trafficLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              </div>
+
+              {trafficLoading ? (
+                <div className="h-64 flex items-center justify-center">
+                  <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" />
+                </div>
+              ) : dailyTraffic.length > 0 ? (
+                <div className="space-y-6">
+                  <div className="h-64 flex items-end gap-2">
+                    {dailyTraffic.map((d, i) => {
+                      const maxVisits = Math.max(...dailyTraffic.map(t => t.visits), 1);
+                      const height = (d.visits / maxVisits) * 100;
+                      return (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-3 group">
+                          <div 
+                            className="w-full bg-gradient-to-t from-indigo-600 to-indigo-400 rounded-t-2xl relative cursor-pointer transition-all hover:from-indigo-500 hover:to-indigo-300"
+                            style={{ height: `${height}%`, minHeight: '8px' }}
+                          >
+                            <div className="absolute -top-16 left-1/2 -translate-x-1/2 bg-dark-950 border border-indigo-600/40 text-white text-[10px] font-black px-3 py-2 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity shadow-2xl whitespace-nowrap z-10">
+                              <div className="text-indigo-400 mb-1">{new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                              <div>{d.visits} visits</div>
+                              <div className="text-gray-500 text-[9px]">{d.uniqueVisitors} unique</div>
+                            </div>
+                          </div>
+                          <span className="text-[9px] font-black text-gray-500 uppercase tracking-wider">
+                            {new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).split(' ')[1]}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-3 gap-4 pt-6 border-t border-white/5">
+                    <div className="bg-black/20 rounded-2xl p-4 border border-white/5">
+                      <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Total Visits</div>
+                      <div className="text-2xl font-black text-white">
+                        {dailyTraffic.reduce((sum, d) => sum + d.visits, 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="bg-black/20 rounded-2xl p-4 border border-white/5">
+                      <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Avg Per Day</div>
+                      <div className="text-2xl font-black text-indigo-400">
+                        {Math.round(dailyTraffic.reduce((sum, d) => sum + d.visits, 0) / dailyTraffic.length).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="bg-black/20 rounded-2xl p-4 border border-white/5">
+                      <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Peak Day</div>
+                      <div className="text-2xl font-black text-pink-400">
+                        {Math.max(...dailyTraffic.map(d => d.visits)).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-64 flex flex-col items-center justify-center text-center">
+                  <Activity className="w-12 h-12 text-gray-700 mb-4" />
+                  <p className="text-sm text-gray-500">No traffic data available yet.</p>
+                  <p className="text-xs text-gray-600 mt-2">Visit tracking will begin once users start accessing the site.</p>
+                </div>
+              )}
+           </div>
+
+           {/* Revenue and Geographic Data */}
+           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
            <div className="bg-dark-900 border border-white/10 rounded-[3rem] p-10 shadow-2xl">
               <h3 className="text-xl font-black text-white uppercase italic mb-10 flex items-center gap-3"><TrendingUp className="w-6 h-6 text-indigo-400" /> Growth Vectors</h3>
               <div className="h-64 flex items-end gap-3">
@@ -261,21 +412,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
            </div>
 
-           <div className="bg-dark-900 border border-white/10 rounded-[3rem] p-10 shadow-2xl">
-              <h3 className="text-xl font-black text-white uppercase italic mb-10 flex items-center gap-3"><Globe className="w-6 h-6 text-pink-400" /> Geographic Nodes</h3>
+                <div className="bg-dark-900 border border-white/10 rounded-[3rem] p-10 shadow-2xl">
+              <h3 className="text-xl font-black text-white uppercase italic mb-6 flex items-center gap-3"><Globe className="w-6 h-6 text-pink-400" /> Geographic Nodes</h3>
               <div className="space-y-6">
-                 {MOCK_COUNTRY_DATA.map((d, i) => (
+                 {countries && countries.length > 0 ? countries.map((d, i) => (
                    <div key={i} className="space-y-2">
                       <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                         <span className="text-white">{d.country}</span>
-                         <span className="text-gray-500">{d.users} Nodes ({d.percentage}%)</span>
+                         <span className="text-white">{d.country || 'Unknown'}</span>
+                         <span className="text-gray-500">{d.count} Visits ({Math.round(d.percentage)}%)</span>
                       </div>
                       <div className="w-full h-2 bg-black/40 rounded-full overflow-hidden">
                          <div className="h-full bg-pink-500/40 transition-all duration-1000" style={{ width: `${d.percentage}%` }} />
                       </div>
                    </div>
-                 ))}
+                 )) : (
+                   <div className="py-6 text-center text-xs text-gray-500">No traffic data yet. Visits will appear here once the site receives traffic (logs every page view).</div>
+                 )}
               </div>
+
+              <div className="pt-8 border-t border-white/5">
+                 <h4 className="text-sm font-black uppercase text-gray-400 mb-4">Top Referrers</h4>
+                 <div className="space-y-3">
+                   {referrers && referrers.length > 0 ? referrers.map((r, i) => (
+                     <div key={i} className="flex items-center justify-between text-[10px] font-black text-gray-300">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                          <span>{r.referrer}</span>
+                        </div>
+                        <span className="text-gray-500 uppercase">{r.count} ({Math.round(r.percentage)}%)</span>
+                     </div>
+                   )) : (
+                     <div className="text-xs text-gray-500">No referrer data available.</div>
+                   )}
+                 </div>
+              </div>
+           </div>
            </div>
         </div>
       )}
@@ -339,6 +510,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                  <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-xl border border-white/5">
                     <UserIcon className="w-4 h-4 text-indigo-400" />
                     <span className="text-[10px] font-black text-white uppercase">{filteredUsers.length} Results</span>
+                    {typeof onSyncFirebase === 'function' && (
+                      <button onClick={async () => { try { await onSyncFirebase(); } catch (e) { alert('Sync failed'); } }} className="ml-4 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest">Sync Firebase</button>
+                    )}
                  </div>
               </div>
               <div className="overflow-x-auto">
@@ -390,6 +564,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                                    <button onClick={() => setEditingUser(u)} className="p-3 bg-white/5 hover:bg-indigo-600/10 text-indigo-400 rounded-xl border border-white/10 transition-all" title="Modify User"><Edit3 className="w-4 h-4" /></button>
                                    <button onClick={() => onDeleteUser(u.id)} className="p-3 bg-white/5 hover:bg-red-500/10 text-red-500 rounded-xl border border-white/10 transition-all" title="Delete User"><Trash2 className="w-4 h-4" /></button>
+                                   <button onClick={async () => {
+                                     const subject = window.prompt('Subject for user email:');
+                                     const content = window.prompt('Message body:');
+                                     if (subject && content) {
+                                       try {
+                                         await onSendMessageToUser(u.id, { subject, content });
+                                       } catch (e) {
+                                         alert('Failed to send message.');
+                                       }
+                                     }
+                                   }} className="p-3 bg-white/5 hover:bg-indigo-600/10 text-indigo-400 rounded-xl border border-white/10 transition-all" title="Contact User"><Mail className="w-4 h-4" /></button>
+                                   <button onClick={() => onUpdateUser({...u, status: (u.status === 'suspended' ? 'active' : 'suspended')})} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all" title="Toggle Suspend">
+                                     {u.status === 'suspended' ? <UserCheck className="w-4 h-4 text-green-400" /> : <UserMinus className="w-4 h-4 text-red-400" />}
+                                   </button>
                                 </div>
                              </td>
                           </tr>

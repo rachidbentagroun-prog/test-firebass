@@ -487,3 +487,63 @@ export const broadcastMessageToAllInDB = async (msg: {subject: string, content: 
     console.error("Global broadcast disruption:", e.message || e);
   }
 };
+
+// --- Analytics & Email Helpers ---
+
+/**
+ * Logs a page/traffic event into the `analytics` table if available.
+ * This is soft-fail: if the table doesn't exist we simply console.log the event.
+ */
+export const logTrafficEvent = async (event: { path: string; referrer?: string; userAgent?: string; userId?: string | null; country?: string | null }) => {
+  try {
+    const { error } = await supabase
+      .from('analytics')
+      .insert([{ 
+        path: event.path,
+        referrer: event.referrer || 'direct',
+        user_agent: event.userAgent || null,
+        user_id: event.userId || null,
+        country: event.country || null,
+        created_at: new Date().toISOString()
+      }]);
+    if (error) throw error;
+  } catch (e: any) {
+    // Table might not exist in lightweight dev DBs — fallback to logging
+    console.warn('Analytics logging unavailable:', e.message || e, 'Event:', event);
+  }
+};
+
+/**
+ * Fetch recent traffic events (last `days` days) for admin analytics.
+ */
+export const getTrafficEvents = async (days = 30): Promise<any[]> => {
+  try {
+    const since = new Date(Date.now() - (days * 24 * 60 * 60 * 1000)).toISOString();
+    const { data, error } = await supabase
+      .from('analytics')
+      .select('*')
+      .gte('created_at', since)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  } catch (e: any) {
+    console.warn('Failed to fetch traffic events:', e.message || e);
+    return [];
+  }
+};
+
+/**
+ * Simulated email dispatch for admin -> user communications. Will attempt to write
+ * into an `email_queue` table if it exists, otherwise logs to console.
+ */
+export const sendEmailToUser = async (toEmail: string, subject: string, body: string): Promise<void> => {
+  try {
+    console.log('[EMAIL DISPATCH] to:', toEmail, 'subject:', subject);
+    const { error } = await supabase
+      .from('email_queue')
+      .insert([{ to: toEmail, subject, body, created_at: new Date().toISOString() }]);
+    if (error) throw error;
+  } catch (e: any) {
+    console.warn('Email queue not available, falling back to console log:', e.message || e);
+  }
+};

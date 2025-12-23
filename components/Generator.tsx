@@ -74,6 +74,15 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
   const [isEditing, setIsEditing] = useState(false);
   const [previewZoom, setPreviewZoom] = useState(1);
   const [error, setError] = useState<string | null>(null);
+
+  const [showIdentityCheck, setShowIdentityCheck] = useState(false);
+
+  useEffect(() => {
+    try {
+      const pv = localStorage.getItem('pending_verification');
+      setShowIdentityCheck((user && !user.isVerified) || !!pv);
+    } catch (e) { /* ignore */ }
+  }, [user]);
   
   const [isAspectRatioMenuOpen, setIsAspectRatioMenuOpen] = useState(false);
   const [isStyleMenuOpen, setIsStyleMenuOpen] = useState(false);
@@ -556,15 +565,15 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
 
           <button
             onClick={handleGenerate}
-            disabled={isGenerating}
+            disabled={isGenerating || showIdentityCheck}
             className={`w-full py-8 rounded-[2.5rem] font-black text-3xl uppercase tracking-[0.4em] italic flex items-center justify-center gap-5 transition-all transform active:scale-[0.98] ${
               isGenerating 
               ? 'bg-gray-800 text-gray-600 shadow-inner' 
-              : isOutOfCredits ? 'bg-red-600 hover:bg-red-500 text-white shadow-xl' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_25px_60px_rgba(99,102,241,0.3)]'
+              : showIdentityCheck ? 'bg-white/5 opacity-60 cursor-not-allowed' : (isOutOfCredits ? 'bg-red-600 hover:bg-red-500 text-white shadow-xl' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_25px_60px_rgba(99,102,241,0.3)]')
             }`}
           >
             {isGenerating ? <RefreshCw className="w-8 h-8 animate-spin" /> : (isOutOfCredits ? <Lock className="w-8 h-8" /> : <Sparkles className="w-8 h-8 fill-white" />)}
-            {isGenerating ? 'Synthesizing...' : (isOutOfCredits ? '0 CREDITS - UPGRADE' : 'GENERATE NOW (1 Credit)')}
+            {isGenerating ? 'Synthesizing...' : (showIdentityCheck ? 'VERIFY EMAIL TO GENERATE' : (isOutOfCredits ? '0 CREDITS - UPGRADE' : 'GENERATE NOW (1 Credit)'))}
           </button>
         </div>
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Mail, Lock, User, AlertCircle, RefreshCw, Sparkles, ArrowLeft, Loader2, SendHorizontal, Inbox } from 'lucide-react';
-import { auth, signUpWithFirebase, grantDefaultEntitlements } from '../services/firebase';
+import { auth, signUpWithFirebase, grantDefaultEntitlements, signInWithGoogle } from '../services/firebase';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, signOut } from 'firebase/auth';
 
 interface AuthModalProps {
@@ -8,17 +8,46 @@ interface AuthModalProps {
   onClose: () => void;
   onLoginSuccess: () => void;
   initialStep?: 'auth' | 'check-email' | 'update-password';
+  // Optional initial email to prefill the login form (e.g., after verification)
+  initialEmail?: string;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSuccess, initialStep = 'auth' }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSuccess, initialStep = 'auth', initialEmail }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [step, setStep] = useState<'auth' | 'check-email' | 'update-password'>(initialStep);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  // Prefill email if we receive an initialEmail and the modal was just opened
+  useEffect(() => {
+    if (isOpen && initialEmail && !email) {
+      setEmail(initialEmail);
+    }
+  }, [isOpen, initialEmail]);
   const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    setError(null);
+    try {
+      const res = await signInWithGoogle();
+      if (res?.error) {
+        setError('Google sign-in failed: ' + res.error);
+        return;
+      }
+      // Successful sign-in
+      onLoginSuccess();
+      onClose();
+    } catch (err: any) {
+      setError(err?.message || String(err));
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -46,17 +75,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         onClose();
       } else {
         // Sign Up process (Firebase)
-        const cred = await signUpWithFirebase(email.toLowerCase().trim(), password, name.trim());
+        const res = await signUpWithFirebase(email.toLowerCase().trim(), password, name.trim());
+        const cred = res?.userCredential;
         if (cred?.user) {
-          // Firebase sends a verification email inside signUpWithFirebase
-          // Also create a minimal user doc so entitlements can be granted after verification
+          // Store pending verification info in localStorage for UX persistence (no password stored)
           try {
-            await grantDefaultEntitlements(cred.user.uid); // will set entitlements when verified later
-          } catch (err) {
-            console.warn('Could not pre-create user entitlements document', err);
+            localStorage.setItem('pending_verification', JSON.stringify({ uid: cred.user.uid, email: cred.user.email, name: name.trim() }));
+          } catch (err) { console.warn('Could not store pending verification info', err); }
+
+          // Sign out the newly created user to prevent immediate access until they verify email
+          try { await signOut(auth); } catch (err) { console.warn('Failed to sign out after signup', err); }
+
+          if (res?.emailSent) {
+            alert('Verification email sent! Please check your inbox.');
+            setStep('check-email');
+          } else {
+            // Email delivery failed — surface helpful guidance and let the user trigger a resend
+            console.warn('Verification email failed to send:', res?.sendError);
+            alert('Account created but we could not send the verification email. Please try resending the verification email using the button below.');
+            // Still move to the verification step so user can use the "Resend verification email" action
+            setStep('check-email');
           }
-          alert('Verification email sent! Please check your inbox.');
-          setStep('check-email');
         } else {
           setError('Firebase signup failed.');
         }
@@ -137,6 +176,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
               <div className="w-16 h-16 bg-indigo-600/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-indigo-600/20 shadow-inner">
                 {isLoading ? <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" /> : <Sparkles className="w-8 h-8 text-indigo-500" />}
               </div>
+
+              <div className="flex gap-2 mb-4">
+                <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  className="flex-1 bg-white/6 hover:bg-white/10 text-white py-2 rounded-lg flex items-center justify-center gap-2 border border-white/6"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M533.5 278.4c0-17.9-1.6-35-4.6-51.4H272v97.3h146.9c-6.3 34-25.8 62.8-54.7 82v68.1h88.4c51.6-47.5 81.9-117.6 81.9-196z"/><path fill="#34A853" d="M272 544.3c73.8 0 135.8-24.5 181.1-66.5l-88.4-68.1c-24.6 16.6-55.9 26.5-92.7 26.5-71 0-131.1-47.8-152.6-112.1H30.6v70.9C75.9 486 168 544.3 272 544.3z"/><path fill="#FBBC05" d="M119.4 324.1c-8.6-25.8-8.6-53.4 0-79.2V174.1H30.6c-36.6 72.8-36.6 158.1 0 230.9l88.8-80.9z"/><path fill="#EA4335" d="M272 108.9c38 0 72.2 13.4 99.2 39.6l74.4-74.4C407.7 24.4 345.7 0 272 0 168 0 75.9 58.3 30.6 153.3l88.8 70.9C140.9 156.7 201 108.9 272 108.9z"/></svg>
+                  <span className="text-sm font-medium">{isGoogleLoading ? 'Signing in…' : 'Continue with Google'}</span>
+                </button>
+              </div>
+
               <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">
                 {isLogin ? 'LOGIN' : 'SIGNUP'}
               </h2>
