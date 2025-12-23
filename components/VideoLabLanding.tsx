@@ -38,6 +38,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
   hasApiKey, onSelectKey, onResetKey 
 }) => {
   const [moteurMode, setMoteurMode] = useState<'text' | 'video'>('text');
+  const [videoEngine, setVideoEngine] = useState<'sora' | 'klingai'>('klingai');
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16'>('16:9');
   const [resolution, setResolution] = useState<'720p' | '1080p'>('720p');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -89,6 +90,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
       isRegistered: user?.isRegistered, 
       showIdentityCheck, 
       hasApiKey, 
+      videoEngine,
       moteurMode,
       textPrompt,
       videoGuidance,
@@ -126,34 +128,59 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
       return;
     }
 
-    // Map UI selections to Sora size + duration
-    const size = aspectRatio === '16:9'
-      ? (resolution === '1080p' ? '1920x1080' : '1280x720')
-      : (resolution === '1080p' ? '1080x1920' : '720x1280');
-    const seconds = resolution === '1080p' ? 10 : 8;
-
-    console.log('[VideoLabLanding] Generating with:', { model: 'sora-2', prompt, size, seconds, hasReference: !!referenceFrame });
-
     setIsGenerating(true);
     try {
-      const { generateVideoWithSora } = await import('../services/soraService').then(m => ({ generateVideoWithSora: (m as any).generateVideoWithSora }));
-      const body: any = { model: 'sora-2', prompt, size, seconds };
-      if (moteurMode === 'video' && referenceFrame) {
-        body.input_reference = referenceFrame;
+      let url: string;
+      
+      if (videoEngine === 'sora') {
+        // Sora format
+        const size = aspectRatio === '16:9'
+          ? (resolution === '1080p' ? '1920x1080' : '1280x720')
+          : (resolution === '1080p' ? '1080x1920' : '720x1280');
+        const seconds = resolution === '1080p' ? 10 : 8;
+        
+        console.log('[VideoLabLanding] Generating with Sora:', { model: 'sora-2', prompt, size, seconds, hasReference: !!referenceFrame });
+        
+        const { generateVideoWithSora } = await import('../services/soraService').then(m => ({ generateVideoWithSora: (m as any).generateVideoWithSora }));
+        const body: any = { model: 'sora-2', prompt, size, seconds };
+        if (moteurMode === 'video' && referenceFrame) {
+          body.input_reference = referenceFrame;
+        }
+        console.log('[VideoLabLanding] Calling Sora API with body:', body);
+        url = await generateVideoWithSora(body);
+        console.log('[VideoLabLanding] Sora responded with URL:', url);
+      } else {
+        // KlingAI format
+        const duration = resolution === '1080p' ? 10 : 5;
+        
+        console.log('[VideoLabLanding] Generating with KlingAI:', { prompt, aspect_ratio: aspectRatio, duration, hasReference: !!referenceFrame });
+        
+        const { generateVideoWithKlingAI } = await import('../services/klingaiService').then(m => ({ generateVideoWithKlingAI: (m as any).generateVideoWithKlingAI }));
+        const body: any = { 
+          prompt, 
+          aspect_ratio: aspectRatio,
+          duration,
+          mode: resolution === '1080p' ? 'pro' : 'standard'
+        };
+        if (moteurMode === 'video' && referenceFrame) {
+          body.image_url = referenceFrame;
+        }
+        console.log('[VideoLabLanding] Calling KlingAI API with body:', body);
+        url = await generateVideoWithKlingAI(body);
+        console.log('[VideoLabLanding] KlingAI responded with URL:', url);
       }
-      console.log('[VideoLabLanding] Calling Sora API with body:', body);
-      const url = await generateVideoWithSora(body);
-      console.log('[VideoLabLanding] Sora responded with URL:', url);
       
       if (url && typeof url === 'string') {
-        alert(`Video generation started! Opening: ${url}`);
+        const engineName = videoEngine === 'sora' ? 'Sora' : 'KlingAI';
+        alert(`${engineName} video generation started! Opening: ${url}`);
         window.open(url, '_blank', 'noopener');
       } else {
-        alert('Sora responded without a video URL. Please check your generation queue.');
+        alert(`${videoEngine.toUpperCase()} responded without a video URL. Please check your generation queue.`);
       }
     } catch (e: any) {
       console.error('[VideoLabLanding] Generation failed:', e);
-      alert(`Failed to start Sora generation: ${e?.message || e}`);
+      const engineName = videoEngine === 'sora' ? 'Sora' : 'KlingAI';
+      alert(`Failed to start ${engineName} generation: ${e?.message || e}`);
     } finally {
       setIsGenerating(false);
     }
@@ -234,6 +261,25 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                  <div className="bg-dark-900 border border-white/10 rounded-[2.5rem] p-8 shadow-2xl relative">
                     <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-600/10 blur-[80px] rounded-full -mr-20 -mt-20 pointer-events-none" />
                     
+                    {/* AI Engine Selector */}
+                    <div className="mb-6 relative z-10">
+                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-2 block">AI Engine</label>
+                      <div className="flex bg-black/50 p-1.5 rounded-xl border border-white/5">
+                        <button 
+                          onClick={() => setVideoEngine('klingai')}
+                          className={`flex-1 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${videoEngine === 'klingai' ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                        >
+                          KlingAI
+                        </button>
+                        <button 
+                          onClick={() => setVideoEngine('sora')}
+                          className={`flex-1 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${videoEngine === 'sora' ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                        >
+                          Sora 2
+                        </button>
+                      </div>
+                    </div>
+
                     <div className="flex bg-black/50 p-1.5 rounded-2xl mb-10 border border-white/5 relative z-10">
                       <button 
                         onClick={() => setMoteurMode('text')}
@@ -254,7 +300,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                           <div className="animate-fade-in">
                              <div className="flex justify-between mb-2">
                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Directorial Script</label>
-                               <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">Sora 2</span>
+                               <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">{videoEngine === 'sora' ? 'Sora 2' : 'KlingAI'}</span>
                              </div>
                              <textarea 
                                placeholder="Describe the cinematic motion, lighting, and textures..."
