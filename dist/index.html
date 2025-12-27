@@ -12,14 +12,27 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/react-image-crop/dist/ReactCrop.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
         darkMode: 'class',
         theme: {
           extend: {
             fontFamily: {
-              sans: ['Plus Jakarta Sans', 'sans-serif'],
+              sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+              display: ['Poppins', 'system-ui', 'sans-serif'],
+            },
+            fontSize: {
+              'xs': ['0.75rem', { lineHeight: '1.5', letterSpacing: '0.01em' }],
+              'sm': ['0.875rem', { lineHeight: '1.6', letterSpacing: '0.01em' }],
+              'base': ['1rem', { lineHeight: '1.7', letterSpacing: '0.01em' }],
+              'lg': ['1.125rem', { lineHeight: '1.7', letterSpacing: '0.01em' }],
+              'xl': ['1.25rem', { lineHeight: '1.6', letterSpacing: '0.01em' }],
+              '2xl': ['1.5rem', { lineHeight: '1.5', letterSpacing: '0.01em' }],
+              '3xl': ['1.875rem', { lineHeight: '1.4', letterSpacing: '0.01em' }],
+              '4xl': ['2.25rem', { lineHeight: '1.3', letterSpacing: '0.01em' }],
+              '5xl': ['3rem', { lineHeight: '1.2', letterSpacing: '0.01em' }],
+              '6xl': ['3.75rem', { lineHeight: '1.1', letterSpacing: '0.01em' }],
             },
             colors: {
               indigo: {
@@ -66,11 +79,108 @@
       }
     </script>
     <style>
+      * {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+      }
+      
       body { 
         background-color: #030308; 
         color: #f8fafc; 
         margin: 0; 
         overflow-x: hidden;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        font-weight: 400;
+        font-size: 16px;
+        line-height: 1.7;
+        letter-spacing: 0.01em;
+      }
+      
+      h1, h2, h3, h4, h5, h6, .font-display {
+        font-family: 'Poppins', system-ui, sans-serif;
+        letter-spacing: -0.02em;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 0.75em;
+        color: #ffffff;
+      }
+      
+      h1 { 
+        font-size: 3.5rem; 
+        font-weight: 800; 
+        line-height: 1.1;
+        letter-spacing: -0.03em;
+      }
+      
+      h2 { 
+        font-size: 2.5rem; 
+        font-weight: 700; 
+        line-height: 1.2;
+      }
+      
+      h3 { 
+        font-size: 2rem; 
+        font-weight: 600; 
+        line-height: 1.3;
+      }
+      
+      h4 { 
+        font-size: 1.5rem; 
+        font-weight: 600; 
+        line-height: 1.4;
+      }
+      
+      p {
+        margin-bottom: 1em;
+        line-height: 1.75;
+        color: rgba(248, 250, 252, 0.9);
+      }
+      
+      button, .btn {
+        font-family: 'Poppins', system-ui, sans-serif;
+        letter-spacing: 0.02em;
+        font-weight: 600;
+        line-height: 1.5;
+      }
+      
+      a {
+        font-weight: 500;
+        line-height: 1.6;
+        letter-spacing: 0.01em;
+      }
+      
+      input, textarea, select {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        font-weight: 400;
+        font-size: 1rem;
+        line-height: 1.6;
+        letter-spacing: 0.01em;
+      }
+      
+      .font-black, .font-bold, .uppercase {
+        font-family: 'Poppins', system-ui, sans-serif;
+        letter-spacing: 0.05em;
+      }
+      
+      .text-sm, small {
+        font-size: 0.875rem;
+        line-height: 1.6;
+      }
+      
+      .text-lg {
+        font-size: 1.125rem;
+        line-height: 1.75;
+      }
+      
+      .text-xl {
+        font-size: 1.25rem;
+        line-height: 1.6;
+      }
+      
+      strong, b {
+        font-weight: 600;
       }
       
       body::before {
@@ -129,7 +239,7 @@
   }
 }
 </script>
-  <script type="module" crossorigin src="/assets/index-WUMeS-iA.js"></script>
+  <script type="module" crossorigin src="/assets/index-DIMTViRK.js"></script>
 </head>
   <body class="selection:bg-indigo-500/30 selection:text-white">
     <div id="root"></div>
