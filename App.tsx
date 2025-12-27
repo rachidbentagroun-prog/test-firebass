@@ -53,8 +53,8 @@ const DEFAULT_CONFIG: SiteConfig = {
   articles: [],
   plans: [
     { id: 'free', name: 'Free Trial', price: '$0', credits: 3, features: ['3 Free Generations', 'Public Gallery'] },
-    { id: 'basic', name: 'Basic Creator', price: '$9.9', credits: 16, features: ['16 Generations / mo', 'Private Gallery'], recommended: true, buttonUrl: 'https://bentagroun.gumroad.com/l/huodf' },
-    { id: 'premium', name: 'Premium', price: '$20', credits: 'Unlimited', features: ['Unlimited Access', 'Priority Rendering'], buttonUrl: 'https://bentagroun.gumroad.com/l/zrgraz' }
+    { id: 'basic', name: 'Basic Creator', price: '$9.9', credits: 100, features: ['100 Generations per month', 'Access to AI Image Generator', 'Access to AI Voice & Audio', 'Access to AI Video Generator', 'Private Gallery Storage', 'Standard Processing Speed', 'Email Support', 'Commercial License'], recommended: true, buttonUrl: 'https://bentagroun.gumroad.com/l/huodf' },
+    { id: 'premium', name: 'Premium', price: '$20', credits: 250, features: ['250 Generations per month', 'Priority Processing Speed', 'Early Access to New Features', 'Advanced AI Models', 'Extended Video Length', 'HD Audio Quality', 'Priority Support', 'Commercial License', 'API Access (Coming Soon)', 'Team Collaboration (Coming Soon)'], buttonUrl: 'https://bentagroud.gumroad.com/l/zrgraz' }
   ],
   topMenu: [],
   footerMenu: [],
