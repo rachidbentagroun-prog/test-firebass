@@ -14,9 +14,9 @@ const UPGRADE_PLANS: Plan[] = [
     id: 'basic',
     name: 'Basic Creator',
     price: '$9.9',
-    credits: 50,
+    credits: 100,
     features: [
-      '50 Generations / mo',
+      '100 Generations / mo',
       'Faster Generation',
       'Private Gallery',
       'Commercial License'
@@ -28,12 +28,18 @@ const UPGRADE_PLANS: Plan[] = [
     id: 'premium',
     name: 'Premium',
     price: '$20',
-    credits: 200,
+    credits: 250,
     features: [
-      '200 Generations / mo',
-      'Video Suite Access',
+      '250 Generations / mo',
+      'Priority Processing Speed',
+      'Early Access to New Features',
+      'Advanced AI Models',
+      'Extended Video Length',
+      'HD Audio Quality',
       'Priority Support',
-      'Image Editing Tools'
+      'Commercial License',
+      'API Access (Coming Soon)',
+      'Team Collaboration (Coming Soon)'
     ],
     buttonUrl: 'https://bentagroun.gumroad.com/l/zrgraz'
   }

@@ -455,7 +455,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
         <div className="max-w-[1400px] mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-xs sm:text-sm font-black text-indigo-400 uppercase tracking-[0.4em] mb-3 sm:mb-4">Live Production Engine</h2>
-            <h3 className="text-3xl sm:text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter">AI Image Synthesis Moteur</h3>
+            <h3 className="text-3xl sm:text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter">Generate High-Quality Images From Text Descriptions</h3>
           </div>
 
           {error && (

@@ -18,7 +18,7 @@ export const UpgradePage: React.FC<UpgradePageProps> = ({ onBack, onContactUs })
       period: '/month',
       description: 'Perfect for getting started with AI creation',
       features: [
-        '16 Generations per month',
+        '100 Generations per month',
         'Access to AI Image Generator',
         'Access to AI Voice & Audio',
         'Access to AI Video Generator',
@@ -39,7 +39,7 @@ export const UpgradePage: React.FC<UpgradePageProps> = ({ onBack, onContactUs })
       period: '/month',
       description: 'Unlimited power for professional creators',
       features: [
-        'Unlimited Generations',
+        '250 Generations per month',
         'Priority Processing Speed',
         'Early Access to New Features',
         'Advanced AI Models',

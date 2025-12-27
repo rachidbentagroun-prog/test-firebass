@@ -766,11 +766,12 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
 
               <button 
                 onClick={handleGenerate} 
-                disabled={isSynthesizing || isTranscoding || mode === 'stt'} 
-                className={`w-full py-6 rounded-2xl font-black text-lg flex items-center justify-center gap-4 transition-all shadow-2xl transform active:scale-[0.98] ${isSynthesizing ? 'bg-gray-800 text-gray-600' : mode === 'stt' ? 'bg-gray-900 text-gray-700 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`}
+                disabled={isSynthesizing || isTranscoding || mode === 'stt' || showIdentityCheck} 
+                className={`w-full py-6 rounded-2xl font-black text-lg flex items-center justify-center gap-4 transition-all shadow-2xl transform active:scale-[0.98] ${isSynthesizing ? 'bg-gray-800 text-gray-600' : (showIdentityCheck ? 'bg-white/5 opacity-60 cursor-not-allowed' : (mode === 'stt' ? 'bg-gray-900 text-gray-700 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500 text-white'))}`}
+                title={showIdentityCheck ? 'A verification link was sent to your email. Please confirm your identity to proceed.' : undefined}
               >
                 {isSynthesizing ? <RefreshCw className="w-6 h-6 animate-spin" /> : <Zap className="w-6 h-6 fill-white" />}
-                <span className="uppercase tracking-[0.2em] italic">{isSynthesizing ? 'Synthesizing...' : (mode === 'song' ? 'CREATE SONG (1 CREDIT)' : 'GENERATE NOW (1 CREDIT)')}</span>
+                <span className="uppercase tracking-[0.2em] italic">{isSynthesizing ? 'Synthesizing...' : (showIdentityCheck ? 'VERIFY EMAIL TO PROCEED' : (mode === 'song' ? 'CREATE SONG (1 CREDIT)' : 'GENERATE NOW (1 CREDIT)'))}</span>
               </button>
 
               {/* Recently Generated Section (Sticky) */}

@@ -21,28 +21,28 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
       ? siteConfig.showcaseImages
       : (siteConfig.slideshow || [])
   ).concat([
-    'https://images.unsplash.com/photo-1542272201-b1ca555f8505?auto=format&fit=crop&q=80&w=1200',
-    'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&q=80&w=1200',
-    'https://images.unsplash.com/photo-1511765224389-37f0e77cf0eb?auto=format&fit=crop&q=80&w=1200',
-    'https://images.unsplash.com/photo-1520975916090-3105956dac38?auto=format&fit=crop&q=80&w=1200',
-    'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&q=80&w=1200',
-    'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&q=80&w=1200',
-    'https://images.unsplash.com/photo-1482192596544-9eb780fc7f66?auto=format&fit=crop&q=80&w=1200',
-    'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&q=80&w=1200',
-    'https://images.unsplash.com/photo-1517817748499-9d9027b36c4a?auto=format&fit=crop&q=80&w=1200',
-    'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&q=80&w=1200',
-    'https://images.unsplash.com/photo-1487014679447-9f8336841d58?auto=format&fit=crop&q=80&w=1200',
+    'https://images.pexels.com/photos/1563356/pexels-photo-1563356.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    'https://images.pexels.com/photos/1133957/pexels-photo-1133957.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    'https://images.pexels.com/photos/1287075/pexels-photo-1287075.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    'https://images.pexels.com/photos/2662116/pexels-photo-2662116.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    'https://images.pexels.com/photos/1591373/pexels-photo-1591373.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    'https://images.pexels.com/photos/3075993/pexels-photo-3075993.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    'https://images.pexels.com/photos/1366919/pexels-photo-1366919.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    'https://images.pexels.com/photos/1624496/pexels-photo-1624496.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    'https://images.pexels.com/photos/1434580/pexels-photo-1434580.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    'https://images.pexels.com/photos/1563356/pexels-photo-1563356.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    'https://images.pexels.com/photos/1761279/pexels-photo-1761279.jpeg?auto=compress&cs=tinysrgb&w=1920',
   ]);
 
   const sampleVideos: string[] = (
     [siteConfig.videoLab?.hero.videoUrl, siteConfig.videoLab?.scriptToCinema.videoUrl].filter(Boolean) as string[]
   ).concat([
-    'https://www.w3schools.com/html/mov_bbb.mp4',
-    'https://samplelib.com/lib/preview/mp4/sample-960x540-30s.mp4',
-    'https://samplelib.com/lib/preview/mp4/sample-1280x720-5mb.mp4',
-    'https://samplelib.com/lib/preview/mp4/sample-1920x1080-5mb.mp4',
-    'https://filesamples.com/samples/video/mp4/sample_640x360.mp4',
-    'https://filesamples.com/samples/video/mp4/sample_960x400_ocean_with_audio.mp4',
+    'https://cdn.pixabay.com/video/2020/05/17/40742-423033758_large.mp4',
+    'https://cdn.pixabay.com/video/2021/08/10/84944-591189040_large.mp4',
+    'https://cdn.pixabay.com/video/2022/11/07/138620-770015996_large.mp4',
+    'https://cdn.pixabay.com/video/2019/06/19/24689-341672183_large.mp4',
+    'https://cdn.pixabay.com/video/2022/02/28/109746-684078626_large.mp4',
+    'https://cdn.pixabay.com/video/2021/04/05/69617-533759268_large.mp4',
   ]);
 
   const hasUserImages = images && images.length > 0;
