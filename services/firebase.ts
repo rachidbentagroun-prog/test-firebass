@@ -116,6 +116,35 @@ export async function getUserProfile(uid: string) {
   }
 }
 
+// Update user credits in Firestore
+export async function updateUserCreditsInFirebase(uid: string, newCredits: number) {
+  if (!uid) throw new Error('uid is required');
+  const userRef = doc(db, 'users', uid);
+  await setDoc(userRef, {
+    credits: Math.max(0, newCredits), // Ensure credits never go below 0
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+// Deduct 1 credit from user (for generation operations)
+export async function deductCreditInFirebase(uid: string) {
+  if (!uid) throw new Error('uid is required');
+  const userRef = doc(db, 'users', uid);
+  const { getDoc } = await import('firebase/firestore');
+  
+  const docSnap = await getDoc(userRef);
+  if (docSnap.exists()) {
+    const currentCredits = docSnap.data().credits ?? 3;
+    const newCredits = Math.max(0, currentCredits - 1);
+    await setDoc(userRef, {
+      credits: newCredits,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    return newCredits;
+  }
+  return 0;
+}
+
 // Get all users from Firestore (admin only - should be protected by security rules)
 export async function getAllUsersFromFirestore() {
   try {

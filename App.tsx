@@ -211,6 +211,16 @@ const App: React.FC = () => {
 
           // Set a lightweight user immediately so the UI can render the dashboard quickly
           const isQuickSuperAdmin = fbUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+          
+          // If email is verified, clear pending_verification from localStorage
+          if (fbUser.emailVerified || isQuickSuperAdmin) {
+            try {
+              localStorage.removeItem('pending_verification');
+            } catch (e) {
+              console.warn('Failed to clear pending_verification in auth listener', e);
+            }
+          }
+          
           const quickUser: User = {
             id: fbUser.uid,
             name: (fbUser.displayName || fbUser.email?.split('@')[0] || 'Creator') as string,
@@ -510,6 +520,47 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // When user completes verification and comes back, ensure they land on dashboard
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const gotoParam = params.get('goto');
+      const verifiedParam = params.get('verified');
+      
+      // If user just verified, force reload auth state and clean up
+      if (gotoParam === 'dashboard' && verifiedParam === '1') {
+        // Clean up pending verification from localStorage immediately
+        try {
+          localStorage.removeItem('pending_verification');
+        } catch (e) {
+          console.warn('Failed to clear pending_verification', e);
+        }
+        
+        // Force reload Firebase auth state to get updated emailVerified status
+        if (auth.currentUser) {
+          auth.currentUser.reload().then(() => {
+            console.log('Auth state reloaded after verification');
+            // The onAuthStateChanged listener will trigger and update the user object
+          }).catch((err) => {
+            console.warn('Failed to reload auth state', err);
+          });
+        }
+        
+        // Navigate to dashboard
+        setCurrentPage('dashboard');
+        
+        // Clean up URL params
+        params.delete('goto');
+        params.delete('verified');
+        const search = params.toString();
+        const newUrl = search ? `${window.location.pathname}?${search}` : window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    } catch (e) {
+      console.warn('verification redirect handler error', e);
+    }
+  }, []); // Run once on mount
+
   // Keep a simple app-level flag in sync with auth and pending verification info
   useEffect(() => {
     try {
@@ -520,6 +571,38 @@ const App: React.FC = () => {
       console.warn('identity check handler error', e);
     }
   }, [user]);
+
+  // Handle credit deduction for generation operations
+  const handleCreditUsed = async () => {
+    if (!user) return;
+    
+    // Premium users have unlimited credits
+    if (user.plan === 'premium') return;
+    
+    try {
+      const newCredits = Math.max(0, user.credits - 1);
+      
+      // Update local state immediately for responsive UI
+      setUser(prev => prev ? { ...prev, credits: newCredits } : null);
+      
+      // Update in both Firebase and Supabase in the background
+      try {
+        const { deductCreditInFirebase } = await import('./services/firebase');
+        await deductCreditInFirebase(user.id);
+      } catch (err) {
+        console.warn('Failed to update credits in Firebase:', err);
+      }
+      
+      try {
+        const { updateUserCredits } = await import('./services/dbService');
+        await updateUserCredits(user.id, newCredits);
+      } catch (err) {
+        console.warn('Failed to update credits in Supabase:', err);
+      }
+    } catch (err) {
+      console.error('Credit deduction error:', err);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -599,7 +682,7 @@ const App: React.FC = () => {
           <Generator 
             user={user} 
             gallery={gallery} 
-            onCreditUsed={() => {}} 
+            onCreditUsed={handleCreditUsed} 
             onUpgradeRequired={() => setCurrentPage('upgrade')} 
             onImageGenerated={(img) => { setGallery(p => [img, ...p]); if (user?.id) saveImageToDB(img, user.id); }} 
             initialPrompt={initialPrompt} 
@@ -612,12 +695,12 @@ const App: React.FC = () => {
         return <VideoLabLanding user={user} config={siteConfig.videoLab} onStartCreating={() => setCurrentPage('video-generator')} onLoginClick={() => setIsAuthModalOpen(true)} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
       case 'video-generator':
         if (!user) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
-        return <VideoGenerator user={user} onCreditUsed={() => {}} onUpgradeRequired={() => setIsUpgradeModalOpen(true)} onVideoGenerated={(video) => { setVideoGallery(p => [video, ...p]); saveVideoToDB(video, user!.id); }} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
+        return <VideoGenerator user={user} onCreditUsed={handleCreditUsed} onUpgradeRequired={() => setIsUpgradeModalOpen(true)} onVideoGenerated={(video) => { setVideoGallery(p => [video, ...p]); saveVideoToDB(video, user!.id); }} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
       case 'tts-lab-landing':
-        return <TTSLanding user={user} config={siteConfig.ttsLab} onStartCreating={() => setCurrentPage('tts-generator')} onLoginClick={() => setIsAuthModalOpen(true)} onAudioGenerated={(aud) => { setAudioGallery(p => [aud, ...p]); if (user?.id) saveAudioToDB(aud, user.id); }} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
+        return <TTSLanding user={user} config={siteConfig.ttsLab} onStartCreating={() => setCurrentPage('tts-generator')} onCreditUsed={handleCreditUsed} onUpgradeRequired={() => setIsUpgradeModalOpen(true)} onLoginClick={() => setIsAuthModalOpen(true)} onAudioGenerated={(aud) => { setAudioGallery(p => [aud, ...p]); if (user?.id) saveAudioToDB(aud, user.id); }} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
       case 'tts-generator':
         if (!user) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
-        return <TTSGenerator user={user} onCreditUsed={() => {}} onUpgradeRequired={() => setIsUpgradeModalOpen(true)} onAudioGenerated={(aud) => { setAudioGallery(p => [aud, ...p]); saveAudioToDB(aud, user!.id); }} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
+        return <TTSGenerator user={user} onCreditUsed={handleCreditUsed} onUpgradeRequired={() => setIsUpgradeModalOpen(true)} onAudioGenerated={(aud) => { setAudioGallery(p => [aud, ...p]); saveAudioToDB(aud, user!.id); }} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
       case 'gallery':
         if (!user) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
         return <Gallery images={gallery} videos={videoGallery} audioGallery={audioGallery} onDelete={() => {}} />;
@@ -681,7 +764,52 @@ const App: React.FC = () => {
       <AuthModal 
         isOpen={isAuthModalOpen} 
         onClose={() => { setIsAuthModalOpen(false); setAuthPrefillEmail(undefined); }}
-        onLoginSuccess={() => { setIsAuthModalOpen(false); setAuthPrefillEmail(undefined); setCurrentPage('dashboard'); }}
+        onLoginSuccess={() => { 
+          setIsAuthModalOpen(false); 
+          setAuthPrefillEmail(undefined); 
+          
+          // Check if we should navigate to a specific page after login
+          try {
+            const params = new URLSearchParams(window.location.search);
+            const gotoParam = params.get('goto');
+            const verifiedParam = params.get('verified');
+            
+            if (gotoParam === 'dashboard' || verifiedParam === '1') {
+              setCurrentPage('dashboard');
+              
+              // Clean up pending verification from localStorage
+              if (verifiedParam === '1') {
+                try {
+                  localStorage.removeItem('pending_verification');
+                } catch (e) {
+                  console.warn('Failed to clear pending_verification', e);
+                }
+                
+                // Force reload Firebase auth state to ensure emailVerified is up to date
+                if (auth.currentUser) {
+                  auth.currentUser.reload().then(() => {
+                    console.log('Auth state reloaded after login following verification');
+                  }).catch((err) => {
+                    console.warn('Failed to reload auth state after login', err);
+                  });
+                }
+              }
+              
+              // Clean up URL params
+              params.delete('goto');
+              params.delete('openAuth');
+              params.delete('email');
+              params.delete('verified');
+              const search = params.toString();
+              const newUrl = search ? `${window.location.pathname}?${search}` : window.location.pathname;
+              window.history.replaceState({}, '', newUrl);
+            } else {
+              setCurrentPage('dashboard');
+            }
+          } catch (e) {
+            setCurrentPage('dashboard');
+          }
+        }}
         initialEmail={authPrefillEmail}
       />
       <UpgradeModal 

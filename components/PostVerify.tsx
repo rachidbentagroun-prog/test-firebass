@@ -34,6 +34,13 @@ export default function PostVerify() {
           }
 
           if (auth.currentUser.emailVerified) {
+            // Clear pending verification from localStorage immediately
+            try {
+              localStorage.removeItem('pending_verification');
+            } catch (e) {
+              console.warn('Failed to clear pending_verification', e);
+            }
+
             // Grant entitlements but do it in the background so we don't block the user
             grantDefaultEntitlements(auth.currentUser.uid).catch((err) => {
               console.warn('grantDefaultEntitlements failed', err);
@@ -41,8 +48,12 @@ export default function PostVerify() {
 
             setStatus('success');
             setMessage('Email verified! Redirecting to your dashboard...');
-            // Redirect immediately — app will pick up auth state and show dashboard
-            window.location.href = `${window.location.origin}/?goto=dashboard`;
+            
+            // Wait a brief moment to ensure Firebase auth state is fully synced,
+            // then redirect to dashboard with a flag to ensure we land on the dashboard
+            setTimeout(() => {
+              window.location.href = `${window.location.origin}/?goto=dashboard&verified=1`;
+            }, 500);
             return;
           }
         }
@@ -60,7 +71,7 @@ export default function PostVerify() {
         setStatus('needs-login');
         setMessage('Email verified. Redirecting to login so you can access your dashboard...');
         // Redirect immediately and include email param if available to prefill the auth modal
-        const params = new URLSearchParams({ goto: 'dashboard', openAuth: '1' });
+        const params = new URLSearchParams({ goto: 'dashboard', openAuth: '1', verified: '1' });
         if (verifiedEmail) params.set('email', verifiedEmail);
         window.location.href = `${window.location.origin}/?${params.toString()}`;
       } catch (err: any) {
@@ -94,7 +105,7 @@ export default function PostVerify() {
               <h2 className="text-2xl font-bold text-white">Verified</h2>
               <p className="text-gray-300 mt-2">{message}</p>
               <div className="mt-6 flex justify-center gap-4">
-                <button onClick={() => { window.location.href = '/?goto=dashboard&openAuth=1'; }} className="px-4 py-2 bg-indigo-600 text-white rounded-lg">Login</button>
+                <button onClick={() => { window.location.href = '/?goto=dashboard&openAuth=1&verified=1'; }} className="px-4 py-2 bg-indigo-600 text-white rounded-lg">Login</button>
               </div>
             </div>
           )}

@@ -472,7 +472,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                 title={showIdentityCheck ? 'A verification link was sent to your email. Please confirm your identity to proceed.' : undefined}
               >
                 {isGenerating ? <RefreshCw className="w-6 h-6 animate-spin" /> : (isOutOfCredits ? <Lock className="w-6 h-6" /> : <Zap className="w-6 h-6 fill-white" />)}
-                <span className="uppercase tracking-[0.2em] italic">{isGenerating ? 'Synthesis Active' : (showIdentityCheck ? 'VERIFY EMAIL TO PROCEED' : 'Start Synthesis')}</span>
+                <span className="uppercase tracking-[0.2em] italic">{isGenerating ? 'Synthesis Active' : (showIdentityCheck ? 'VERIFY EMAIL TO PROCEED' : 'GENERATE NOW (1 CREDIT)')}</span>
               </button>
             </div>
           </div>
