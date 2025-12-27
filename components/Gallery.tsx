@@ -47,18 +47,18 @@ export const Gallery: React.FC<GalleryProps> = ({ images, videos = [], audioGall
   const currentCount = activeTab === 'images' ? images.length : (activeTab === 'videos' ? videos.length : audioGallery.length);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in min-h-[70vh]">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-8 sm:py-12 animate-fade-in min-h-[70vh]">
       {/* Header Area */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12 gap-8">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 sm:mb-12 gap-6 sm:gap-8">
         <div>
-          <h2 className="text-4xl font-black text-white uppercase italic tracking-tighter">Creation Vault</h2>
+          <h2 className="text-3xl sm:text-4xl font-black text-white uppercase italic tracking-tighter">Creation Vault</h2>
           <div className="flex items-center gap-2 mt-2">
             <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse" />
-            <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">{currentCount} Authorized Nodes Synchronized</span>
+            <span className="text-gray-500 text-[10px] sm:text-xs font-bold uppercase tracking-widest">{currentCount} Authorized Nodes Synchronized</span>
           </div>
         </div>
 
-        <div className="flex bg-dark-900/50 p-1.5 rounded-[1.5rem] border border-white/10 shadow-2xl backdrop-blur-md">
+        <div className="flex bg-dark-900/50 p-1 sm:p-1.5 rounded-2xl sm:rounded-[1.5rem] border border-white/10 shadow-2xl backdrop-blur-md w-full md:w-auto overflow-x-auto no-scrollbar">
           {[
             { id: 'images', icon: ImageIcon, label: 'Images' },
             { id: 'videos', icon: VideoIcon, label: 'Videos' },
@@ -67,9 +67,9 @@ export const Gallery: React.FC<GalleryProps> = ({ images, videos = [], audioGall
             <button 
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${activeTab === tab.id ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+              className={`flex-1 px-4 sm:px-8 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 sm:gap-3 transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
             >
-              <tab.icon className="w-4 h-4" />
+              <tab.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               {tab.label}
             </button>
           ))}
@@ -82,7 +82,7 @@ export const Gallery: React.FC<GalleryProps> = ({ images, videos = [], audioGall
           images.length === 0 ? (
             <EmptyState icon={ImageIcon} title="No Visual projections found" />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
               {images.map((img) => (
                 <ImageCard 
                   key={img.id} 

@@ -18,7 +18,9 @@ import { UpgradePage } from './components/UpgradePage.tsx';
 import { Showcase } from './components/Showcase.tsx';
 import { ExplorePage } from './components/ExplorePage.tsx';
 import { MultimodalSection } from './components/MultimodalSection.tsx';
+import { ContactPanel } from './components/ContactPanel.tsx';
 import { ChatWidget } from './components/ChatWidget.tsx';
+import { WhatsAppWidget } from './components/WhatsAppWidget.tsx';
 import SignUp from './components/SignUp.tsx';
 import PostVerify from './components/PostVerify';
 import { User, GeneratedImage, GeneratedVideo, GeneratedAudio, SiteConfig, Plan } from './types.ts';
@@ -28,7 +30,7 @@ import {
   saveVideoToDB, getAudioFromDB, saveAudioToDB
 } from './services/dbService.ts';
 import { Sparkles, RefreshCw, ArrowLeft, ShieldAlert } from 'lucide-react';
-import { auth, getUserProfile, getAllUsersFromFirestore } from './services/firebase';
+import { auth, getUserProfile, getAllUsersFromFirestore, setAnalyticsUserId, trackPageView } from './services/firebase';
 import { onAuthStateChanged, signOut as fbSignOut } from 'firebase/auth';
 
 const CONFIG_KEY = 'imaginai_site_config';
@@ -131,9 +133,9 @@ const App: React.FC = () => {
   const [authPrefillEmail, setAuthPrefillEmail] = useState<string | undefined>(undefined);
   const [isIdentityCheckActive, setIsIdentityCheckActive] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [initialPrompt, setInitialPrompt] = useState('');
   const [hasApiKey, setHasApiKey] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   // Track whether auth initialization timed out so we render a helpful message instead of an unending spinner
   const [authInitTimedOut, setAuthInitTimedOut] = useState(false);
 
@@ -331,6 +333,7 @@ const App: React.FC = () => {
         try {
           const { logTrafficEvent } = await import('./services/dbService');
           await logTrafficEvent({ path: window.location.pathname, referrer: document.referrer || 'direct', userAgent: navigator.userAgent, userId: user?.id || null });
+          trackPageView(window.location.pathname);
         } catch (e) {
           // ignore
         }
@@ -340,6 +343,14 @@ const App: React.FC = () => {
       // ignore
     }
   }, [currentPage, user]);
+
+  useEffect(() => {
+    try {
+      if (user?.id) setAnalyticsUserId(user.id);
+    } catch (e) {
+      /* noop */
+    }
+  }, [user?.id]);
 
   // Admin action handlers
   const handleDeleteUser = async (userId: string) => {
@@ -759,7 +770,19 @@ const App: React.FC = () => {
         {renderPage()}
       </main>
 
-      <ChatWidget user={user} isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
+      {/* Contact Panel - WhatsApp + Support Chat */}
+      <ContactPanel 
+        onWhatsAppClick={() => {
+          // Open WhatsApp directly
+          const phoneNumber = '2120630961392';
+          const message = encodeURIComponent('Hello! I would like to know more about ImaginAI services.');
+          window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
+        }}
+        onChatClick={() => setIsChatOpen(true)}
+      />
+
+      {/* Support Chat Widget (opens when selected via ContactPanel; launcher hidden) */}
+      <ChatWidget user={user} isOpen={isChatOpen} setIsOpen={setIsChatOpen} hideLauncher />
       
       <AuthModal 
         isOpen={isAuthModalOpen} 

@@ -1,17 +1,58 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, applyActionCode, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { getFirestore, doc, setDoc, serverTimestamp, collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { getAnalytics, logEvent as gaLogEvent, setUserId as gaSetUserId, setUserProperties as gaSetUserProperties } from 'firebase/analytics';
 import { GeneratedAudio, GeneratedImage, GeneratedVideo } from '../types';
 
+const measurementId = (import.meta as any)?.env?.VITE_FIREBASE_MEASUREMENT_ID;
 const firebaseConfig = {
   apiKey: (import.meta as any)?.env?.VITE_FIREBASE_API_KEY || 'AIzaSyAn0LrM0rtXoXvOA8m4JqkGQ8KJR_NKgYA',
   authDomain: (import.meta as any)?.env?.VITE_FIREBASE_AUTH_DOMAIN || 'image-ai-generator-adf8c.firebaseapp.com',
   projectId: (import.meta as any)?.env?.VITE_FIREBASE_PROJECT_ID || 'image-ai-generator-adf8c',
+  ...(measurementId ? { measurementId } : {}),
 };
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+export const analytics = typeof window !== 'undefined'
+  ? (() => {
+      try { return getAnalytics(app); } catch { return undefined; }
+    })()
+  : undefined;
+
+export function logAnalyticsEvent(name: string, params?: Record<string, any>) {
+  try {
+    if (!analytics) return;
+    gaLogEvent(analytics, name, params);
+  } catch {}
+}
+
+export function trackPageView(path?: string) {
+  try {
+    if (!analytics) return;
+    const p = path || (typeof window !== 'undefined' ? window.location.pathname : undefined);
+    gaLogEvent(analytics, 'page_view', {
+      page_path: p,
+      page_location: typeof window !== 'undefined' ? window.location.href : undefined,
+    });
+  } catch {}
+}
+
+export function setAnalyticsUserId(uid?: string) {
+  try {
+    if (!analytics || !uid) return;
+    gaSetUserId(analytics, uid);
+  } catch {}
+}
+
+export function setAnalyticsUserProperties(props: Record<string, any>) {
+  try {
+    if (!analytics) return;
+    gaSetUserProperties(analytics, props);
+  } catch {}
+}
 
 export async function signUpWithFirebase(email: string, password: string, displayName?: string) {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);

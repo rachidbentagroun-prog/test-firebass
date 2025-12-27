@@ -260,84 +260,58 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
 
   return (
     <>
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-0 animate-fade-in space-y-16 flex flex-col items-center">
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 scroll-mt-24 w-full justify-center">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-0 animate-fade-in space-y-8 sm:space-y-12 md:space-y-16 flex flex-col items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 md:gap-8 lg:gap-10 scroll-mt-24 w-full justify-center">
         
-        <div className="lg:col-span-2 space-y-6 w-full max-w-4xl mx-auto">
-          <div className="bg-dark-900 border border-white/10 rounded-[2.5rem] p-8 shadow-2xl relative h-full overflow-hidden">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-600/5 blur-[80px] rounded-full -mr-20 -mt-20 pointer-events-none" />
+        <div className="lg:col-span-2 space-y-3 sm:space-y-4 md:space-y-5 lg:space-y-6 w-full max-w-4xl mx-auto">
+          <div className="bg-dark-900 border border-white/10 rounded-xl sm:rounded-2xl md:rounded-[2rem] lg:rounded-[2.5rem] p-4 sm:p-6 md:p-8 shadow-2xl relative h-full overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 bg-indigo-600/5 blur-[60px] sm:blur-[80px] rounded-full -mr-12 sm:-mr-16 md:-mr-20 -mt-12 sm:-mt-16 md:-mt-20 pointer-events-none" />
             
-            <div className="flex justify-between items-start mb-6 relative z-10">
-              <h2 className="text-2xl font-black text-white flex items-center gap-3 uppercase italic tracking-tighter">
-                <div className="p-2.5 bg-indigo-600 rounded-2xl shadow-xl">
-                  <Video className="w-6 h-6 text-white" />
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-3 mb-4 sm:mb-5 md:mb-6 relative z-10">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-black text-white flex items-center gap-2 sm:gap-3 uppercase italic tracking-tighter">
+                <div className="p-1.5 sm:p-2.5 bg-indigo-600 rounded-lg sm:rounded-2xl shadow-xl">
+                  <Video className="w-4 sm:w-5 md:w-6 h-4 sm:h-5 md:h-6 text-white" />
                 </div>
-                Text to Video
+                <span className="text-sm sm:text-base md:text-lg">Text to Video</span>
               </h2>
                {user && (
-                 <div className={`px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${isOutOfCredits ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-indigo-600/10 border-indigo-500/20 text-indigo-400'}`}>
+                 <div className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border text-[8px] sm:text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${isOutOfCredits ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-indigo-600/10 border-indigo-500/20 text-indigo-400'}`}>
                     {user.plan === 'premium' ? 'UNLIMITED' : `${user.credits} Credits`}
                  </div>
                )}
             </div>
 
-            <p className="text-sm text-gray-400 mb-4 relative z-10">Generate High-Quality Videos With Audio From Text Descriptions.</p>
+            <p className="text-xs sm:text-sm text-gray-400 mb-3 sm:mb-4 relative z-10">Generate High-Quality Videos With Audio From Text Descriptions.</p>
 
-            <div className="flex bg-black/50 p-1.5 rounded-2xl mb-4 border border-white/5 relative z-10">
+            <div className="flex gap-1 sm:gap-1.5 bg-black/50 p-1 sm:p-1.5 rounded-lg sm:rounded-2xl mb-4 sm:mb-5 border border-white/5 relative z-10">
               <button 
                 onClick={() => setMode('text')} 
-                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${mode === 'text' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                className={`flex-1 py-2 sm:py-2.5 md:py-3 rounded-lg text-[8px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${mode === 'text' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
               >
-            {/* Recently Generated (Sticky) */}
-            {(videoHistory.length > 0) && (
-              <div className="mt-4 sticky top-4 bg-black/20 border border-white/10 rounded-2xl p-4 z-20">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <History className="w-4 h-4 text-indigo-400" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Recently Generated</span>
-                  </div>
-                  <span className="text-[9px] font-black text-gray-600 uppercase">{videoHistory.length} Items</span>
-                </div>
-                <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
-                  {videoHistory.slice(0, 8).map(v => (
-                    <div key={v.id} className="group relative rounded-xl overflow-hidden border border-white/10">
-                      <video id={`mini-video-${v.id}`} src={v.url} className="w-full h-full" muted playsInline></video>
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <button onClick={() => togglePlay(v.id)} className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/10">{playingId === v.id ? '❚❚' : '▶'}</button>
-                        <a href={v.url} download={`imaginai-${v.id}.mp4`} className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/10">⬇</a>
-                        {user && (
-                          <button onClick={() => handleDeleteVideo(v.id)} className="p-2 rounded-lg bg-white/10 hover:bg-red-600/80 text-white border border-white/10">🗑</button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-                Text to Video
+                Text Video
               </button>
               <button 
                 onClick={() => setMode('interpolation')} 
-                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${mode === 'interpolation' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                className={`flex-1 py-2 sm:py-2.5 md:py-3 rounded-lg text-[8px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${mode === 'interpolation' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
               >
-                Image to Video
+                Image Video
               </button>
             </div>
 
-              <div className="space-y-5 relative z-10">
+              <div className="space-y-3 sm:space-y-4 md:space-y-5 relative z-10">
               {mode === 'interpolation' && (
-                <div className="space-y-4 animate-fade-in">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Starting Frame</label>
+                <div className="space-y-2 sm:space-y-3 animate-fade-in">
+                  <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Starting Frame</label>
                   <div 
                     onClick={() => fileInputRef.current?.click()}
-                    className="aspect-video bg-black/40 border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500/30 transition-all group overflow-hidden"
+                    className="aspect-video bg-black/40 border-2 border-dashed border-white/10 rounded-lg sm:rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500/30 transition-all group overflow-hidden"
                   >
                     {startImage ? (
                       <img src={startImage.url} className="w-full h-full object-cover" alt="Start Frame" />
                     ) : (
                       <>
-                        <Upload className="w-8 h-8 text-gray-700 group-hover:text-indigo-400 mb-2 transition-colors" />
-                        <span className="text-[8px] font-black text-gray-600 uppercase">Upload Reference</span>
+                        <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-gray-700 group-hover:text-indigo-400 mb-2 transition-colors" />
+                        <span className="text-[7px] sm:text-[8px] font-black text-gray-600 uppercase">Upload Frame</span>
                       </>
                     )}
                   </div>
@@ -346,29 +320,29 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               )}
 
               <div>
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1 block mb-2">Cinematic Script</label>
+                <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 block mb-1.5 sm:mb-2">Cinematic Script</label>
                 <textarea 
                   value={prompt} onChange={(e) => setPrompt(e.target.value)}
                   disabled={isOutOfCredits || isGenerating}
                   placeholder="Describe cinematic lighting, camera moves, and textures..."
-                  className="w-full h-32 bg-black/40 border border-white/10 rounded-2xl p-5 text-white text-sm focus:ring-1 focus:ring-indigo-500/50 outline-none resize-none transition-all placeholder:text-gray-700 custom-scrollbar disabled:opacity-50"
+                  className="w-full h-24 sm:h-28 md:h-32 bg-black/40 border border-white/10 rounded-lg sm:rounded-2xl p-3 sm:p-4 md:p-5 text-white text-xs sm:text-sm focus:ring-1 focus:ring-indigo-500/50 outline-none resize-none transition-all placeholder:text-gray-700 custom-scrollbar disabled:opacity-50"
                 />
               </div>
 
-              <div className="bg-black/30 border border-white/10 rounded-2xl p-4 space-y-2" ref={negativeMenuRef}>
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                      <AlertCircle className="w-3.5 h-3.5 text-pink-400" /> Negative Prompt
+              <div className="bg-black/30 border border-white/10 rounded-lg sm:rounded-2xl p-3 sm:p-4 space-y-2" ref={negativeMenuRef}>
+                <div className="flex items-start justify-between gap-2 sm:gap-3">
+                  <div className="flex-1">
+                    <p className="text-[8px] sm:text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <AlertCircle className="w-3 h-3 text-pink-400 flex-shrink-0" /> Negative
                     </p>
-                    <p className="text-[9px] text-gray-600 uppercase tracking-widest">Applies to all video engines</p>
+                    <p className="text-[7px] sm:text-[8px] text-gray-600 uppercase tracking-widest">Video filters</p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     {negativePrompt && (
                       <button
                         type="button"
                         onClick={() => setNegativePrompt('')}
-                        className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:border-white/30"
+                        className="px-2 py-0.5 text-[7px] sm:text-[8px] font-black uppercase tracking-widest bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:border-white/30"
                       >
                         Clear
                       </button>
@@ -376,18 +350,18 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                     <div className="relative">
                       <button
                         onClick={() => !isGenerating && setIsNegativeMenuOpen(!isNegativeMenuOpen)}
-                        className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest bg-black/50 border border-white/10 rounded-lg text-gray-200 hover:border-white/30 flex items-center gap-2"
+                        className="px-2 sm:px-3 py-1 sm:py-1.5 text-[7px] sm:text-[9px] font-black uppercase tracking-widest bg-black/50 border border-white/10 rounded-lg text-gray-200 hover:border-white/30 flex items-center gap-1"
                       >
                         Presets
-                        <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform ${isNegativeMenuOpen ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-500 transition-transform ${isNegativeMenuOpen ? 'rotate-180' : ''}`} />
                       </button>
                       {isNegativeMenuOpen && (
-                        <div className="absolute right-0 mt-2 w-56 bg-dark-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-scale-in">
+                        <div className="absolute right-0 mt-1 sm:mt-2 w-48 bg-dark-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-scale-in">
                           {NEGATIVE_PRESETS.map((item, idx) => (
                             <button
                               key={idx}
                               onClick={() => { setNegativePrompt(item); setIsNegativeMenuOpen(false); }}
-                              className="w-full text-left px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:bg-white/5 border-b border-white/5 last:border-none"
+                              className="w-full text-left px-2 sm:px-3 py-2 text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-gray-300 hover:bg-white/5 border-b border-white/5 last:border-none"
                             >
                               {item}
                             </button>
@@ -401,57 +375,57 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                   value={negativePrompt}
                   onChange={(e) => setNegativePrompt(e.target.value)}
                   disabled={isGenerating}
-                  placeholder="Keep it short: e.g., blurry shots, extra limbs, text overlays"
-                  className="w-full h-24 bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:ring-1 focus:ring-indigo-500/40 outline-none resize-none transition-all placeholder:text-gray-700 custom-scrollbar disabled:opacity-50"
+                  placeholder="Short: e.g., blurry, extra limbs"
+                  className="w-full h-20 bg-black/40 border border-white/10 rounded-lg p-3 text-white text-xs focus:ring-1 focus:ring-indigo-500/40 outline-none resize-none transition-all placeholder:text-gray-700 custom-scrollbar disabled:opacity-50"
                 />
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                 <div className="space-y-2 relative" ref={dimMenuRef}>
-                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Aspect Ratio</label>
-                    <button onClick={() => !isGenerating && setIsDimMenuOpen(!isDimMenuOpen)} className="w-full flex items-center justify-between px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
-                      <div className="flex items-center gap-1.5 truncate">{currentDimOption && <currentDimOption.icon className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}<span className="truncate">{aspectRatio}</span></div>
-                      <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform ${isDimMenuOpen ? 'rotate-180' : ''}`} />
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+                 <div className="space-y-1.5 sm:space-y-2 relative" ref={dimMenuRef}>
+                    <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Aspect</label>
+                    <button onClick={() => !isGenerating && setIsDimMenuOpen(!isDimMenuOpen)} className="w-full flex items-center justify-between px-2 sm:px-3 py-2 sm:py-3 bg-black/40 border border-white/10 rounded-lg text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
+                      <div className="flex items-center gap-1 truncate">{currentDimOption && <currentDimOption.icon className="w-3 h-3 text-indigo-400 flex-shrink-0" />}<span className="truncate text-[7px] sm:text-[8px]">{aspectRatio}</span></div>
+                      <ChevronDown className={`w-2.5 h-2.5 text-gray-500 transition-transform flex-shrink-0 ${isDimMenuOpen ? 'rotate-180' : ''}`} />
                     </button>
                     {isDimMenuOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-2 z-[100] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl animate-scale-in">
+                      <div className="absolute top-full left-0 right-0 mt-1 z-[100] bg-dark-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl animate-scale-in">
                         {ASPECT_RATIOS.map(opt => (
-                          <button key={opt.id} onClick={() => { setAspectRatio(opt.id); setIsDimMenuOpen(false); }} className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 text-[9px] font-black transition-all ${aspectRatio === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
-                            <div className="flex items-center gap-2 truncate"><opt.icon className="w-3.5 h-3.5" /><span className="truncate">{opt.label}</span></div>
+                          <button key={opt.id} onClick={() => { setAspectRatio(opt.id); setIsDimMenuOpen(false); }} className={`w-full flex items-center justify-between gap-1 px-2 py-2 text-[8px] font-black transition-all ${aspectRatio === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
+                            <div className="flex items-center gap-1 truncate"><opt.icon className="w-3 h-3 flex-shrink-0" /><span className="truncate">{opt.label}</span></div>
                           </button>
                         ))}
                       </div>
                     )}
                  </div>
 
-                  <div className="space-y-2 relative" ref={qualityMenuRef}>
-                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Video Size</label>
-                    <button onClick={() => !isGenerating && setIsQualityMenuOpen(!isQualityMenuOpen)} className="w-full flex items-center justify-between px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
-                      <div className="flex items-center gap-1.5 truncate"><Monitor className="w-3.5 h-3.5 text-indigo-400 shrink-0" /><span>{resolution.toUpperCase()}</span></div>
-                      <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform ${isQualityMenuOpen ? 'rotate-180' : ''}`} />
+                  <div className="space-y-1.5 sm:space-y-2 relative" ref={qualityMenuRef}>
+                    <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Size</label>
+                    <button onClick={() => !isGenerating && setIsQualityMenuOpen(!isQualityMenuOpen)} className="w-full flex items-center justify-between px-2 sm:px-3 py-2 sm:py-3 bg-black/40 border border-white/10 rounded-lg text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
+                      <div className="flex items-center gap-1 truncate"><Monitor className="w-3 h-3 text-indigo-400 flex-shrink-0" /><span className="text-[7px] sm:text-[8px]">{resolution.toUpperCase()}</span></div>
+                      <ChevronDown className={`w-2.5 h-2.5 text-gray-500 transition-transform flex-shrink-0 ${isQualityMenuOpen ? 'rotate-180' : ''}`} />
                     </button>
                     {isQualityMenuOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-2 z-[100] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl animate-scale-in">
+                      <div className="absolute top-full left-0 right-0 mt-1 z-[100] bg-dark-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl animate-scale-in">
                         {QUALITIES.map(opt => (
-                          <button key={opt.id} onClick={() => { setResolution(opt.id); setIsQualityMenuOpen(false); }} className={`w-full text-left px-3 py-2.5 transition-all ${resolution === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
-                            <span className="text-[9px] font-black uppercase tracking-widest">{opt.label}</span>
+                          <button key={opt.id} onClick={() => { setResolution(opt.id); setIsQualityMenuOpen(false); }} className={`w-full text-left px-2 py-2 transition-all ${resolution === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
+                            <span className="text-[8px] font-black uppercase tracking-widest">{opt.label}</span>
                           </button>
                         ))}
                       </div>
                     )}
                  </div>
 
-                     <div className="space-y-2 relative" ref={durationMenuRef}>
-                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Duration</label>
-                        <button onClick={() => !isGenerating && setIsDurationMenuOpen(!isDurationMenuOpen)} className="w-full flex items-center justify-between px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
-                          <div className="flex items-center gap-1.5 truncate"><Clock className="w-3.5 h-3.5 text-indigo-400 shrink-0" /><span>{duration.toUpperCase()}</span></div>
-                          <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform ${isDurationMenuOpen ? 'rotate-180' : ''}`} />
+                     <div className="space-y-1.5 sm:space-y-2 relative" ref={durationMenuRef}>
+                        <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Duration</label>
+                        <button onClick={() => !isGenerating && setIsDurationMenuOpen(!isDurationMenuOpen)} className="w-full flex items-center justify-between px-2 sm:px-3 py-2 sm:py-3 bg-black/40 border border-white/10 rounded-lg text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
+                          <div className="flex items-center gap-1 truncate"><Clock className="w-3 h-3 text-indigo-400 flex-shrink-0" /><span className="text-[7px] sm:text-[8px]">{duration.toUpperCase()}</span></div>
+                          <ChevronDown className={`w-2.5 h-2.5 text-gray-500 transition-transform flex-shrink-0 ${isDurationMenuOpen ? 'rotate-180' : ''}`} />
                         </button>
                         {isDurationMenuOpen && (
-                          <div className="absolute top-full left-0 right-0 mt-2 z-[100] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl animate-scale-in">
+                          <div className="absolute top-full left-0 right-0 mt-1 z-[100] bg-dark-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl animate-scale-in">
                             {DURATION_OPTIONS.map(opt => (
-                              <button key={opt.id} onClick={() => { setDuration(opt.id); setIsDurationMenuOpen(false); }} className={`w-full text-left px-3 py-2.5 transition-all ${duration === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
-                                <span className="text-[9px] font-black uppercase tracking-widest">{opt.label}</span>
+                              <button key={opt.id} onClick={() => { setDuration(opt.id); setIsDurationMenuOpen(false); }} className={`w-full text-left px-2 py-2 transition-all ${duration === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
+                                <span className="text-[8px] font-black uppercase tracking-widest">{opt.label}</span>
                               </button>
                             ))}
                           </div>
@@ -460,40 +434,40 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               </div>
 
               {error && (
-                <div className="p-4 bg-red-600/10 border border-red-600/20 rounded-2xl flex items-center gap-3 animate-fade-in">
-                  <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-                  <p className="text-[9px] text-red-400 font-black uppercase leading-tight">{error}</p>
+                <div className="p-2 sm:p-3 md:p-4 bg-red-600/10 border border-red-600/20 rounded-lg sm:rounded-2xl flex items-start gap-2 sm:gap-3 animate-fade-in">
+                  <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-[8px] sm:text-[9px] text-red-400 font-black uppercase leading-tight">{error}</p>
                 </div>
               )}
 
               <button
                 onClick={handleGenerate} disabled={isGenerating || showIdentityCheck}
-                className={`w-full py-6 rounded-2xl font-black text-lg flex items-center justify-center gap-4 transition-all transform active:scale-95 shadow-2xl ${isGenerating ? 'bg-gray-800 text-gray-600' : (showIdentityCheck ? 'bg-white/5 opacity-60 cursor-not-allowed' : (isOutOfCredits ? 'bg-amber-600 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/20'))}`}
+                className={`w-full py-3 sm:py-4 md:py-6 rounded-lg sm:rounded-2xl font-black text-xs sm:text-sm md:text-lg flex items-center justify-center gap-2 sm:gap-3 md:gap-4 transition-all transform active:scale-95 shadow-2xl ${isGenerating ? 'bg-gray-800 text-gray-600' : (showIdentityCheck ? 'bg-white/5 opacity-60 cursor-not-allowed' : (isOutOfCredits ? 'bg-amber-600 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/20'))}`}
                 title={showIdentityCheck ? 'A verification link was sent to your email. Please confirm your identity to proceed.' : undefined}
               >
-                {isGenerating ? <RefreshCw className="w-6 h-6 animate-spin" /> : (isOutOfCredits ? <Lock className="w-6 h-6" /> : <Zap className="w-6 h-6 fill-white" />)}
-                <span className="uppercase tracking-[0.2em] italic">{isGenerating ? 'Synthesis Active' : (showIdentityCheck ? 'VERIFY EMAIL TO PROCEED' : 'GENERATE NOW (1 CREDIT)')}</span>
+                {isGenerating ? <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 animate-spin" /> : (isOutOfCredits ? <Lock className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" /> : <Zap className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 fill-white" />)}
+                <span className="uppercase tracking-[0.1em] sm:tracking-[0.15em] md:tracking-[0.2em] italic text-[10px] sm:text-xs md:text-base">{isGenerating ? 'Synthesis' : (showIdentityCheck ? 'VERIFY EMAIL' : 'GENERATE (1)')}</span>
               </button>
             </div>
           </div>
         </div>
 
         <div className="lg:col-span-3 w-full max-w-5xl mx-auto">
-          <div className="bg-black/40 border border-white/5 rounded-[3rem] p-2.5 h-full min-h-[550px] flex flex-col relative overflow-hidden">
-            <div className="flex-1 rounded-[2.5rem] overflow-hidden bg-dark-950 flex flex-col relative group/viewport workstation-border">
+          <div className="bg-black/40 border border-white/5 rounded-xl sm:rounded-2xl md:rounded-[2rem] lg:rounded-[3rem] p-2 sm:p-2.5 md:p-3 lg:p-5 h-full min-h-[40vh] sm:min-h-[50vh] md:min-h-[55vh] lg:min-h-[60vh] mobile-viewport flex flex-col relative overflow-hidden">
+            <div className="flex-1 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-[2.5rem] overflow-hidden bg-dark-950 flex flex-col relative group/viewport workstation-border">
               {resultVideo ? (
                 <div className="h-full flex flex-col animate-fade-in relative z-10">
                   <div className="flex-1 bg-black flex items-center justify-center">
-                    <video src={resultVideo.url} controls autoPlay loop className="max-h-full w-auto" />
+                    <video src={resultVideo.url} controls autoPlay loop className="max-h-full responsive-media" />
                   </div>
-                  <div className="p-8 border-t border-white/10 bg-dark-900/80 backdrop-blur-xl flex items-center justify-between">
+                  <div className="p-3 sm:p-4 md:p-6 lg:p-8 border-t border-white/10 bg-dark-900/80 backdrop-blur-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
                     <div>
-                       <p className="text-white font-black uppercase tracking-tight text-xs italic leading-none">Synthesis Complete</p>
-                       <p className="text-[9px] text-gray-500 uppercase tracking-[0.2em] mt-2">{resultVideo.resolution} • SORA 2 • {resultVideo.aspectRatio}</p>
+                       <p className="text-white font-black uppercase tracking-tight text-xs sm:text-sm italic leading-none">Synthesis Complete</p>
+                       <p className="text-[8px] sm:text-[9px] text-gray-500 uppercase tracking-[0.15em] mt-1">{resultVideo.resolution} • SORA 2 • {resultVideo.aspectRatio}</p>
                     </div>
-                    <a href={resultVideo.url} download className="p-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg transition-all flex items-center gap-2 px-6">
-                      <Download className="w-4 h-4" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Download MP4</span>
+                    <a href={resultVideo.url} download className="w-full sm:w-auto p-2 sm:p-3 md:p-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg sm:rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 px-3 sm:px-6">
+                      <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Download</span>
                     </a>
                   </div>
                 </div>

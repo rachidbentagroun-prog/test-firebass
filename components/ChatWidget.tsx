@@ -8,9 +8,10 @@ interface ChatWidgetProps {
   user: User | null;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
+  hideLauncher?: boolean; // when true, suppress floating launcher button; open via external control
 }
 
-export const ChatWidget: React.FC<ChatWidgetProps> = ({ user, isOpen, setIsOpen }) => {
+export const ChatWidget: React.FC<ChatWidgetProps> = ({ user, isOpen, setIsOpen, hideLauncher = false }) => {
   const [message, setMessage] = useState('');
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(() => localStorage.getItem('imaginai_chat_session'));
@@ -89,7 +90,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ user, isOpen, setIsOpen 
 
   return (
     <div className="fixed bottom-6 right-6 z-[300]">
-      {!isOpen ? (
+      {!isOpen && hideLauncher ? null : !isOpen ? (
         <button
           onClick={() => setIsOpen(true)}
           className="w-14 h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full shadow-2xl flex items-center justify-center transition-all transform hover:scale-110 active:scale-95 group"

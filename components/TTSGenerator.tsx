@@ -843,8 +843,8 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
 
         {/* VIEWPORT & HISTORY */}
         <div className="lg:col-span-7 space-y-8">
-          <div className="bg-black/40 border border-white/5 rounded-[3rem] p-2.5 min-h-[450px] flex flex-col relative overflow-hidden">
-            <div className="flex-1 rounded-[2.5rem] overflow-hidden bg-dark-950 flex flex-col items-center justify-center relative">
+          <div className="bg-black/40 border border-white/5 rounded-[3rem] p-2.5 min-h-[50vh] sm:min-h-[60vh] mobile-viewport flex flex-col relative overflow-hidden">
+            <div className="flex-1 rounded-[2.5rem] overflow-hidden bg-dark-950 flex flex-col items-center justify-center relative scroll-touch">
                <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/10 via-transparent to-purple-900/5 pointer-events-none" />
                
                {currentAudio ? (
