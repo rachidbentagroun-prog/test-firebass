@@ -20,8 +20,21 @@ import {
   generateClonedSpeechWithGemini, 
   detectVoiceProfile 
 } from '../services/geminiService';
+import { 
+  generateSpeechWithElevenLabs,
+  generateClonedSpeechWithElevenLabs
+} from '../services/elevenlabsService';
 import { User, GeneratedAudio } from '../types';
 import { saveWorkState, getWorkState } from '../services/dbService';
+import { saveAudioToFirebase, getAudioFromFirebase, deleteAudioFromFirebase } from '../services/firebase';
+
+const NEGATIVE_PRESETS = [
+  'background noise, distortion, static',
+  'robotic tone, monotone delivery',
+  'mouth clicks, sibilance, pops',
+  'echo, reverb, room tone',
+  'breaths, filler words, stutters'
+];
 
 interface TTSGeneratorProps {
   user: User | null;
@@ -43,6 +56,21 @@ const VOICES = [
   { id: 'Aoede', label: 'Aoede', gender: 'Female', desc: 'Melodic and Lyrical', color: 'emerald' },
   { id: 'Leda', label: 'Leda', gender: 'Female', desc: 'Bright and Articulate', color: 'orange' },
   { id: 'Orus', label: 'Orus', gender: 'Male', desc: 'Sharp and Commanding', color: 'red' }
+];
+
+const ELEVENLABS_VOICES = [
+  { id: 'Rachel', label: 'Rachel', gender: 'Female', desc: 'Professional & Clear', color: 'indigo' },
+  { id: 'Domi', label: 'Domi', gender: 'Female', desc: 'Energetic & Confident', color: 'purple' },
+  { id: 'Bella', label: 'Bella', gender: 'Female', desc: 'Articulate & Elegant', color: 'pink' },
+  { id: 'Antoni', label: 'Antoni', gender: 'Male', desc: 'Sharp & Commanding', color: 'blue' },
+  { id: 'Elli', label: 'Elli', gender: 'Female', desc: 'Young & Dynamic', color: 'amber' },
+  { id: 'Josh', label: 'Josh', gender: 'Male', desc: 'Youthful & Energetic', color: 'emerald' },
+  { id: 'Arnold', label: 'Arnold', gender: 'Male', desc: 'Deep & Cinematic', color: 'orange' },
+  { id: 'Adam', label: 'Adam', gender: 'Male', desc: 'Storyteller & Rich', color: 'red' },
+  { id: 'Sam', label: 'Sam', gender: 'Male', desc: 'Raspy & Mature', color: 'cyan' },
+  { id: 'Charlotte', label: 'Charlotte', gender: 'Female', desc: 'Calm & Soothing', color: 'teal' },
+  { id: 'Emily', label: 'Emily', gender: 'Female', desc: 'Melodic & Warm', color: 'rose' },
+  { id: 'Ethan', label: 'Ethan', gender: 'Male', desc: 'Strong & Authoritative', color: 'slate' }
 ];
 
 const PREVIEW_SCRIPTS: Record<string, string> = {
@@ -71,14 +99,38 @@ const LANGUAGES = [
   { id: 'hi-IN', label: 'Hindi (हिन्दी)', flag: '🇮🇳' },
 ];
 
+const ELEVENLABS_LANGUAGES = [
+  { id: 'en', label: 'English', flag: '🇺🇸' },
+  { id: 'es', label: 'Spanish', flag: '🇪🇸' },
+  { id: 'fr', label: 'French', flag: '🇫🇷' },
+  { id: 'de', label: 'German', flag: '🇩🇪' },
+  { id: 'it', label: 'Italian', flag: '🇮🇹' },
+  { id: 'pt', label: 'Portuguese', flag: '🇵🇹' },
+  { id: 'pl', label: 'Polish', flag: '🇵🇱' },
+  { id: 'nl', label: 'Dutch', flag: '🇳🇱' },
+];
+
 export const TTSGenerator: React.FC<TTSGeneratorProps> = ({ 
   user, onCreditUsed, onUpgradeRequired, onAudioGenerated, audioHistory = [], 
   hasApiKey, onSelectKey, onResetKey 
 }) => {
   const [text, setText] = useState('');
-  const [mode, setMode] = useState<'narrator' | 'clone' | 'stt'>('narrator');
+  const [mode, setMode] = useState<'narrator' | 'clone' | 'stt' | 'song'>('narrator');
+  const [engine, setEngine] = useState<'gemini' | 'elevenlabs'>('gemini');
   const [selectedVoice, setSelectedVoice] = useState('Kore');
   const [selectedLanguage, setSelectedLanguage] = useState('en-US');
+  const [selectedElevenlabsVoice, setSelectedElevenlabsVoice] = useState('Rachel');
+  const [selectedElevenlabsLanguage, setSelectedElevenlabsLanguage] = useState('en');
+  // Create Song (ElevenLabs) preferences
+  const [songGenre, setSongGenre] = useState('Pop');
+  const [songBpm, setSongBpm] = useState(120);
+  const [songMood, setSongMood] = useState('Upbeat');
+  const [songKey, setSongKey] = useState('C Major');
+  const [songStyle, setSongStyle] = useState(0.8);
+  const [songStability, setSongStability] = useState(0.35);
+  const [songSimilarityBoost, setSongSimilarityBoost] = useState(0.6);
+  const [songUseSpeakerBoost, setSongUseSpeakerBoost] = useState(true);
+  const [songModel, setSongModel] = useState('eleven_multilingual_v2');
   
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
@@ -98,9 +150,16 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
   const [loadingVoiceId, setLoadingVoiceId] = useState<string | null>(null);
+  const [audioProgress, setAudioProgress] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [negativePrompt, setNegativePrompt] = useState('');
+  const [isNegativeMenuOpen, setIsNegativeMenuOpen] = useState(false);
   
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [isVoiceMenuOpen, setIsVoiceMenuOpen] = useState(false);
+  const [isEngineMenuOpen, setIsEngineMenuOpen] = useState(false);
+  const [audioList, setAudioList] = useState<GeneratedAudio[]>(audioHistory || []);
+  const [listPlayingId, setListPlayingId] = useState<string | null>(null);
   
   const [clonedVoiceData, setClonedVoiceData] = useState<{base64: string, type: string, fileName?: string} | null>(null);
   const [detectedGender, setDetectedGender] = useState<'male' | 'female' | null>(null);
@@ -111,6 +170,8 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
   const sttInputRef = useRef<HTMLInputElement>(null);
   const langMenuRef = useRef<HTMLDivElement>(null);
   const voiceMenuRef = useRef<HTMLDivElement>(null);
+  const engineMenuRef = useRef<HTMLDivElement>(null);
+  const negativeMenuRef = useRef<HTMLDivElement>(null);
 
   const isOutOfCredits = user && user.plan !== 'premium' && user.credits <= 0;
   const MAX_CHARS = 1000;
@@ -122,8 +183,21 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
         if (state) {
           if (state.mode) setMode(state.mode);
           if (state.text) setText(state.text);
+          if (state.negativePrompt) setNegativePrompt(state.negativePrompt);
+          if (state.engine) setEngine(state.engine);
           if (state.selectedVoice) setSelectedVoice(state.selectedVoice);
           if (state.selectedLanguage) setSelectedLanguage(state.selectedLanguage);
+          if (state.selectedElevenlabsVoice) setSelectedElevenlabsVoice(state.selectedElevenlabsVoice);
+          if (state.selectedElevenlabsLanguage) setSelectedElevenlabsLanguage(state.selectedElevenlabsLanguage);
+          if (state.songGenre) setSongGenre(state.songGenre);
+          if (state.songBpm) setSongBpm(state.songBpm);
+          if (state.songMood) setSongMood(state.songMood);
+          if (state.songKey) setSongKey(state.songKey);
+          if (state.songStyle !== undefined) setSongStyle(state.songStyle);
+          if (state.songStability !== undefined) setSongStability(state.songStability);
+          if (state.songSimilarityBoost !== undefined) setSongSimilarityBoost(state.songSimilarityBoost);
+          if (state.songUseSpeakerBoost !== undefined) setSongUseSpeakerBoost(state.songUseSpeakerBoost);
+          if (state.songModel) setSongModel(state.songModel);
         }
       });
     }
@@ -136,23 +210,49 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
         saveWorkState(user.id, 'tts-generator', {
           mode,
           text,
+          negativePrompt,
+          engine,
           selectedVoice,
-          selectedLanguage
+          selectedLanguage,
+          selectedElevenlabsVoice,
+          selectedElevenlabsLanguage,
+          songGenre,
+          songBpm,
+          songMood,
+          songKey,
+          songStyle,
+          songStability,
+          songSimilarityBoost,
+          songUseSpeakerBoost,
+          songModel
         });
       }, 1000);
       return () => clearTimeout(timeoutId);
     }
-  }, [user, mode, text, selectedVoice, selectedLanguage]);
+  }, [user, mode, text, negativePrompt, engine, selectedVoice, selectedLanguage, selectedElevenlabsVoice, selectedElevenlabsLanguage, songGenre, songBpm, songMood, songKey, songStyle, songStability, songSimilarityBoost, songUseSpeakerBoost, songModel]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       if (langMenuRef.current && !langMenuRef.current.contains(target)) setIsLangMenuOpen(false);
       if (voiceMenuRef.current && !voiceMenuRef.current.contains(target)) setIsVoiceMenuOpen(false);
+      if (engineMenuRef.current && !engineMenuRef.current.contains(target)) setIsEngineMenuOpen(false);
+      if (negativeMenuRef.current && !negativeMenuRef.current.contains(target)) setIsNegativeMenuOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Load recent audios from Firebase on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!user?.id) return;
+        const auds = await getAudioFromFirebase(user.id);
+        if (auds?.length) setAudioList(auds);
+      } catch (e) { /* noop */ }
+    })();
+  }, [user?.id]);
 
   const handleEnhance = async () => {
     if (!text.trim()) return;
@@ -162,6 +262,33 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
       setText(enhanced.slice(0, MAX_CHARS));
     } catch (e) { console.error(e); }
     finally { setIsEnhancing(false); }
+  };
+
+  const handleNegativePromptSelect = (prompt: string) => {
+    setNegativePrompt(prompt);
+    setIsNegativeMenuOpen(false);
+  };
+
+  const playFromList = async (item: GeneratedAudio) => {
+    try {
+      setCurrentAudio(item);
+      setTimeout(() => {
+        if (mainAudioRef.current) {
+          mainAudioRef.current.currentTime = 0;
+          mainAudioRef.current.play();
+        }
+      }, 0);
+      setListPlayingId(item.id);
+    } catch { /* noop */ }
+  };
+
+  const deleteFromList = async (id: string) => {
+    try {
+      if (!user?.id) return;
+      await deleteAudioFromFirebase(user.id, id);
+      setAudioList(prev => prev.filter(a => a.id !== id));
+      if (currentAudio?.id === id) setCurrentAudio(null);
+    } catch (e) { console.warn('Failed to delete audio', e); }
   };
 
   const playVoicePreview = async (voiceId: string) => {
@@ -175,7 +302,12 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
     setLoadingVoiceId(voiceId);
     try {
       const script = PREVIEW_SCRIPTS[voiceId] || `Hello, I am ${voiceId}.`;
-      const blob = await generateSpeechWithGemini(`Speak clearly: ${script}`, voiceId);
+      let blob: Blob;
+      if (engine === 'elevenlabs') {
+        blob = await generateSpeechWithElevenLabs(`Speak clearly: ${script}`, voiceId);
+      } else {
+        blob = await generateSpeechWithGemini(`Speak clearly: ${script}`, voiceId);
+      }
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       previewAudioRef.current = audio;
@@ -218,31 +350,83 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
     if (isOutOfCredits) { onUpgradeRequired(); return; }
     if (!text.trim()) { setError("Input script required."); return; }
     if (mode === 'clone' && !clonedVoiceData) { setError("Reference voice required."); return; }
+    if (mode === 'song' && engine !== 'elevenlabs') { setError('Create Song requires ElevenLabs engine.'); return; }
 
     setIsSynthesizing(true);
     setError(null);
     try {
+      const baseScript = text.trim();
+      const cleanNegative = negativePrompt.trim();
+      const requestScript = cleanNegative ? `${baseScript}\nAvoid: ${cleanNegative}` : baseScript;
+      let displayScript = baseScript;
+      let lyrics = '';
       let blob: Blob;
       if (mode === 'clone' && clonedVoiceData) {
-        blob = await generateClonedSpeechWithGemini(text, clonedVoiceData.base64, clonedVoiceData.type);
+        if (engine === 'elevenlabs') {
+          blob = await generateClonedSpeechWithElevenLabs(requestScript, clonedVoiceData.base64, clonedVoiceData.type);
+        } else {
+          blob = await generateClonedSpeechWithGemini(requestScript, clonedVoiceData.base64, clonedVoiceData.type);
+        }
+      } else if (mode === 'song') {
+        const voice = selectedElevenlabsVoice;
+        // Convert the user's prompt into structured song lyrics (verses + chorus)
+        const baseLyrics = text.trim();
+        lyrics = await enhancePrompt(baseLyrics || 'Write emotive, concise song lyrics with verse and chorus about hope.', 'songwriting - produce structured verses and chorus as PURE LYRICS (no instructions)');
+        const singingPrompt = `Sing in ${songGenre} style, ${songMood} mood, key ${songKey}, tempo ${songBpm} BPM. Lyrics: "${lyrics}"${cleanNegative ? `. Avoid: ${cleanNegative}` : ''}`;
+        blob = await generateSpeechWithElevenLabs(singingPrompt, voice, {
+          model_id: songModel,
+          voice_settings: {
+            style: songStyle,
+            stability: songStability,
+            similarity_boost: songSimilarityBoost,
+            use_speaker_boost: songUseSpeakerBoost,
+          },
+        });
+        displayScript = lyrics;
       } else {
-        const lang = LANGUAGES.find(l => l.id === selectedLanguage);
-        const prompt = `Directorial Note: Speak in ${lang?.label}. Content: "${text}"`;
-        blob = await generateSpeechWithGemini(prompt, selectedVoice);
+        if (engine === 'elevenlabs') {
+          const voice = selectedElevenlabsVoice;
+          blob = await generateSpeechWithElevenLabs(requestScript, voice);
+        } else {
+          const lang = LANGUAGES.find(l => l.id === selectedLanguage);
+          const prompt = `Directorial Note: Speak in ${lang?.label}. Content: "${requestScript}"`;
+          blob = await generateSpeechWithGemini(prompt, selectedVoice);
+        }
       }
 
-      const url = URL.createObjectURL(blob);
+      const base64 = await convertBlobToBase64(blob);
+      const url = `data:${blob.type || 'audio/mpeg'};base64,${base64}`;
+      const voiceLabel = engine === 'elevenlabs' 
+        ? (mode === 'clone' ? `Clone (${detectedGender})` : (mode === 'song' ? `${selectedElevenlabsVoice} (Song)` : selectedElevenlabsVoice))
+        : (mode === 'clone' ? `Clone (${detectedGender})` : selectedVoice);
+      
       const newAudio: GeneratedAudio = {
         id: Date.now().toString(),
         url,
-        text,
-        voice: mode === 'clone' ? `Clone (${detectedGender})` : selectedVoice,
+        text: displayScript,
+        voice: voiceLabel,
         createdAt: Date.now(),
-        blob
+        blob,
+        base64Audio: url,
+        isCloned: mode === 'clone',
+        engine,
+        mimeType: blob.type || 'audio/mpeg'
       };
 
       setCurrentAudio(newAudio);
+      setAudioList(prev => [newAudio, ...prev].slice(0, 20));
       onAudioGenerated(newAudio);
+      
+      // Save to Firebase if user is logged in
+      if (user?.id) {
+        try {
+          await saveAudioToFirebase(newAudio, user.id);
+        } catch (err) {
+          console.error('Failed to save audio to Firebase:', err);
+          // Continue anyway - audio is still playable
+        }
+      }
+      
       onCreditUsed();
     } catch (e: any) {
       setError(e.message || "Synthesis failure.");
@@ -251,15 +435,21 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
     }
   };
 
-  const currentLang = LANGUAGES.find(l => l.id === selectedLanguage);
-  const currentVoice = VOICES.find(v => v.id === selectedVoice);
+  const currentLang = engine === 'elevenlabs' 
+    ? ELEVENLABS_LANGUAGES.find(l => l.id === selectedElevenlabsLanguage)
+    : LANGUAGES.find(l => l.id === selectedLanguage);
+  const currentVoice = engine === 'elevenlabs'
+    ? ELEVENLABS_VOICES.find(v => v.id === selectedElevenlabsVoice)
+    : VOICES.find(v => v.id === selectedVoice);
+  const currentVoiceList = engine === 'elevenlabs' ? ELEVENLABS_VOICES : VOICES;
+  const currentLanguageList = engine === 'elevenlabs' ? ELEVENLABS_LANGUAGES : LANGUAGES;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in space-y-12">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in space-y-12 flex flex-col items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 w-full justify-center">
         
         {/* CONTROL SIDEBAR */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className="lg:col-span-5 space-y-6 w-full max-w-4xl mx-auto">
           <div className="bg-dark-900 border border-white/10 rounded-[2.5rem] p-8 shadow-2xl relative">
             <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-600/5 blur-[80px] rounded-full -mr-20 -mt-20 pointer-events-none" />
             
@@ -277,11 +467,123 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
               )}
             </div>
 
-            <div className="flex bg-black p-1.5 rounded-[1.2rem] mb-8 border border-white/5 relative z-10 w-full overflow-hidden">
+              <div className="flex bg-black p-1.5 rounded-[1.2rem] mb-8 border border-white/5 relative z-10 w-full overflow-hidden">
               <button onClick={() => setMode('narrator')} className={`flex-1 py-3.5 px-2 rounded-[0.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${mode === 'narrator' ? 'bg-[#4f46e5] text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}>TEXT TO SPEECH</button>
               <button onClick={() => setMode('clone')} className={`flex-1 py-3.5 px-2 rounded-[0.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${mode === 'clone' ? 'bg-pink-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}><Scissors className="w-3.5 h-3.5" /> CLONE VOICE</button>
               <button onClick={() => setMode('stt')} className={`flex-1 py-3.5 px-2 rounded-[0.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${mode === 'stt' ? 'bg-emerald-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}><FileText className="w-3.5 h-3.5" /> SPEECH TO TEXT</button>
+                <button onClick={() => setMode('song')} className={`flex-1 py-3.5 px-2 rounded-[0.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${mode === 'song' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}><Music className="w-3.5 h-3.5" /> CREATE SONG</button>
             </div>
+              {mode === 'song' && (
+                <div className="space-y-6 animate-fade-in">
+                  {/* Engine must be ElevenLabs */}
+                  <div className="p-4 bg-purple-600/10 border border-purple-500/20 rounded-xl text-[10px] text-purple-300 font-black uppercase tracking-widest">
+                    Uses ElevenLabs TTS with singing-style parameters
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Genre */}
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Genre</label>
+                      <select value={songGenre} onChange={(e) => setSongGenre(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-[10px] font-bold text-white">
+                        {['Pop','Hip-Hop','EDM','Rock','Ballad','Jazz','Arabic Pop','Classical'].map(g => <option key={g} value={g}>{g}</option>)}
+                      </select>
+                    </div>
+                    {/* BPM */}
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Tempo (BPM)</label>
+                      <input type="number" min={60} max={180} value={songBpm} onChange={(e) => setSongBpm(Number(e.target.value))} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-[10px] font-bold text-white" />
+                    </div>
+                    {/* Mood */}
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Mood</label>
+                      <select value={songMood} onChange={(e) => setSongMood(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-[10px] font-bold text-white">
+                        {['Upbeat','Melancholic','Romantic','Epic','Calm','Aggressive'].map(m => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                    </div>
+                    {/* Key */}
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Key</label>
+                      <select value={songKey} onChange={(e) => setSongKey(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-[10px] font-bold text-white">
+                        {['C Major','G Major','D Minor','A Minor','E Major','F# Minor'].map(k => <option key={k} value={k}>{k}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* ElevenLabs voice settings */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Style</label>
+                      <input type="range" min={0} max={1} step={0.05} value={songStyle} onChange={(e) => setSongStyle(Number(e.target.value))} className="w-full" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Stability</label>
+                      <input type="range" min={0} max={1} step={0.05} value={songStability} onChange={(e) => setSongStability(Number(e.target.value))} className="w-full" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Similarity Boost</label>
+                      <input type="range" min={0} max={1} step={0.05} value={songSimilarityBoost} onChange={(e) => setSongSimilarityBoost(Number(e.target.value))} className="w-full" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Speaker Boost</label>
+                      <div className="flex items-center gap-3">
+                        <button type="button" onClick={() => setSongUseSpeakerBoost(!songUseSpeakerBoost)} className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase border ${songUseSpeakerBoost ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-transparent text-gray-500 border-white/10'}`}>{songUseSpeakerBoost ? 'ON' : 'OFF'}</button>
+                        <span className="text-[9px] text-gray-500">{songUseSpeakerBoost ? 'Enabled' : 'Disabled'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Model selection */}
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Model</label>
+                    <select value={songModel} onChange={(e) => setSongModel(e.target.value)} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-[10px] font-bold text-white">
+                      {['eleven_multilingual_v2','eleven_monolingual_v1'].map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+            {/* Engine Selector */}
+            {mode === 'narrator' && (
+              <div className="mb-6 relative" ref={engineMenuRef}>
+                <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-2 block">Select Engine</label>
+                <button 
+                  type="button"
+                  onClick={() => setIsEngineMenuOpen(!isEngineMenuOpen)} 
+                  className="w-full flex items-center justify-between px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-[10px] font-bold text-white hover:border-white/20 transition-all"
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <Zap className={`w-3.5 h-3.5 ${engine === 'gemini' ? 'text-blue-400' : 'text-purple-400'}`} />
+                    <span className="truncate">{engine === 'gemini' ? 'GEMINI ENGINE' : 'ELEVENLABS ENGINE'}</span>
+                  </div>
+                  <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform flex-shrink-0 ${isEngineMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {isEngineMenuOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl">
+                    <button 
+                      type="button"
+                      onClick={() => { setEngine('gemini'); setIsEngineMenuOpen(false); }} 
+                      className={`w-full text-left flex items-center justify-between px-4 py-3 text-[10px] font-bold border-b border-white/5 ${engine === 'gemini' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-3.5 h-3.5" />
+                        <span>GEMINI ENGINE</span>
+                      </div>
+                      {engine === 'gemini' && <Check className="w-3 h-3 flex-shrink-0" />}
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => { setEngine('elevenlabs'); setIsEngineMenuOpen(false); }} 
+                      className={`w-full text-left flex items-center justify-between px-4 py-3 text-[10px] font-bold ${engine === 'elevenlabs' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-3.5 h-3.5" />
+                        <span>ELEVENLABS ENGINE</span>
+                      </div>
+                      {engine === 'elevenlabs' && <Check className="w-3 h-3 flex-shrink-0" />}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="space-y-6 relative z-10">
               {mode === 'narrator' && (
@@ -295,10 +597,17 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                     </button>
                     {isLangMenuOpen && (
                       <div className="absolute top-full left-0 right-0 mt-2 z-[100] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl animate-scale-in max-h-64 overflow-y-auto no-scrollbar">
-                        {LANGUAGES.map(l => (
-                          <button key={l.id} onClick={() => { setSelectedLanguage(l.id); setIsLangMenuOpen(false); }} className={`w-full flex items-center justify-between px-4 py-3 text-[10px] font-bold ${selectedLanguage === l.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
+                        {currentLanguageList.map(l => (
+                          <button key={l.id} onClick={() => { 
+                            if (engine === 'elevenlabs') {
+                              setSelectedElevenlabsLanguage(l.id); 
+                            } else {
+                              setSelectedLanguage(l.id); 
+                            }
+                            setIsLangMenuOpen(false); 
+                          }} className={`w-full flex items-center justify-between px-4 py-3 text-[10px] font-bold ${(engine === 'elevenlabs' ? selectedElevenlabsLanguage : selectedLanguage) === l.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
                             <div className="flex items-center gap-2"><span>{l.flag}</span><span>{l.label}</span></div>
-                            {selectedLanguage === l.id && <Check className="w-3 h-3" />}
+                            {(engine === 'elevenlabs' ? selectedElevenlabsLanguage : selectedLanguage) === l.id && <Check className="w-3 h-3" />}
                           </button>
                         ))}
                       </div>
@@ -313,11 +622,18 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                     </button>
                     {isVoiceMenuOpen && (
                       <div className="absolute top-full left-0 right-0 mt-2 z-[100] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl animate-scale-in max-h-64 overflow-y-auto no-scrollbar">
-                        {VOICES.map(v => (
+                        {currentVoiceList.map(v => (
                           <div key={v.id} className="relative group/voice-item border-b border-white/5 last:border-none">
-                            <button onClick={() => { setSelectedVoice(v.id); setIsVoiceMenuOpen(false); }} className={`w-full flex flex-col items-start px-4 py-3 text-[10px] transition-all ${selectedVoice === v.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5'}`}>
+                            <button onClick={() => { 
+                              if (engine === 'elevenlabs') {
+                                setSelectedElevenlabsVoice(v.id); 
+                              } else {
+                                setSelectedVoice(v.id); 
+                              }
+                              setIsVoiceMenuOpen(false); 
+                            }} className={`w-full flex flex-col items-start px-4 py-3 text-[10px] transition-all ${(engine === 'elevenlabs' ? selectedElevenlabsVoice : selectedVoice) === v.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5'}`}>
                               <div className="flex justify-between w-full mb-0.5"><span className="font-black uppercase">{v.label}</span><span className="text-[8px] opacity-50">{v.gender}</span></div>
-                              <p className={`text-[8px] italic truncate w-full ${selectedVoice === v.id ? 'text-indigo-200' : 'text-gray-600'}`}>{v.desc}</p>
+                              <p className={`text-[8px] italic truncate w-full ${(engine === 'elevenlabs' ? selectedElevenlabsVoice : selectedVoice) === v.id ? 'text-indigo-200' : 'text-gray-600'}`}>{v.desc}</p>
                             </button>
                             <button onClick={(e) => { e.stopPropagation(); playVoicePreview(v.id); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-black/40 text-white opacity-0 group-hover/voice-item:opacity-100 transition-opacity hover:bg-indigo-500">
                               {playingVoiceId === v.id ? <Pause className="w-3 h-3" /> : (loadingVoiceId === v.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 fill-current" />)}
@@ -387,6 +703,58 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                   placeholder={mode === 'stt' ? "Awaiting media input for neural extraction..." : "Initialize synthesis script..."}
                   className="w-full h-44 bg-black/40 border border-white/10 rounded-2xl p-6 text-white text-sm focus:ring-2 focus:ring-indigo-500/50 outline-none resize-none disabled:opacity-50 transition-all custom-scrollbar"
                 />
+                {mode !== 'stt' && (
+                  <div className="animate-fade-in bg-black/30 border border-white/10 rounded-2xl p-4 space-y-2" ref={negativeMenuRef}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                          <ThumbsDown className="w-3.5 h-3.5 text-pink-400" /> Negative Prompt
+                        </p>
+                        <p className="text-[9px] text-gray-600 uppercase tracking-widest">Guide all voice engines on what to avoid</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {negativePrompt && (
+                          <button
+                            type="button"
+                            onClick={() => setNegativePrompt('')}
+                            className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:border-white/30"
+                          >
+                            Clear
+                          </button>
+                        )}
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setIsNegativeMenuOpen(!isNegativeMenuOpen)}
+                            className="px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-[10px] font-bold text-white flex items-center gap-2 hover:border-white/20"
+                          >
+                            Presets
+                            <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform ${isNegativeMenuOpen ? 'rotate-180' : ''}`} />
+                          </button>
+                          {isNegativeMenuOpen && (
+                            <div className="absolute right-0 mt-2 w-64 bg-dark-900 border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-scale-in">
+                              {NEGATIVE_PRESETS.map(p => (
+                                <button
+                                  key={p}
+                                  onClick={() => handleNegativePromptSelect(p)}
+                                  className="w-full text-left px-4 py-3 text-[10px] font-bold text-gray-300 hover:bg-white/5 border-b border-white/5 last:border-none"
+                                >
+                                  {p}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <textarea
+                      value={negativePrompt}
+                      onChange={(e) => setNegativePrompt(e.target.value)}
+                      placeholder="background noise, distortion, static"
+                      className="w-full h-28 bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:ring-2 focus:ring-pink-500/30 outline-none resize-none custom-scrollbar"
+                    />
+                  </div>
+                )}
               </div>
 
               {error && (
@@ -402,8 +770,72 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                 className={`w-full py-6 rounded-2xl font-black text-lg flex items-center justify-center gap-4 transition-all shadow-2xl transform active:scale-[0.98] ${isSynthesizing ? 'bg-gray-800 text-gray-600' : mode === 'stt' ? 'bg-gray-900 text-gray-700 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`}
               >
                 {isSynthesizing ? <RefreshCw className="w-6 h-6 animate-spin" /> : <Zap className="w-6 h-6 fill-white" />}
-                <span className="uppercase tracking-[0.2em] italic">{isSynthesizing ? 'Synthesizing...' : 'GENERATE NOW (1 CREDIT)'}</span>
+                <span className="uppercase tracking-[0.2em] italic">{isSynthesizing ? 'Synthesizing...' : (mode === 'song' ? 'CREATE SONG (1 CREDIT)' : 'GENERATE NOW (1 CREDIT)')}</span>
               </button>
+
+              {/* Recently Generated Section (Sticky) */}
+              {(audioList.length > 0 || currentAudio) && mode === 'narrator' && (
+                <div className="mt-8 space-y-4 animate-fade-in sticky top-4 z-20">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                      <History className="w-4 h-4" /> Recently Generated
+                    </h4>
+                    <span className="text-[9px] font-black text-gray-600 uppercase">{audioList.length} Items</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {audioList.length > 0 ? (
+                      audioList.slice(0, 6).map(item => (
+                        <div key={item.id} className="group p-4 bg-black/40 border border-white/5 rounded-xl hover:border-indigo-500/30 transition-all cursor-pointer">
+                          <div className="flex items-center gap-3">
+                            <button onClick={() => playFromList(item)} className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${currentAudio?.id === item.id ? 'bg-indigo-600' : 'bg-white/5 group-hover:bg-white/10'}`}>
+                              <Play className="w-5 h-5 text-gray-300" />
+                            </button>
+                            <div className="flex-1 overflow-hidden">
+                              <p className="text-[9px] font-bold text-white uppercase truncate">{item.voice}</p>
+                              <p className="text-[8px] text-gray-500 line-clamp-1 italic">"{item.text}"</p>
+                            </div>
+                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <a 
+                                href={item.url} 
+                                download={`imaginai-audio-${item.id}.wav`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-300 hover:text-white"
+                              >
+                                <Download className="w-4 h-4" />
+                              </a>
+                              {user && (
+                                <button onClick={(e) => { e.stopPropagation(); deleteFromList(item.id); }} className="p-2 bg-white/5 hover:bg-red-600/80 rounded-lg text-gray-300 hover:text-white">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : currentAudio ? (
+                      <div className="group p-4 bg-black/40 border border-indigo-500/30 rounded-xl cursor-pointer col-span-1 md:col-span-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-indigo-600">
+                            <PlayCircle className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1 overflow-hidden">
+                            <p className="text-[9px] font-bold text-white uppercase truncate">{currentAudio.voice}</p>
+                            <p className="text-[8px] text-gray-500 line-clamp-1 italic">"{currentAudio.text}"</p>
+                          </div>
+                          <a 
+                            href={currentAudio.url} 
+                            download={`imaginai-audio-${currentAudio.id}.wav`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-all"
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -432,31 +864,96 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                              <Download className="w-6 h-6" />
                           </a>
                        </div>
-                       <audio ref={mainAudioRef} src={currentAudio.url} onEnded={() => setIsPlaying(false)} onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} className="hidden" />
+                       
+                       {/* Seek Bar */}
+                       {audioDuration > 0 && (
+                         <div className="mt-8 w-full max-w-md">
+                           <input 
+                             type="range" 
+                             min="0" 
+                             max={audioDuration} 
+                             value={audioProgress} 
+                             onChange={(e) => {
+                               if (mainAudioRef.current) {
+                                 mainAudioRef.current.currentTime = Number(e.target.value);
+                               }
+                             }}
+                             className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                           />
+                           <div className="flex justify-between mt-2 text-[9px] font-bold text-gray-500 uppercase">
+                             <span>{Math.floor(audioProgress / 60)}:{String(Math.floor(audioProgress % 60)).padStart(2, '0')}</span>
+                             <span>{Math.floor(audioDuration / 60)}:{String(Math.floor(audioDuration % 60)).padStart(2, '0')}</span>
+                           </div>
+                         </div>
+                       )}
+                       
+                       <audio 
+                         ref={mainAudioRef} 
+                         src={currentAudio.url} 
+                         onEnded={() => setIsPlaying(false)} 
+                         onPlay={() => setIsPlaying(true)} 
+                         onPause={() => setIsPlaying(false)}
+                         onLoadedMetadata={(e) => setAudioDuration(e.currentTarget.duration)}
+                         onTimeUpdate={(e) => setAudioProgress(e.currentTarget.currentTime)}
+                         className="hidden" 
+                       />
                     </div>
                  </div>
                ) : (
-                 <div className="flex flex-col items-center justify-center opacity-20 px-12 text-center relative z-10">
-                    <Music className="w-14 h-14 text-gray-700 mb-8" />
-                    <h3 className="text-3xl font-black uppercase tracking-[0.4em] text-white italic">Audio Viewport</h3>
-                    <p className="text-gray-500 text-xs mt-4 max-w-xs font-bold uppercase tracking-widest leading-relaxed">Initialize neural production parameters to populate visualizer.</p>
+                 <div className="flex flex-col items-center justify-center px-12 text-center relative z-10">
+                    {/* Motion visualization showing prompt-to-audio translation */}
+                    <div className="w-full max-w-2xl space-y-8">
+                      {/* Prompt Input Visual */}
+                      <div className="flex items-center justify-center gap-4 opacity-60">
+                        <div className="px-6 py-3 bg-white/5 border border-white/10 rounded-2xl">
+                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Text Prompt</p>
+                        </div>
+                        <div className="w-12 h-[2px] bg-gradient-to-r from-white/20 to-indigo-500/40" />
+                      </div>
+                      
+                      {/* Animated Audio Bars - The Core Motion Image */}
+                      <div className="audio-motion-bars flex items-end justify-center gap-2 h-32 bg-gradient-to-br from-indigo-600/10 via-purple-600/5 to-transparent border border-white/10 rounded-3xl px-8 py-6 shadow-2xl">
+                        <span className="bar bar-1" />
+                        <span className="bar bar-2" />
+                        <span className="bar bar-3" />
+                        <span className="bar bar-4" />
+                        <span className="bar bar-5" />
+                        <span className="bar bar-6" />
+                        <span className="bar bar-7" />
+                        <span className="bar bar-8" />
+                        <span className="bar bar-9" />
+                        <span className="bar bar-10" />
+                        <span className="bar bar-11" />
+                        <span className="bar bar-12" />
+                      </div>
+                      
+                      {/* Audio Output Visual */}
+                      <div className="flex items-center justify-center gap-4 opacity-60">
+                        <div className="w-12 h-[2px] bg-gradient-to-r from-indigo-500/40 to-white/20" />
+                        <div className="px-6 py-3 bg-indigo-600/10 border border-indigo-500/20 rounded-2xl">
+                          <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Generated Audio</p>
+                        </div>
+                      </div>
+                      
+                      <p className="text-gray-500 text-[10px] mt-8 max-w-md font-bold uppercase tracking-widest leading-relaxed opacity-40">Generate audio to see your prompt transform into sound waves</p>
+                    </div>
                  </div>
                )}
             </div>
           </div>
 
           {/* RECENT AUDIO HISTORY */}
-          {audioHistory.length > 0 && (
+          {audioList.length > 0 && (
             <div className="bg-dark-900 border border-white/5 rounded-[2.5rem] p-8 shadow-2xl animate-fade-in">
                <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-3">
                     <History className="w-5 h-5 text-indigo-400" />
                     <h3 className="text-sm font-black text-white uppercase italic tracking-widest">Recent Projections</h3>
                   </div>
-                  <div className="px-3 py-1 bg-white/5 border border-white/5 rounded-lg text-[9px] font-black text-gray-500 uppercase">{audioHistory.length} Cycles Stored</div>
+                  <div className="px-3 py-1 bg-white/5 border border-white/5 rounded-lg text-[9px] font-black text-gray-500 uppercase">{audioList.length} Cycles Stored</div>
                </div>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {audioHistory.slice(0, 4).map(item => (
+                  {audioList.slice(0, 6).map(item => (
                     <div key={item.id} className="p-4 bg-black/40 border border-white/5 rounded-2xl flex items-center gap-4 group hover:border-indigo-500/30 transition-all">
                        <button 
                         onClick={() => setCurrentAudio(item)}
@@ -468,9 +965,11 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                           <p className="text-[10px] font-black text-white uppercase truncate">{item.voice} Persona</p>
                           <p className="text-[9px] text-gray-600 line-clamp-1 italic">"{item.text}"</p>
                        </div>
-                       <a href={item.url} download className="p-2 text-gray-600 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                         <Download className="w-4 h-4" />
-                       </a>
+                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <button onClick={() => playFromList(item)} className="p-2 text-gray-600 hover:text-white"><Play className="w-4 h-4" /></button>
+                         <a href={item.url} download className="p-2 text-gray-600 hover:text-white"><Download className="w-4 h-4" /></a>
+                         {user && (<button onClick={() => deleteFromList(item.id)} className="p-2 text-gray-600 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>)}
+                       </div>
                     </div>
                   ))}
                </div>
@@ -483,6 +982,29 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 10px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        .audio-motion-bars .bar { 
+          width: 8px; 
+          border-radius: 9999px; 
+          background: linear-gradient(180deg, rgba(139, 92, 246, 0.9), rgba(99, 102, 241, 0.7), rgba(79, 70, 229, 0.5)); 
+          animation: audioPulse 1.2s ease-in-out infinite;
+          box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+        }
+        .audio-motion-bars .bar-1 { height: 25%; animation-delay: 0s; }
+        .audio-motion-bars .bar-2 { height: 55%; animation-delay: 0.08s; }
+        .audio-motion-bars .bar-3 { height: 80%; animation-delay: 0.16s; }
+        .audio-motion-bars .bar-4 { height: 95%; animation-delay: 0.24s; }
+        .audio-motion-bars .bar-5 { height: 100%; animation-delay: 0.32s; }
+        .audio-motion-bars .bar-6 { height: 90%; animation-delay: 0.4s; }
+        .audio-motion-bars .bar-7 { height: 100%; animation-delay: 0.48s; }
+        .audio-motion-bars .bar-8 { height: 85%; animation-delay: 0.56s; }
+        .audio-motion-bars .bar-9 { height: 70%; animation-delay: 0.64s; }
+        .audio-motion-bars .bar-10 { height: 50%; animation-delay: 0.72s; }
+        .audio-motion-bars .bar-11 { height: 35%; animation-delay: 0.8s; }
+        .audio-motion-bars .bar-12 { height: 20%; animation-delay: 0.88s; }
+        @keyframes audioPulse {
+          0%, 100% { transform: scaleY(0.7); opacity: 0.5; }
+          50% { transform: scaleY(1.3); opacity: 1; }
+        }
       `}</style>
     </div>
   );

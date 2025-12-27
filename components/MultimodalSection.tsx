@@ -18,7 +18,7 @@ export const MultimodalSection: React.FC<MultimodalSectionProps> = ({ onNavigate
       description: 'Generate stunning 4K visuals from text or reference images using Gemini 2.5 Image.',
       icon: ImageIcon,
       color: 'indigo',
-      page: isRegistered ? 'dashboard' : 'auth',
+      page: 'dashboard',
       gradient: 'from-indigo-600/20 to-blue-600/20',
       glow: 'group-hover:shadow-indigo-500/20'
     },
@@ -40,14 +40,14 @@ export const MultimodalSection: React.FC<MultimodalSectionProps> = ({ onNavigate
       description: 'Transform scripts into studio-quality narration with 10+ distinct neural personas.',
       icon: Mic2,
       color: 'pink',
-      page: 'tts-lab-landing',
+      page: isRegistered ? 'tts-generator' : 'auth',
       gradient: 'from-pink-600/20 to-purple-600/20',
       glow: 'group-hover:shadow-pink-500/20'
     }
   ];
 
   const handleClick = (page: string) => {
-    if (page === 'auth') {
+    if (page === 'dashboard' && !isRegistered) {
       onLoginClick();
     } else {
       onNavigate(page);

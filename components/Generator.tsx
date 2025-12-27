@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { generateImageWithGemini, convertBlobToBase64, enhancePrompt, generateSpeechWithGemini } from '../services/geminiService';
 import { User, GeneratedImage } from '../types';
+import { saveImageToFirebase, getImagesFromFirebase, deleteImageFromFirebase } from '../services/firebase';
 import { ImageEditor } from './ImageEditor';
 import { saveWorkState, getWorkState } from '../services/dbService';
 
@@ -24,6 +25,10 @@ interface GeneratorProps {
   onDeleteImagePermanent?: (id: string) => void;
   onUpdateUser?: (user: User) => void;
   initialPrompt?: string;
+  hasApiKey: boolean;
+  onSelectKey: () => void;
+  onResetKey?: () => void;
+  onLoginClick?: () => void;
 }
 
 const ASPECT_RATIOS: { id: string, label: string, icon: any }[] = [
@@ -44,6 +49,12 @@ const STYLES = [
   { id: 'fantasy', label: 'Fantasy', modifier: 'fantasy art, magical, ethereal, highly detailed, concept art, dungeons and dragons style' },
 ];
 
+const NEGATIVE_PRESETS = [
+  { id: 'quality', label: 'Low quality / blur', value: 'blurry, low resolution, pixelated, compression artifacts, noisy, distorted details, watermark' },
+  { id: 'anatomy', label: 'Bad anatomy', value: 'bad anatomy, extra fingers, deformed hands, malformed limbs, distorted faces, asymmetry' },
+  { id: 'content', label: 'NSFW / violence', value: 'nsfw, nudity, gore, blood, violence, offensive, hateful, copyrighted logos' },
+];
+
 const IMAGE_IDEAS = [
   { label: "Neon Samurai", prompt: "A holographic neon samurai in rainy Cyberpunk Tokyo, extreme detail, katana glowing", thumbnail: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&q=80&w=800" },
   { label: "Cosmic Whale", prompt: "Bioluminescent whale flying through a vibrant nebula space clouds, galactic scale", thumbnail: "https://images.unsplash.com/photo-1614728263952-84ea256f9679?auto=format&fit=crop&q=80&w=800" },
@@ -59,10 +70,11 @@ const QUICK_IDEAS = [
 
 const PROMPT_HISTORY_KEY = 'imaginai_prompt_history';
 
-export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUsed, onUpgradeRequired, onImageGenerated, onDeleteImage, onUpdateUser, initialPrompt }) => {
+export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUsed, onUpgradeRequired, onImageGenerated, onDeleteImage, onUpdateUser, initialPrompt, hasApiKey, onSelectKey, onLoginClick }) => {
   const [genMode, setGenMode] = useState<'tti' | 'iti'>('tti');
-  const [imageEngine, setImageEngine] = useState<'klingai' | 'gemini'>('klingai');
+  const [imageEngine, setImageEngine] = useState<'klingai' | 'gemini' | 'deapi' | 'runware'>('runware');
   const [prompt, setPrompt] = useState(initialPrompt || '');
+  const [negativePrompt, setNegativePrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [selectedStyle, setSelectedStyle] = useState('none');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -75,6 +87,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
   const [isEditing, setIsEditing] = useState(false);
   const [previewZoom, setPreviewZoom] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [imageHistory, setImageHistory] = useState<GeneratedImage[]>([]);
 
   const [showIdentityCheck, setShowIdentityCheck] = useState(false);
 
@@ -87,7 +100,9 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
   
   const [isAspectRatioMenuOpen, setIsAspectRatioMenuOpen] = useState(false);
   const [isStyleMenuOpen, setIsStyleMenuOpen] = useState(false);
+  const [isNegativeMenuOpen, setIsNegativeMenuOpen] = useState(false);
   const [showPromptHistory, setShowPromptHistory] = useState(false);
+  const [isCreditDropdownOpen, setIsCreditDropdownOpen] = useState(false);
   
   const [promptHistory, setPromptHistory] = useState<string[]>(() => {
     try {
@@ -102,11 +117,13 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
   const workstationRef = useRef<HTMLDivElement>(null);
   const aspectRatioMenuRef = useRef<HTMLDivElement>(null);
   const styleMenuRef = useRef<HTMLDivElement>(null);
+  const negativeMenuRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
   const zoomContainerRef = useRef<HTMLDivElement>(null);
+  const creditDropdownRef = useRef<HTMLDivElement>(null);
 
   const isOutOfCredits = user && user.plan !== 'premium' && user.credits <= 0;
-  const isApiKeyConfigured = !!process.env.API_KEY && process.env.API_KEY !== '""';
+  const isApiKeyConfigured = hasApiKey || (!!process.env.API_KEY && process.env.API_KEY !== '""');
 
   // Load persistent work state on mount
   useEffect(() => {
@@ -114,7 +131,9 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
       getWorkState(user.id, 'image-generator').then(state => {
         if (state) {
           if (state.genMode) setGenMode(state.genMode);
+          if (state.imageEngine) setImageEngine(state.imageEngine);
           if (state.prompt && !initialPrompt) setPrompt(state.prompt);
+          if (state.negativePrompt) setNegativePrompt(state.negativePrompt);
           if (state.aspectRatio) setAspectRatio(state.aspectRatio);
           if (state.selectedStyle) setSelectedStyle(state.selectedStyle);
           if (state.isProMode !== undefined) setIsProMode(state.isProMode);
@@ -129,7 +148,9 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
       const timeoutId = setTimeout(() => {
         saveWorkState(user.id, 'image-generator', {
           genMode,
+          imageEngine,
           prompt,
+          negativePrompt,
           aspectRatio,
           selectedStyle,
           isProMode
@@ -137,7 +158,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
       }, 1000);
       return () => clearTimeout(timeoutId);
     }
-  }, [user, genMode, prompt, aspectRatio, selectedStyle, isProMode]);
+  }, [user, genMode, imageEngine, prompt, negativePrompt, aspectRatio, selectedStyle, isProMode]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -148,8 +169,14 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
       if (styleMenuRef.current && !styleMenuRef.current.contains(target)) {
         setIsStyleMenuOpen(false);
       }
+      if (negativeMenuRef.current && !negativeMenuRef.current.contains(target)) {
+        setIsNegativeMenuOpen(false);
+      }
       if (historyRef.current && !historyRef.current.contains(target)) {
         setShowPromptHistory(false);
+      }
+      if (creditDropdownRef.current && !creditDropdownRef.current.contains(target)) {
+        setIsCreditDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -170,6 +197,30 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
   }, [resultImage, isEditing]);
+
+  // Load recent images from Firebase on mount for this user
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!user?.id) return;
+        const imgs = await getImagesFromFirebase(user.id);
+        if (imgs?.length) setImageHistory(imgs);
+      } catch (e) {
+        /* silent */
+      }
+    })();
+  }, [user?.id]);
+
+  const handleDeleteGeneratedImage = async (imgId: string) => {
+    try {
+      if (!user?.id) return;
+      await deleteImageFromFirebase(user.id, imgId);
+      setImageHistory(prev => prev.filter(i => i.id !== imgId));
+      onDeleteImage?.(imgId);
+    } catch (e) {
+      console.warn('Failed to delete image', e);
+    }
+  };
 
   const saveToHistory = (newPrompt: string) => {
     if (!newPrompt.trim()) return;
@@ -241,6 +292,12 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
   };
 
   const handleGenerate = async () => {
+    // Guest gating: require signup/login before generation
+    if (!user) {
+      if (onLoginClick) onLoginClick();
+      return;
+    }
+
     if (isOutOfCredits) {
       onUpgradeRequired();
       return;
@@ -276,6 +333,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
 
       const style = STYLES.find(s => s.id === selectedStyle);
       const finalPrompt = style?.modifier && style?.id !== 'none' ? `${prompt}, ${style.modifier}` : prompt;
+      const cleanNegativePrompt = negativePrompt.trim();
 
       const supportedRatio = aspectRatio === '1:2' ? '9:16' : aspectRatio;
 
@@ -287,6 +345,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
         const { generateImageWithKlingAI } = await import('../services/klingaiImageService').then(m => ({ generateImageWithKlingAI: (m as any).generateImageWithKlingAI }));
         const body: any = {
           prompt: finalPrompt,
+          negative_prompt: cleanNegativePrompt || undefined,
           aspect_ratio: supportedRatio,
           mode: isProMode ? 'pro' : 'standard',
           image_count: 1
@@ -297,15 +356,54 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
         console.log('[Generator] Calling KlingAI API');
         generatedDataUrl = await generateImageWithKlingAI(body);
         console.log('[Generator] KlingAI responded with URL:', generatedDataUrl);
+      } else if (imageEngine === 'deapi') {
+        // DeAPI.ai generation
+        console.log('[Generator] Generating with DeAPI.ai:', { prompt: finalPrompt, aspect_ratio: supportedRatio, mode: isProMode ? 'pro' : 'standard' });
+        const { generateImageWithDeAPI } = await import('../services/deapiService').then(m => ({ generateImageWithDeAPI: (m as any).generateImageWithDeAPI }));
+        const body: any = {
+          prompt: finalPrompt,
+          negative_prompt: cleanNegativePrompt || undefined,
+          aspect_ratio: supportedRatio,
+          mode: isProMode ? 'pro' : 'standard',
+          image_count: 1
+        };
+        if (base64Image) {
+          body.image_url = `data:${mimeType};base64,${base64Image}`;
+        }
+        console.log('[Generator] Calling DeAPI.ai API');
+        generatedDataUrl = await generateImageWithDeAPI(body);
+        console.log('[Generator] DeAPI.ai responded with URL:', generatedDataUrl);
+      } else if (imageEngine === 'runware') {
+        console.log('[Generator] Generating with Runware.ai:', { prompt: finalPrompt, aspect_ratio: supportedRatio });
+        const { generateImageWithRunware } = await import('../services/runwareService').then(m => ({ generateImageWithRunware: (m as any).generateImageWithRunware }));
+        const body: any = {
+          prompt: finalPrompt,
+          negative_prompt: cleanNegativePrompt || undefined,
+          aspect_ratio: supportedRatio,
+          image_count: 1
+        };
+        if (base64Image) {
+          body.image_url = `data:${mimeType};base64,${base64Image}`;
+        }
+        console.log('[Generator] Calling Runware.ai API via proxy');
+        generatedDataUrl = await generateImageWithRunware(body);
+        console.log('[Generator] Runware.ai responded with URL:', generatedDataUrl);
       } else {
-        // Gemini generation
+        // Gemini generation requires the shared Gemini API key (same as Voice & Audio)
+        if (!hasApiKey) {
+          setError('Gemini API key missing. Select a key to use Gemini Image engine.');
+          onSelectKey();
+          throw new Error('Gemini API key missing');
+        }
+
         console.log('[Generator] Generating with Gemini:', { prompt: finalPrompt, aspectRatio: supportedRatio, isProMode });
         generatedDataUrl = await generateImageWithGemini(
           finalPrompt, 
           base64Image, 
           mimeType, 
           supportedRatio,
-          isProMode
+          isProMode,
+          cleanNegativePrompt
         );
         console.log('[Generator] Gemini responded');
       }
@@ -323,11 +421,13 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
 
       saveToHistory(prompt);
       setResultImage(newImage);
+      setImageHistory(prev => [newImage, ...prev].slice(0, 8));
       
       // AUTO-SAVE LOGIC: Persistence triggers immediately on success
       if (user) {
         onImageGenerated(newImage);
         onCreditUsed();
+        try { await saveImageToFirebase(newImage, user.id); } catch {}
       }
     } catch (err: any) {
       setError(err.message || "Neural synthesis failure. Check API logs for link status.");
@@ -349,521 +449,518 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
   const currentStyleOption = STYLES.find(s => s.id === selectedStyle);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in space-y-12">
-      <div ref={workstationRef} className="grid grid-cols-1 lg:grid-cols-4 gap-8 scroll-mt-24">
-        <div className="lg:col-span-3 space-y-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-indigo-600 rounded-2xl shadow-xl">
-                 <Rocket className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-black text-white tracking-tighter uppercase italic leading-none">Synthesis Station</h2>
-                <div className="flex items-center gap-2 mt-1.5">
-                   <div className={`w-1.5 h-1.5 rounded-full ${isApiKeyConfigured ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500'}`} />
-                   <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">
-                     Neural Link: {isApiKeyConfigured ? 'ACTIVE' : 'OFFLINE'}
-                   </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              {/* Credits Remaining Badge */}
-              {user && (
-                <div 
-                  className={`px-4 py-2 rounded-full border transition-all duration-300 flex items-center gap-2 ${
-                    isOutOfCredits 
-                    ? 'bg-red-600/10 border-red-500/30 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)] animate-pulse' 
-                    : 'bg-white/5 border-white/10 text-gray-300'
-                  }`}
-                >
-                  <CreditCard className={`w-3.5 h-3.5 ${isOutOfCredits ? 'text-red-500' : 'text-indigo-400'}`} />
-                  <span className="text-[10px] font-black uppercase tracking-[0.15em]">
-                    {user.plan === 'premium' ? 'UNLIMITED' : `${user.credits} CREDITS`}
-                  </span>
-                </div>
-              )}
-              
-              <div className="flex bg-black/40 p-1.5 rounded-2xl border border-white/10">
-                <button 
-                  onClick={() => setIsProMode(!isProMode)}
-                  className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all flex items-center gap-2 ${isProMode ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20' : 'bg-transparent border-transparent text-gray-500'}`}
-                >
-                  <Gem className="w-3 h-3" /> Ultra HD 3.0
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Mode Selector Tabs */}
-          <div className="flex bg-black/50 p-1.5 rounded-2xl border border-white/5 relative z-10 w-fit">
-            <button 
-              onClick={() => setGenMode('tti')} 
-              className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${genMode === 'tti' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
-            >
-              <FileText className="w-3.5 h-3.5" /> TEXT TO IMAGE
-            </button>
-            <button 
-              onClick={() => setGenMode('iti')} 
-              className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${genMode === 'iti' ? 'bg-pink-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
-            >
-              <FileImage className="w-3.5 h-3.5" /> IMAGE TO IMAGE
-            </button>
-          </div>
-
-          {/* AI Engine Selector */}
-          <div className="relative z-10">
-            <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-2 block">AI Engine</label>
-            <div className="flex bg-black/50 p-1.5 rounded-xl border border-white/5 w-fit">
-              <button 
-                onClick={() => setImageEngine('klingai')}
-                className={`px-6 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${imageEngine === 'klingai' ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-              >
-                KlingAI
-              </button>
-              <button 
-                onClick={() => setImageEngine('gemini')}
-                className={`px-6 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${imageEngine === 'gemini' ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-              >
-                Gemini 2.5
-              </button>
-            </div>
-          </div>
-
-          {/* Input Core */}
-          <div className="bg-[#0a0a1a] border border-white/5 rounded-[2.5rem] p-10 shadow-2xl relative overflow-visible group/station">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/5 blur-[100px] rounded-full group-hover/station:bg-indigo-600/10 transition-all pointer-events-none" />
-            
-            <div className="flex flex-col md:flex-row gap-10">
-               {/* Left: IMAGE */}
-               {genMode === 'iti' && (
-                 <div className="w-full md:w-64 shrink-0 animate-fade-in">
-                    <div className="flex items-center justify-between mb-4">
-                      <label className="text-[10px] font-black text-pink-400 uppercase tracking-widest">IMAGE ANCHOR</label>
-                      {previewUrl && (
-                        <button onClick={() => { setPreviewUrl(null); setSelectedImage(null); }} className="text-red-500 p-1 hover:bg-red-500/10 rounded-lg">
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                    
-                    {!previewUrl ? (
-                      <div 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="aspect-square bg-black/40 border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center cursor-pointer hover:border-pink-500/30 group/anchor transition-all"
-                      >
-                         <Upload className="w-8 h-8 text-gray-700 group-hover/anchor:text-pink-400 mb-2 transition-colors" />
-                         <span className="text-[8px] font-black text-gray-600 uppercase">Upload Reference</span>
-                      </div>
-                    ) : (
-                      <div className="aspect-square rounded-3xl overflow-hidden border border-pink-500/30 relative group/preview shadow-2xl">
-                         <img src={previewUrl} className="w-full h-full object-cover" />
-                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity">
-                            <button onClick={() => fileInputRef.current?.click()} className="p-3 bg-white/10 rounded-2xl backdrop-blur-md text-white"><Edit className="w-5 h-5" /></button>
-                         </div>
-                      </div>
-                    )}
-                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*" />
-                 </div>
-               )}
-
-               {/* Right: Directorial Script */}
-               <div className="flex-1 flex flex-col relative">
-                  <div className="flex items-center justify-between mb-4">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{genMode === 'tti' ? 'Script Prompt' : 'Modification Script'}</label>
-                    <div className="flex gap-4">
-                      {promptHistory.length > 0 && (
-                        <div className="relative" ref={historyRef}>
-                          <button 
-                            onClick={() => setShowPromptHistory(!showPromptHistory)}
-                            className="text-[10px] font-black text-gray-500 hover:text-white flex items-center gap-1 transition-colors"
-                          >
-                            <History className="w-3.5 h-3.5" />
-                            History
-                          </button>
-                          
-                          {showPromptHistory && (
-                            <div className="absolute right-0 top-full mt-2 w-72 bg-dark-900 border border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden animate-scale-in">
-                              <div className="p-4 border-b border-white/5 bg-black/20">
-                                <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Recent Scripts</p>
-                              </div>
-                              <div className="max-h-60 overflow-y-auto no-scrollbar">
-                                {promptHistory.map((h, i) => (
-                                  <button 
-                                    key={i}
-                                    onClick={() => { setPrompt(h); setShowPromptHistory(false); }}
-                                    className="w-full text-left p-4 hover:bg-white/5 border-b border-white/5 last:border-none transition-colors group"
-                                  >
-                                    <p className="text-[11px] text-gray-400 group-hover:text-white line-clamp-2 leading-relaxed">"{h}"</p>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <button 
-                        onClick={handleEnhancePrompt} 
-                        disabled={isEnhancing || !prompt.trim()}
-                        className="text-[10px] font-black text-indigo-400 hover:text-indigo-300 flex items-center gap-1 disabled:opacity-50"
-                      >
-                        <Wand2 className={`w-3.5 h-3.5 ${isEnhancing ? 'animate-spin' : ''}`} />
-                        Optimize
-                      </button>
-                    </div>
-                  </div>
-                  <textarea 
-                    value={prompt} 
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder={genMode === 'iti' ? "How should the anchor be transformed?" : "Synthesize your vision into visual reality..."}
-                    className="flex-1 bg-transparent border-none text-white text-xl placeholder-gray-800 focus:ring-0 outline-none resize-none no-scrollbar min-h-[150px]"
-                  />
-
-                  {/* Tools Row */}
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-4 animate-fade-in border-t border-white/5 pt-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-600 uppercase tracking-widest">
-                         <Lightbulb className="w-3 h-3 text-amber-500" /> Ideas:
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                         {QUICK_IDEAS.map((idea) => (
-                           <button 
-                             key={idea.label} 
-                             onClick={() => handleIdeaClick(idea)}
-                             className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[9px] font-black text-gray-400 uppercase tracking-widest hover:bg-indigo-600 hover:text-white hover:border-indigo-500 transition-all active:scale-95"
-                           >
-                             {idea.label}
-                           </button>
-                         ))}
-                      </div>
-                    </div>
-
-                    <button 
-                      onClick={handleNarrate}
-                      disabled={isSpeaking || !prompt.trim()}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${isSpeaking ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg animate-pulse' : 'bg-white/5 border-white/10 text-gray-500 hover:text-indigo-400 hover:border-indigo-500/30'}`}
-                      title="Audio narration of script"
-                    >
-                      {isSpeaking ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Volume2 className="w-3.5 h-3.5" />}
-                      {isSpeaking ? 'Reading...' : 'Voice Preview'}
-                    </button>
-                  </div>
-               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10 pt-10 border-t border-white/5">
-               {/* Aspect Ratio Dropdown */}
-               <div className="space-y-4 relative" ref={aspectRatioMenuRef}>
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block ml-1">ASPECT RATIO</label>
-                  <button onClick={() => setIsAspectRatioMenuOpen(!isAspectRatioMenuOpen)} className="w-full flex items-center justify-between px-6 py-4 bg-black/60 border border-white/10 rounded-2xl text-[10px] font-black text-white uppercase tracking-widest transition-all hover:border-white/20">
-                     <div className="flex items-center gap-3">
-                        {currentRatioOption && <currentRatioOption.icon className="w-4 h-4 text-indigo-400" />}
-                        <span>{aspectRatio}</span>
-                     </div>
-                     <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform ${isAspectRatioMenuOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  {isAspectRatioMenuOpen && (
-                    <div className="absolute top-full left-0 right-0 mt-2 z-[100] bg-dark-900 border border-white/10 rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-scale-in">
-                       {ASPECT_RATIOS.map(ratio => (
-                         <button key={ratio.id} onClick={() => { setAspectRatio(ratio.id); setIsAspectRatioMenuOpen(false); }} className={`w-full flex items-center justify-between px-4 py-3 text-[10px] font-black uppercase transition-all ${aspectRatio === ratio.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
-                            <div className="flex items-center gap-3"><ratio.icon className="w-4 h-4" />{ratio.label}</div>
-                            {aspectRatio === ratio.id && <Check className="w-3 h-3" />}
-                         </button>
-                       ))}
-                    </div>
-                  )}
-               </div>
-
-               {/* Style Dropdown */}
-               <div className="space-y-4 relative" ref={styleMenuRef}>
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block ml-1">STYLE PRESET</label>
-                  <button onClick={() => setIsStyleMenuOpen(!isStyleMenuOpen)} className="w-full flex items-center justify-between px-6 py-4 bg-black/60 border border-white/10 rounded-2xl text-[10px] font-black text-white uppercase tracking-widest transition-all hover:border-white/20">
-                     <div className="flex items-center gap-3">
-                        <Palette className="w-4 h-4 text-pink-400" />
-                        <span>{currentStyleOption?.label || 'None'}</span>
-                     </div>
-                     <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform ${isStyleMenuOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  {isStyleMenuOpen && (
-                    <div className="absolute top-full left-0 right-0 mt-2 z-[100] bg-dark-900 border border-white/10 rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-scale-in max-h-72 overflow-y-auto custom-scrollbar">
-                       {STYLES.map(s => (
-                         <button key={s.id} onClick={() => { setSelectedStyle(s.id); setIsStyleMenuOpen(false); }} className={`w-full flex items-center justify-between px-4 py-3 text-[10px] font-black uppercase transition-all ${selectedStyle === s.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
-                            <span>{s.label}</span>
-                            {selectedStyle === s.id && <Check className="w-3 h-3" />}
-                         </button>
-                       ))}
-                    </div>
-                  )}
-               </div>
-            </div>
+    <div className="min-h-screen bg-dark-950 py-8">
+      {/* Header Section */}
+      <section className="pt-8 pb-12 relative">
+        <div className="max-w-[1400px] mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-xs sm:text-sm font-black text-indigo-400 uppercase tracking-[0.4em] mb-3 sm:mb-4">Live Production Engine</h2>
+            <h3 className="text-3xl sm:text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter">AI Image Synthesis Moteur</h3>
           </div>
 
           {error && (
-            <div className="p-4 bg-red-600/10 border border-red-600/20 rounded-2xl flex items-center gap-3 animate-fade-in shadow-[0_0_20px_rgba(220,38,38,0.1)]">
-              <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-              <p className="text-[10px] text-red-400 font-black uppercase tracking-widest">{error}</p>
+            <div className="max-w-2xl mx-auto mb-6 p-3 sm:p-4 rounded-2xl bg-red-900/10 border border-red-500/20 text-center">
+              <div className="flex items-center justify-center gap-2 sm:gap-3">
+                <AlertCircle className="w-4 sm:w-5 h-4 sm:h-5 text-red-300" />
+                <h4 className="text-xs sm:text-sm font-black uppercase text-red-300">ENGINE ERROR</h4>
+              </div>
+              <p className="text-red-200 text-xs sm:text-sm mt-2">{error}</p>
             </div>
           )}
 
-          <button
-            onClick={handleGenerate}
-            disabled={isGenerating || showIdentityCheck}
-            className={`w-full py-8 rounded-[2.5rem] font-black text-3xl uppercase tracking-[0.4em] italic flex items-center justify-center gap-5 transition-all transform active:scale-[0.98] ${
-              isGenerating 
-              ? 'bg-gray-800 text-gray-600 shadow-inner' 
-              : showIdentityCheck ? 'bg-white/5 opacity-60 cursor-not-allowed' : (isOutOfCredits ? 'bg-red-600 hover:bg-red-500 text-white shadow-xl' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_25px_60px_rgba(99,102,241,0.3)]')
-            }`}
-          >
-            {isGenerating ? <RefreshCw className="w-8 h-8 animate-spin" /> : (isOutOfCredits ? <Lock className="w-8 h-8" /> : <Sparkles className="w-8 h-8 fill-white" />)}
-            {isGenerating ? 'Synthesizing...' : (showIdentityCheck ? 'VERIFY EMAIL TO GENERATE' : (isOutOfCredits ? '0 CREDITS - UPGRADE' : 'GENERATE NOW (1 Credit)'))}
-          </button>
-        </div>
-
-        {/* Sidebar */}
-        <div className="lg:col-span-1 space-y-6">
-           <div className="bg-dark-900 border border-white/5 rounded-[2.5rem] p-8 shadow-2xl">
-              <h3 className="text-xs font-black text-white uppercase tracking-widest italic mb-8 flex items-center gap-2">
-                 <PenTool className="w-4 h-4 text-pink-400" /> Identity Profile
-              </h3>
-              <div className="space-y-8">
-                 <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center gap-4 group/avatar relative overflow-hidden">
-                    <div 
-                      onClick={() => avatarInputRef.current?.click()}
-                      className="relative cursor-pointer w-12 h-12 shrink-0 group/img-overlay"
-                    >
-                      {user?.avatarUrl ? (
-                        <img src={user.avatarUrl} className="w-full h-full rounded-xl object-cover border border-white/10" />
-                      ) : (
-                        <div className="w-full h-full rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-black text-white text-lg">
-                           {user ? user.name.charAt(0).toUpperCase() : 'G'}
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/60 rounded-xl opacity-0 group-hover/img-overlay:opacity-100 transition-opacity flex flex-col items-center justify-center gap-0.5">
-                        <Camera className="w-4 h-4 text-white" />
-                        <span className="text-[6px] font-black text-white uppercase tracking-widest">Update</span>
-                      </div>
-                      <input type="file" ref={avatarInputRef} className="hidden" accept="image/*" onChange={handleAvatarChange} />
-                    </div>
-                    <div className="overflow-hidden">
-                       <p className="text-xs font-black text-white uppercase truncate">{user ? user.name : 'Guest User'}</p>
-                       <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest">Creator Account</p>
-                    </div>
-                 </div>
-
-                 <div className="space-y-4">
-                    <div className="bg-white/5 p-5 rounded-[1.8rem] border border-white/5 group hover:border-indigo-500/20 transition-all">
-                       <div className="flex items-center gap-3 mb-2">
-                          <Zap className="w-3.5 h-3.5 text-amber-500" />
-                          <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest">Access Plan</p>
-                       </div>
-                       <h4 className="text-lg font-black text-white uppercase italic tracking-tighter leading-none">
-                          {user?.plan || 'Free'} Protocol
-                       </h4>
-                    </div>
-
-                    <div className={`p-5 rounded-[1.8rem] border transition-all ${isOutOfCredits ? 'bg-red-600/10 border-red-500/30' : 'bg-white/5 border-white/5'}`}>
-                       <div className="flex items-center gap-3 mb-2">
-                          <CreditCard className={`w-3.5 h-3.5 ${isOutOfCredits ? 'text-red-500' : 'text-emerald-400'}`} />
-                          <p className={`text-[9px] font-black uppercase tracking-widest ${isOutOfCredits ? 'text-red-400' : 'text-gray-500'}`}>Credits Remaining</p>
-                       </div>
-                       <h4 className={`text-xl font-black ${isOutOfCredits ? 'text-red-500' : 'text-white'} uppercase tracking-tight`}>
-                          {user ? (user.plan === 'premium' ? 'UNLIMITED' : user.credits) : '0'} 
-                          <span className="text-[9px] opacity-40 ml-1.5 font-bold">Units</span>
-                       </h4>
-                       {isOutOfCredits && (
-                         <button onClick={onUpgradeRequired} className="mt-3 w-full py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-[8px] font-black uppercase tracking-widest transition-colors shadow-lg">Upgrade Authorization</button>
-                       )}
-                    </div>
-                 </div>
+          {showIdentityCheck && (
+            <div className="max-w-2xl mx-auto mb-6 p-3 sm:p-4 rounded-2xl bg-amber-900/10 border border-amber-500/10 text-center">
+              <div className="flex items-center justify-center gap-2 sm:gap-3">
+                <AlertCircle className="w-4 sm:w-5 h-4 sm:h-5 text-amber-300" />
+                <h4 className="text-xs sm:text-sm font-black uppercase text-amber-300">IDENTITY CHECK</h4>
               </div>
-           </div>
-           
-           <div className="bg-dark-900 border border-white/5 rounded-[2.5rem] p-8 shadow-2xl">
-              <h3 className="text-xs font-black text-white uppercase tracking-widest italic mb-6 flex items-center gap-2">
-                 <Info className="w-4 h-4 text-indigo-400" /> Node Guide
-              </h3>
-              <p className="text-[10px] text-gray-500 leading-relaxed font-medium uppercase tracking-tight">
-                {genMode === 'tti' 
-                  ? "TEXT TO IMAGE: Synthesize unique visual assets from raw natural language input." 
-                  : "IMAGE TO IMAGE: Modify an existing visual anchor using directorial script modifiers."
-                }
-              </p>
-           </div>
-        </div>
-      </div>
-
-      {/* NEURAL VAULT SECTION */}
-      {gallery.length > 0 && (
-        <section className="bg-dark-900/50 border border-white/10 rounded-[3rem] p-12 shadow-2xl relative overflow-hidden animate-fade-in-up">
-          <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 mb-12 relative z-10">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-pink-500/10 text-pink-400 border border-pink-500/20 mb-4">
-                <History className="w-4 h-4" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Neural Vault</span>
-              </div>
-              <h3 className="text-4xl font-black text-white uppercase italic tracking-tighter leading-none">Recent History</h3>
-              <p className="text-gray-500 text-sm font-medium mt-3 uppercase tracking-widest">Your previously synthesized projections</p>
+              <p className="text-gray-300 text-xs sm:text-sm mt-2">A verification link was sent to your email. Access is restricted until you confirm your identity.</p>
             </div>
-            <div className="flex items-center gap-3 text-[10px] font-black text-gray-600 uppercase tracking-widest bg-white/5 px-4 py-2 rounded-xl border border-white/5">
-               <Grid className="w-4 h-4" /> {gallery.length} Creations
-            </div>
-          </div>
+          )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-6 relative z-10">
-            {gallery.slice(0, 12).map((img) => (
-              <div key={img.id} className="group flex flex-col transition-all relative">
-                <div 
-                  onClick={() => { setResultImage(img); setPreviewZoom(1); }}
-                  className="aspect-square rounded-[2rem] overflow-hidden mb-3 relative bg-dark-950 border border-white/5 hover:border-indigo-500/50 transition-all cursor-zoom-in"
-                >
-                  <img src={img.url} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" />
-                  
-                  {/* Delete button removed as requested */}
-
-                  <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity p-4">
-                    <div className="flex items-center justify-center w-8 h-8 bg-white/10 rounded-full mb-2"><Eye className="w-4 h-4 text-white" /></div>
+          {/* Main Production Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 md:gap-8 lg:gap-10 items-start">
+            {/* Left Controls Column */}
+            <div className="md:col-span-1 lg:col-span-5 space-y-6">
+              <div className="bg-dark-900 border border-white/10 rounded-[2.5rem] p-8 shadow-2xl relative">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-600/10 blur-[80px] rounded-full -mr-20 -mt-20 pointer-events-none" />
+                
+                {/* AI Engine Selector */}
+                <div className="mb-4 relative z-10">
+                  <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-2 block">AI Engine</label>
+                  <div className="flex bg-black/50 p-1.5 rounded-xl border border-white/5">
                     <button 
-                      onClick={(e) => { e.stopPropagation(); setGenMode('iti'); setPreviewUrl(img.url); setSelectedImage(null); setPrompt(img.prompt); workstationRef.current?.scrollIntoView({ behavior: 'smooth' }); }}
-                      className="w-full py-2 bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-500 transition-all"
+                      onClick={() => setImageEngine('klingai')}
+                      className={`flex-1 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${imageEngine === 'klingai' ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
                     >
-                      <Repeat className="w-3 h-3" /> Re-Anchor
+                      KlingAI
                     </button>
-                    <a 
-                      onClick={(e) => e.stopPropagation()}
-                      href={img.url} download={`imaginai-vault-${img.id}.png`}
-                      className="w-full py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all border border-white/10"
+                    <button 
+                      onClick={() => setImageEngine('gemini')}
+                      className={`flex-1 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${imageEngine === 'gemini' ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
                     >
-                      <Download className="w-3 h-3" /> Download
-                    </a>
+                      Gemini 2.5
+                    </button>
+                    <button 
+                      onClick={() => setImageEngine('deapi')}
+                      className={`flex-1 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${imageEngine === 'deapi' ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                    >
+                      DeAPI.ai
+                    </button>
+                    <button 
+                      onClick={() => setImageEngine('runware')}
+                      className={`flex-1 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${imageEngine === 'runware' ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                    >
+                      Runware.ai
+                    </button>
                   </div>
                 </div>
-                <p className="text-[9px] text-gray-600 truncate italic px-1">"{img.prompt}"</p>
+
+                {/* Mode Selector */}
+                <div className="flex bg-black/50 p-1.5 rounded-2xl mb-5 border border-white/5 relative z-10">
+                  <button 
+                    onClick={() => setGenMode('tti')}
+                    className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${genMode === 'tti' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                  >
+                    <Terminal className="w-4 h-4" /> Text To Image
+                  </button>
+                  <button 
+                    onClick={() => setGenMode('iti')}
+                    className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${genMode === 'iti' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                  >
+                    <Layers className="w-4 h-4" /> Image Transform
+                  </button>
+                </div>
+
+                <div className="space-y-6 relative z-10">
+                  {/* Image Upload for ITI Mode */}
+                  {genMode === 'iti' && (
+                    <div className="animate-fade-in">
+                      <div className="flex justify-between mb-2">
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Image Anchor</label>
+                        {previewUrl && (
+                          <button onClick={() => { setPreviewUrl(null); setSelectedImage(null); }} className="text-red-500 p-1 hover:bg-red-500/10 rounded-lg">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                      <div onClick={() => fileInputRef.current?.click()} className="aspect-video bg-black/60 border-2 border-dashed border-white/10 rounded-[1.5rem] flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 hover:border-purple-500/30 transition-all group overflow-hidden">
+                        {previewUrl ? (
+                          <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" />
+                        ) : (
+                          <>
+                            <Upload className="w-10 h-10 text-gray-600 mb-4 group-hover:text-purple-400 group-hover:scale-110 transition-all" />
+                            <p className="text-[10px] font-black text-gray-500 uppercase">Upload Reference Image</p>
+                          </>
+                        )}
+                        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Prompt Textarea */}
+                  <div className="animate-fade-in">
+                    <div className="flex justify-between mb-2">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
+                        {genMode === 'tti' ? 'Directorial Script' : 'Transformation Script'}
+                      </label>
+                      <div className="flex gap-2">
+                        {promptHistory.length > 0 && (
+                          <div className="relative" ref={historyRef}>
+                            <button 
+                              onClick={() => setShowPromptHistory(!showPromptHistory)}
+                              className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest hover:text-indigo-300"
+                            >
+                              History
+                            </button>
+                            {showPromptHistory && (
+                              <div className="absolute right-0 top-full mt-2 w-72 bg-dark-900 border border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden animate-scale-in">
+                                <div className="max-h-60 overflow-y-auto no-scrollbar">
+                                  {promptHistory.map((h, i) => (
+                                    <button 
+                                      key={i}
+                                      onClick={() => { setPrompt(h); setShowPromptHistory(false); }}
+                                      className="w-full text-left p-3 hover:bg-white/5 border-b border-white/5 last:border-none text-xs text-gray-400 hover:text-white line-clamp-2"
+                                    >
+                                      "{h}"
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <button 
+                          onClick={handleEnhancePrompt} 
+                          disabled={isEnhancing || !prompt.trim()}
+                          className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest hover:text-indigo-300 disabled:opacity-50"
+                        >
+                          {isEnhancing ? 'Optimizing...' : 'Enhance'}
+                        </button>
+                      </div>
+                    </div>
+                    <textarea 
+                      placeholder={genMode === 'iti' ? "Describe how to transform the image..." : "Describe the cinematic composition, lighting, and textures..."}
+                      className="w-full h-44 bg-black/40 border border-white/10 rounded-[1.5rem] p-6 text-white text-sm outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none"
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Negative Prompt */}
+                  <div className="animate-fade-in relative bg-black/30 border border-white/10 rounded-2xl p-4" ref={negativeMenuRef}>
+                    <div className="flex justify-between gap-3 mb-2">
+                      <div>
+                        <div className="flex items-center gap-2 ml-1">
+                          <Ban className="w-3.5 h-3.5 text-pink-400" />
+                          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Negative Prompt</span>
+                        </div>
+                        <p className="text-[9px] text-gray-600 uppercase tracking-widest ml-1">Clean up results across all engines</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {negativePrompt && (
+                          <button
+                            onClick={() => setNegativePrompt('')}
+                            className="px-3 py-1 text-[9px] font-black uppercase tracking-widest bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:border-white/25"
+                          >
+                            Clear
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => setIsNegativeMenuOpen(!isNegativeMenuOpen)}
+                          className="px-3 py-1.5 text-[9px] font-bold text-pink-300 uppercase tracking-widest bg-black/50 border border-white/10 rounded-lg hover:border-white/25"
+                        >
+                          Presets
+                        </button>
+                      </div>
+                    </div>
+                    {isNegativeMenuOpen && (
+                      <div className="absolute right-0 top-full mt-2 w-72 bg-dark-900 border border-white/10 rounded-2xl shadow-2xl z-[80] overflow-hidden animate-scale-in">
+                        {NEGATIVE_PRESETS.map((opt) => (
+                          <button
+                            key={opt.id}
+                            onClick={() => { setNegativePrompt(opt.value); setIsNegativeMenuOpen(false); }}
+                            className="w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:bg-white/5 border-b border-white/5 last:border-none"
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <textarea 
+                      placeholder="Things you want to avoid (e.g., blurry, watermarks, distorted hands)"
+                      className="w-full h-28 bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm outline-none focus:ring-2 focus:ring-pink-500/40 resize-none"
+                      value={negativePrompt}
+                      onChange={(e) => setNegativePrompt(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Parameters */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Aspect Ratio */}
+                    <div className="space-y-2 relative" ref={aspectRatioMenuRef}>
+                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Dimension</label>
+                      <button onClick={() => setIsAspectRatioMenuOpen(!isAspectRatioMenuOpen)} className="w-full flex items-center justify-between px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all group">
+                        <div className="flex items-center gap-1.5 truncate">
+                          {currentRatioOption && <currentRatioOption.icon className="w-3.5 h-3.5 text-indigo-400 shrink-0 group-hover:scale-110 transition-transform" />}
+                          <span className="truncate">{aspectRatio}</span>
+                        </div>
+                        <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform shrink-0 ${isAspectRatioMenuOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {isAspectRatioMenuOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-2 z-[200] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-scale-in">
+                          {ASPECT_RATIOS.map(opt => (
+                            <button key={opt.id} onClick={() => { setAspectRatio(opt.id); setIsAspectRatioMenuOpen(false); }} className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 text-[9px] font-black transition-all ${aspectRatio === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
+                              <div className="flex items-center gap-2 truncate"><opt.icon className="w-3.5 h-3.5" /><span className="truncate">{opt.label}</span></div>
+                              {aspectRatio === opt.id && <Check className="w-2.5 h-2.5 shrink-0" />}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Style */}
+                    <div className="space-y-2 relative" ref={styleMenuRef}>
+                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Style</label>
+                      <button onClick={() => setIsStyleMenuOpen(!isStyleMenuOpen)} className="w-full flex items-center justify-between px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
+                        <span className="truncate">{currentStyleOption?.label || 'None'}</span>
+                        <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform shrink-0 ${isStyleMenuOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {isStyleMenuOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-2 z-[200] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-scale-in max-h-60 overflow-y-auto">
+                          {STYLES.map(opt => (
+                            <button key={opt.id} onClick={() => { setSelectedStyle(opt.id); setIsStyleMenuOpen(false); }} className={`w-full text-left px-3 py-2.5 transition-all ${selectedStyle === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
+                              <span className="text-[9px] font-black uppercase tracking-widest">{opt.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Pro Mode Toggle */}
+                  <div className="flex items-center justify-between p-4 bg-black/40 border border-white/10 rounded-xl">
+                    <div>
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Ultra HD 3.0</label>
+                      <p className="text-[8px] text-gray-600 mt-0.5">Enhanced quality mode</p>
+                    </div>
+                    <button 
+                      onClick={() => setIsProMode(!isProMode)}
+                      className={`px-4 py-2 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all flex items-center gap-2 ${isProMode ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg' : 'bg-transparent border-white/10 text-gray-500'}`}
+                    >
+                      <Gem className="w-3 h-3" /> {isProMode ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+
+                  {/* Generate Button */}
+                  <button 
+                    onClick={handleGenerate} 
+                    disabled={isGenerating || showIdentityCheck || (!prompt.trim() && genMode === 'tti') || (genMode === 'iti' && !selectedImage)}
+                    className="w-full py-6 bg-indigo-600 hover:bg-indigo-500 disabled:bg-white/10 disabled:text-white/50 disabled:cursor-not-allowed text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <RefreshCw className="w-5 h-5 animate-spin" />
+                        Synthesizing...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-5 h-5 fill-white" />
+                        {showIdentityCheck ? 'Verify Email First' : 'Generate Image (1 Credit)'}
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
-            ))}
+            </div>
+
+            {/* Right Preview Column */}
+            <div className="md:col-span-1 lg:col-span-7 bg-black/40 border border-white/5 rounded-[3rem] p-2.5 min-h-[500px] flex flex-col relative overflow-hidden">
+              <div className="flex-1 rounded-[2.5rem] overflow-hidden bg-dark-950 flex flex-col items-center justify-center relative group/viewport"
+                ref={zoomContainerRef}>
+                <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-indigo-600/5 via-transparent to-purple-600/5 pointer-events-none" />
+                
+                {resultImage && !isEditing ? (
+                  <div className="relative w-full h-full flex items-center justify-center p-4">
+                    <img 
+                      src={resultImage.url} 
+                      alt="Generated" 
+                      className="max-h-full max-w-full object-contain transition-transform duration-300"
+                      style={{ transform: `scale(${previewZoom})` }}
+                    />
+                    
+                    {/* Image Controls Overlay */}
+                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-dark-900/90 backdrop-blur-md border border-white/10 rounded-2xl p-3 shadow-2xl">
+                      <button 
+                        onClick={() => setPreviewZoom(Math.max(0.5, previewZoom - 0.25))}
+                        className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                      >
+                        <ZoomOut className="w-4 h-4 text-white" />
+                      </button>
+                      <div className="text-xs font-black text-white px-3">{Math.round(previewZoom * 100)}%</div>
+                      <button 
+                        onClick={() => setPreviewZoom(Math.min(5, previewZoom + 0.25))}
+                        className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                      >
+                        <ZoomIn className="w-4 h-4 text-white" />
+                      </button>
+                      <div className="w-px h-6 bg-white/10 mx-2" />
+                      <a 
+                        href={resultImage.url} 
+                        download 
+                        className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                      >
+                        <Download className="w-4 h-4 text-white" />
+                      </a>
+                      <button 
+                        onClick={() => setIsEditing(true)}
+                        className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                      >
+                        <Edit className="w-4 h-4 text-white" />
+                      </button>
+                    </div>
+                  </div>
+                ) : isEditing && resultImage ? (
+                  <div className="w-full h-full p-4">
+                    <ImageEditor 
+                      imageUrl={resultImage.url} 
+                      onSave={(url) => { if (resultImage) setResultImage({ ...resultImage, url }); setIsEditing(false); }} 
+                      onCancel={() => setIsEditing(false)} 
+                    />
+                  </div>
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-12 pointer-events-none">
+                    {/* Animated Illustration - Text to Image Flow */}
+                    <div className="relative mb-8">
+                      {/* Text Input Visualization */}
+                      <div className="flex items-center gap-6 mb-6">
+                        <div className="relative group">
+                          <div className="w-40 h-40 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 rounded-2xl border-2 border-indigo-500/30 flex items-center justify-center backdrop-blur-sm">
+                            <FileText className="w-16 h-16 text-indigo-400 animate-pulse" />
+                          </div>
+                          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                            <span className="text-xs font-black text-indigo-400 uppercase tracking-wider">Your Prompt</span>
+                          </div>
+                        </div>
+                        
+                        {/* Animated Arrow */}
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 animate-pulse" />
+                            <ArrowRightLeft className="w-8 h-8 text-purple-500 animate-bounce" style={{ animationDuration: '2s' }} />
+                            <div className="w-8 h-0.5 bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" />
+                          </div>
+                          <Sparkles className="w-6 h-6 text-yellow-400 animate-spin" style={{ animationDuration: '3s' }} />
+                          <div className="text-[9px] font-black text-purple-400 uppercase tracking-wider px-2 py-1 bg-purple-600/10 rounded-full border border-purple-500/20">
+                            AI Magic
+                          </div>
+                        </div>
+                        
+                        {/* Real AI Generated Image Sample */}
+                        <div className="relative group">
+                          <div className="w-40 h-40 rounded-2xl border-2 border-purple-500/50 overflow-hidden shadow-2xl ring-4 ring-purple-600/20 animate-pulse" style={{ animationDuration: '3s' }}>
+                            <img 
+                              src="https://images.unsplash.com/photo-1680382948929-2d092cd01263?w=400&h=400&fit=crop&q=80"
+                              alt="AI Generated Sample" 
+                              className="w-full h-full object-cover"
+                              loading="eager"
+                              onError={(e) => {
+                                // Fallback gradient if image fails to load
+                                (e.target as HTMLImageElement).style.display = 'none';
+                                const parent = (e.target as HTMLElement).parentElement;
+                                if (parent) {
+                                  parent.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                                  const icon = document.createElement('div');
+                                  icon.innerHTML = `<svg class="w-16 h-16 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>`;
+                                  parent.appendChild(icon.firstChild as Node);
+                                }
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-purple-600/30 via-transparent to-indigo-600/20 pointer-events-none" />
+                            <div className="absolute top-2 right-2 bg-green-500/90 backdrop-blur-sm rounded-full px-2 py-1 flex items-center gap-1">
+                              <Sparkles className="w-3 h-3 text-white" />
+                              <span className="text-[8px] font-black text-white uppercase">AI</span>
+                            </div>
+                          </div>
+                          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                            <span className="text-xs font-black text-purple-400 uppercase tracking-wider">Generated Image</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Title & Description */}
+                    <div className="mt-8">
+                      <h4 className="text-2xl font-black uppercase italic tracking-tighter mb-3 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                        AI Image Generator
+                      </h4>
+                      <p className="text-gray-400 text-sm max-w-md font-medium leading-relaxed mb-3">
+                        Transform your text prompts into stunning images using advanced AI models
+                      </p>
+                      <div className="flex items-center justify-center gap-2 text-xs text-gray-500 uppercase tracking-widest">
+                        <Zap className="w-3 h-3 text-yellow-500" />
+                        <span>Write a prompt & click Generate</span>
+                        <Zap className="w-3 h-3 text-yellow-500" />
+                      </div>
+                    </div>
+
+                    {/* Feature Badges */}
+                    <div className="flex gap-3 mt-6">
+                      <div className="px-3 py-1.5 bg-indigo-600/10 border border-indigo-500/20 rounded-full text-[10px] font-black text-indigo-400 uppercase tracking-wider">
+                        <span className="inline-block w-1.5 h-1.5 bg-indigo-400 rounded-full mr-1.5 animate-pulse" />
+                        Fast Generation
+                      </div>
+                      <div className="px-3 py-1.5 bg-purple-600/10 border border-purple-500/20 rounded-full text-[10px] font-black text-purple-400 uppercase tracking-wider">
+                        <span className="inline-block w-1.5 h-1.5 bg-purple-400 rounded-full mr-1.5 animate-pulse" style={{ animationDelay: '0.3s' }} />
+                        HD Quality
+                      </div>
+                      <div className="px-3 py-1.5 bg-pink-600/10 border border-pink-500/20 rounded-full text-[10px] font-black text-pink-400 uppercase tracking-wider">
+                        <span className="inline-block w-1.5 h-1.5 bg-pink-400 rounded-full mr-1.5 animate-pulse" style={{ animationDelay: '0.6s' }} />
+                        Multiple Engines
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Background Animation */}
+                {!resultImage && (
+                  <div className="absolute inset-0 opacity-50 grayscale">
+                    <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-indigo-600/20 rounded-full blur-3xl animate-float" />
+                    <div className="absolute bottom-1/4 right-1/4 w-32 h-32 bg-purple-600/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Quick Ideas Section */}
+      {IMAGE_IDEAS.length > 0 && (
+        <section className="py-16 bg-dark-900/20">
+          <div className="max-w-[1400px] mx-auto px-4">
+            <div className="text-center mb-12">
+              <h3 className="text-sm font-black text-indigo-400 uppercase tracking-[0.4em] mb-3">Quick Start</h3>
+              <h4 className="text-3xl md:text-4xl font-black text-white uppercase italic tracking-tighter">Trending Ideas</h4>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {IMAGE_IDEAS.map((idea, idx) => (
+                <div 
+                  key={idx}
+                  onClick={() => handleIdeaClick(idea)}
+                  className="group cursor-pointer bg-dark-900 border border-white/10 rounded-3xl overflow-hidden hover:border-indigo-500/50 transition-all duration-300 hover:-translate-y-2"
+                >
+                  <div className="aspect-video relative overflow-hidden">
+                    <img 
+                      src={idea.thumbnail} 
+                      alt={idea.label}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-dark-900 via-dark-900/20 to-transparent" />
+                    <div className="absolute bottom-3 left-3 right-3">
+                      <h5 className="text-white font-black text-sm uppercase">{idea.label}</h5>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-gray-400 text-xs line-clamp-2">{idea.prompt}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       )}
 
-      {/* EXPLORE IDEAS GRID */}
-      <section className="bg-dark-900 border border-white/10 rounded-[3rem] p-12 shadow-2xl relative overflow-hidden">
-        <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 mb-12 relative z-10">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-pink-500/10 text-pink-400 border border-pink-500/20 mb-4">
-              <Compass className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Discovery Hub</span>
-            </div>
-            <h3 className="text-4xl font-black text-white uppercase italic tracking-tighter leading-none">Visual Blueprints</h3>
-            <p className="text-gray-500 text-sm font-medium mt-3 uppercase tracking-widest">Select a creative pattern to initialize the engine</p>
-          </div>
-          <div className="flex items-center gap-3 text-[10px] font-black text-gray-600 uppercase tracking-widest bg-white/5 px-4 py-2 rounded-xl">
-             <Layout className="w-4 h-4" /> {IMAGE_IDEAS.length} Templates
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
-           {IMAGE_IDEAS.map((idea, idx) => (
-             <button 
-                key={idx}
-                onClick={() => handleIdeaClick(idea)}
-                className="group flex flex-col text-left transition-all hover:-translate-y-2"
-             >
-                <div className="aspect-[4/5] rounded-[2rem] overflow-hidden mb-4 relative bg-dark-950 border border-white/5 group-hover:border-indigo-500/50 group-hover:shadow-2xl transition-all">
-                   <img 
-                    src={idea.thumbnail} 
-                    alt={idea.label} 
-                    className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700" 
-                   />
-                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-6 flex flex-col justify-end">
-                      <div className="flex items-center justify-center w-full py-3 bg-indigo-600/90 backdrop-blur-md rounded-xl text-white opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0 duration-300 gap-2">
-                         <Terminal className="w-3 h-3" />
-                         <span className="text-[9px] font-black uppercase tracking-widest">Deploy Script</span>
-                      </div>
-                   </div>
-                </div>
-                <div className="px-2">
-                   <h4 className="text-[11px] font-black text-white uppercase tracking-widest group-hover:text-indigo-400 transition-colors">{idea.label}</h4>
-                   <p className="text-[9px] text-gray-600 line-clamp-2 mt-1 italic leading-relaxed">"{idea.prompt}"</p>
-                </div>
-             </button>
-           ))}
-        </div>
-      </section>
-
-      {/* Result Overlay */}
-      {resultImage && !isEditing && (
-           <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-dark-950/98 backdrop-blur-3xl animate-fade-in">
-              <div className="bg-dark-900 border border-white/10 rounded-[3rem] w-full max-w-6xl overflow-hidden shadow-2xl relative flex flex-col lg:flex-row h-[85vh]">
-                 <button onClick={() => setResultImage(null)} className="absolute top-8 right-8 p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-gray-500 hover:text-white transition-all z-20"><X className="w-6 h-6" /></button>
-                 
-                 <div 
-                   ref={zoomContainerRef}
-                   className="flex-1 bg-black flex items-center justify-center p-8 overflow-hidden relative cursor-zoom-in group/zoom-area"
-                 >
-                    <div 
-                      className="relative transition-transform duration-300 ease-out origin-center"
-                      style={{ transform: `scale(${previewZoom})` }}
-                    >
-                       <img src={resultImage.url} alt="Result" className="max-w-full max-h-[70vh] object-contain rounded-3xl shadow-2xl pointer-events-none" />
-                    </div>
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 opacity-0 group-hover/zoom-area:opacity-100 transition-opacity">
-                       <button onClick={() => setPreviewZoom(prev => Math.max(0.5, prev - 0.2))} className="p-1 hover:text-indigo-400 transition-colors"><ZoomOut className="w-4 h-4" /></button>
-                       <span className="text-[9px] font-black text-white uppercase tracking-widest w-10 text-center">{Math.round(previewZoom * 100)}%</span>
-                       <button onClick={() => setPreviewZoom(prev => Math.min(5, prev + 0.2))} className="p-1 hover:text-indigo-400 transition-colors"><ZoomIn className="w-4 h-4" /></button>
-                       <div className="h-3 w-px bg-white/10 mx-1" />
-                       <button onClick={() => setPreviewZoom(1)} className="p-1 hover:text-indigo-400 transition-colors"><RotateIcon className="w-4 h-4" /></button>
-                    </div>
-                 </div>
-
-                 <div className="w-full lg:w-96 bg-dark-800 border-l border-white/5 p-10 flex flex-col justify-center gap-8">
-                    <div>
-                       <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Neural Output</p>
-                       <h4 className="text-2xl font-black text-white uppercase italic leading-tight mb-4">Sync Success</h4>
-                       <p className="text-xs text-gray-400 leading-relaxed italic border-l-2 border-indigo-500 pl-4 bg-white/5 py-3 rounded-r-xl line-clamp-3">
-                          "{resultImage.prompt}"
-                       </p>
-                    </div>
-
-                    <div className="space-y-3">
-                       <button onClick={() => setIsEditing(true)} className="w-full py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl"><Edit className="w-4 h-4" /> START CROP</button>
-                       <button onClick={() => { setGenMode('iti'); setSelectedImage(null); setPreviewUrl(resultImage.url); setResultImage(null); setPrompt("Refine this neural anchor..."); workstationRef.current?.scrollIntoView({ behavior: 'smooth' }); }} className="w-full py-5 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-3 border border-white/5 transition-all"><Repeat className="w-4 h-4" /> Regenerate This Image</button>
-                       <a href={resultImage.url} download={`imaginai-export-${resultImage.id}.png`} className="w-full py-5 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-3 border border-white/10 transition-all shadow-xl"><Download className="w-4 h-4" /> DOWNLOAD IMAGE</a>
-                       {/* Delete button removed as requested */}
-                    </div>
-
-                    <div className="mt-auto">
-                       <button 
-                        disabled
-                        className="w-full py-6 rounded-[1.5rem] font-black uppercase text-xs tracking-[0.3em] flex items-center justify-center gap-3 bg-white/5 border border-white/10 text-gray-500"
-                       >
-                         <Check className="w-5 h-5 text-green-500" /> VAULT SYNCHRONIZED
-                       </button>
-                    </div>
-                 </div>
+      {/* Recent History Section */}
+      {imageHistory.length > 0 && (
+        <section className="py-16">
+          <div className="max-w-[1400px] mx-auto px-4">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-sm font-black text-pink-400 uppercase tracking-[0.4em] mb-2">Neural Vault</h3>
+                <h4 className="text-3xl font-black text-white uppercase italic tracking-tighter">Recent History</h4>
               </div>
-           </div>
-        )}
-
-      {resultImage && isEditing && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-dark-950/98 backdrop-blur-3xl animate-fade-in">
-           <div className="w-full max-w-6xl h-[85vh]">
-              <ImageEditor 
-                imageUrl={resultImage.url} 
-                onSave={(newUrl) => {
-                  setResultImage({ ...resultImage, url: newUrl });
-                  setIsEditing(false);
-                }}
-                onCancel={() => setIsEditing(false)}
-              />
-           </div>
-        </div>
+              <div className="text-xs font-black text-gray-600 uppercase tracking-widest">
+                {imageHistory.length} Creations
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {imageHistory.slice(0, 12).map((img) => (
+                <div 
+                  key={img.id} 
+                  onClick={() => { setResultImage(img); setPreviewZoom(1); }}
+                  className="group aspect-square bg-dark-900 border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 transition-all cursor-pointer relative"
+                >
+                  <img src={img.url} alt="History" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Eye className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       )}
-
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 10px; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-      `}</style>
     </div>
   );
 };

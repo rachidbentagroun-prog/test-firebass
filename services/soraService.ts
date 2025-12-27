@@ -11,18 +11,13 @@ type SoraRequest = {
 };
 
 export async function generateVideoWithSora(body: SoraRequest): Promise<string> {
-  const apiKey = process.env.SORA_API_KEY || process.env.API_KEY;
-  if (!apiKey || apiKey === '""' || apiKey === 'undefined') {
-    throw new Error('SORA_API_KEY is missing. Set it in your environment.');
-  }
-
-  const base = process.env.SORA_API_BASE || 'https://api.sora.com/v1/videos';
+  // Always call local proxy in browser to avoid CORS and hide keys
+  const base = '/api/sora';
 
   const res = await fetch(base, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify(body),
   });
@@ -37,24 +32,7 @@ export async function generateVideoWithSora(body: SoraRequest): Promise<string> 
   const videoUrl = data.url || data.video_url || data.video || data.downloadUrl;
   if (videoUrl) return videoUrl as string;
 
-  // If operation-based, attempt a single follow-up poll if provided
-  if (data.operation_id || data.id) {
-    const opId = data.operation_id || data.id;
-    const statusUrl = `${base}/${opId}`;
-    const statusRes = await fetch(statusUrl, {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-      },
-    });
-    if (!statusRes.ok) {
-      const t = await statusRes.text().catch(() => '');
-      throw new Error(t || `Sora status check failed with ${statusRes.status}`);
-    }
-    const statusData = await statusRes.json();
-    const readyUrl = statusData.url || statusData.video_url || statusData.video || statusData.downloadUrl;
-    if (readyUrl) return readyUrl as string;
-    throw new Error('Sora video not ready yet. Please retry later.');
-  }
+  // If operation-based, backend should manage polling; front just returns initial data
 
   throw new Error('Sora response missing video URL.');
 }

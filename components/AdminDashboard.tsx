@@ -10,13 +10,25 @@ import {
   CreditCard, ChevronDown, Monitor, Clock, Terminal,
   Plus, Layers, Video as VideoIcon, Image as ImageIcon,
   Mic2, AlertTriangle, Info, Bell, MessageSquare, User as UserIcon,
-  Filter, UserCheck, UserMinus, ShieldAlert
+  Filter, UserCheck, UserMinus, ShieldAlert, Ban, Eye, MapPin
 } from 'lucide-react';
 import { 
   User, SiteConfig, Plan, AIJob, SystemMessage, SupportSession, ChatMessage
 } from '../types';
 import { MOCK_REVENUE_DATA, MOCK_COUNTRY_DATA } from '../utils/mockData';
 import { getAllSupportSessions, sendSupportChatMessage } from '../services/dbService';
+import { 
+  getAnalyticsFromFirebase, 
+  getLiveGenerations,
+  getGenerationAnalytics,
+  updateUserStatus, 
+  addUserCredits, 
+  sendEmailToUser,
+  getUserIPLogs,
+  blockIPAddress,
+  unblockIPAddress,
+  getBlockedIPs
+} from '../services/firebase';
 
 interface AdminDashboardProps {
   users: User[];
@@ -55,6 +67,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [broadcastData, setBroadcastData] = useState({ subject: '', content: '' });
   const [isBroadcasting, setIsBroadcasting] = useState(false);
+
+  // Enhanced analytics state
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  // Generations live state
+  const [liveGenerations, setLiveGenerations] = useState<any[]>([]);
+  const [liveGenStats, setLiveGenStats] = useState<any>(null);
+  const [liveGenLoading, setLiveGenLoading] = useState(false);
+  const liveGenIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // User detail modal state
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userIPLogs, setUserIPLogs] = useState<any[]>([]);
+  const [loadingIPLogs, setLoadingIPLogs] = useState(false);
+  const [creditAmount, setCreditAmount] = useState<number>(0);
+  const [emailData, setEmailData] = useState({ subject: '', content: '' });
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [addingCredits, setAddingCredits] = useState(false);
+  
+  // Blocked IPs state
+  const [blockedIPs, setBlockedIPs] = useState<any[]>([]);
+  const [loadingBlockedIPs, setLoadingBlockedIPs] = useState(false);
 
   // Support state
   const [sessions, setSessions] = useState<SupportSession[]>([]);
@@ -168,8 +203,164 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   useEffect(() => {
-    if (activeTab === 'analytics') fetchTraffic();
+    if (activeTab === 'analytics') {
+      fetchTraffic();
+      fetchFirebaseAnalytics();
+      fetchLiveGenerationData();
+
+      const interval = setInterval(fetchLiveGenerationData, 5000);
+      liveGenIntervalRef.current = interval;
+      return () => {
+        clearInterval(interval);
+        liveGenIntervalRef.current = null;
+      };
+    }
+
+    if (liveGenIntervalRef.current) {
+      clearInterval(liveGenIntervalRef.current);
+      liveGenIntervalRef.current = null;
+    }
   }, [activeTab]);
+
+  // Fetch Firebase Analytics
+  const fetchFirebaseAnalytics = async () => {
+    setAnalyticsLoading(true);
+    try {
+      const data = await getAnalyticsFromFirebase(30);
+      setAnalyticsData(data);
+    } catch (e) {
+      console.warn('Failed to fetch Firebase analytics:', e);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
+  // Fetch live generations + analytics
+  const fetchLiveGenerationData = async () => {
+    setLiveGenLoading(true);
+    try {
+      const [generations, genStats] = await Promise.all([
+        getLiveGenerations(),
+        getGenerationAnalytics(7)
+      ]);
+
+      setLiveGenerations(generations || []);
+      setLiveGenStats(genStats || null);
+    } catch (e) {
+      console.warn('Failed to fetch live generations:', e);
+      setLiveGenerations([]);
+      setLiveGenStats(null);
+    } finally {
+      setLiveGenLoading(false);
+    }
+  };
+
+  // Fetch user IP logs
+  const fetchUserIPLogs = async (userId: string) => {
+    setLoadingIPLogs(true);
+    try {
+      const logs = await getUserIPLogs(userId);
+      setUserIPLogs(logs);
+    } catch (e) {
+      console.warn('Failed to fetch IP logs:', e);
+      setUserIPLogs([]);
+    } finally {
+      setLoadingIPLogs(false);
+    }
+  };
+
+  // Fetch blocked IPs
+  const fetchBlockedIPs = async () => {
+    setLoadingBlockedIPs(true);
+    try {
+      const ips = await getBlockedIPs();
+      setBlockedIPs(ips);
+    } catch (e) {
+      console.warn('Failed to fetch blocked IPs:', e);
+    } finally {
+      setLoadingBlockedIPs(false);
+    }
+  };
+
+  // Handle suspend/activate user
+  const handleToggleUserStatus = async (user: User) => {
+    const newStatus = user.status === 'suspended' ? 'active' : 'suspended';
+    const reason = newStatus === 'suspended' ? prompt('Reason for suspension:') : undefined;
+    
+    try {
+      await updateUserStatus(user.id, newStatus, reason || undefined);
+      onUpdateUser({ ...user, status: newStatus });
+      alert(`User ${newStatus === 'suspended' ? 'suspended' : 'activated'} successfully!`);
+    } catch (e) {
+      alert('Failed to update user status');
+    }
+  };
+
+  // Handle add credits
+  const handleAddCredits = async () => {
+    if (!selectedUser || creditAmount <= 0) return;
+    
+    setAddingCredits(true);
+    try {
+      await addUserCredits(selectedUser.id, creditAmount, 'Admin grant');
+      onUpdateUser({ ...selectedUser, credits: selectedUser.credits + creditAmount });
+      alert(`Successfully added ${creditAmount} credits to ${selectedUser.name}`);
+      setCreditAmount(0);
+    } catch (e) {
+      alert('Failed to add credits');
+    } finally {
+      setAddingCredits(false);
+    }
+  };
+
+  // Handle send email to user
+  const handleSendEmail = async () => {
+    if (!selectedUser || !emailData.subject || !emailData.content) return;
+    
+    setSendingEmail(true);
+    try {
+      await sendEmailToUser(selectedUser.id, emailData.subject, emailData.content, selectedUser.email);
+      alert(`Email sent to ${selectedUser.name} successfully!`);
+      setEmailData({ subject: '', content: '' });
+    } catch (e) {
+      alert('Failed to send email');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  // Handle block IP
+  const handleBlockIP = async (ipAddress: string) => {
+    const reason = prompt('Reason for blocking this IP:');
+    if (!reason) return;
+    
+    try {
+      await blockIPAddress(ipAddress, reason);
+      alert(`IP ${ipAddress} blocked successfully!`);
+      await fetchUserIPLogs(selectedUser!.id);
+      await fetchBlockedIPs();
+    } catch (e) {
+      alert('Failed to block IP');
+    }
+  };
+
+  // Handle unblock IP
+  const handleUnblockIP = async (ipAddress: string) => {
+    try {
+      await unblockIPAddress(ipAddress);
+      alert(`IP ${ipAddress} unblocked successfully!`);
+      await fetchBlockedIPs();
+    } catch (e) {
+      alert('Failed to unblock IP');
+    }
+  };
+
+  // Open user detail modal
+  const openUserDetail = (user: User) => {
+    setSelectedUser(user);
+    fetchUserIPLogs(user.id);
+    fetchBlockedIPs();
+  };
 
   // Simulated live job updates for the overview tab
   useEffect(() => {
@@ -396,6 +587,224 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               )}
            </div>
 
+           {/* Firebase Analytics Integration */}
+           <div className="bg-dark-900 border border-white/10 rounded-[3rem] p-10 shadow-2xl">
+              <div className="flex items-center justify-between mb-10">
+                <div>
+                  <h3 className="text-xl font-black text-white uppercase italic flex items-center gap-3">
+                    <BarChart3 className="w-6 h-6 text-pink-400" /> Firebase Analytics
+                  </h3>
+                  <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest mt-1">Real-time Performance Metrics</p>
+                </div>
+                <button 
+                  onClick={fetchFirebaseAnalytics}
+                  className="px-4 py-2 bg-pink-600/10 hover:bg-pink-600/20 border border-pink-600/20 rounded-xl text-xs font-bold text-pink-400 transition-all flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${analyticsLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              </div>
+
+              {analyticsLoading ? (
+                <div className="h-64 flex items-center justify-center">
+                  <RefreshCw className="w-8 h-8 text-pink-500 animate-spin" />
+                </div>
+              ) : analyticsData ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="bg-black/20 rounded-2xl p-6 border border-white/5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 bg-indigo-600/20 rounded-xl">
+                        <Eye className="w-5 h-5 text-indigo-400" />
+                      </div>
+                      <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Page Views</div>
+                    </div>
+                    <div className="text-3xl font-black text-white">{analyticsData.totalPageViews.toLocaleString()}</div>
+                    <div className="text-[10px] text-gray-600 mt-2">Last 30 days</div>
+                  </div>
+                  
+                  <div className="bg-black/20 rounded-2xl p-6 border border-white/5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 bg-green-600/20 rounded-xl">
+                        <Users className="w-5 h-5 text-green-400" />
+                      </div>
+                      <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">New Users</div>
+                    </div>
+                    <div className="text-3xl font-black text-white">{analyticsData.newUsers.toLocaleString()}</div>
+                    <div className="text-[10px] text-gray-600 mt-2">Registrations</div>
+                  </div>
+                  
+                  <div className="bg-black/20 rounded-2xl p-6 border border-white/5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 bg-amber-600/20 rounded-xl">
+                        <TrendingUp className="w-5 h-5 text-amber-400" />
+                      </div>
+                      <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Conversions</div>
+                    </div>
+                    <div className="text-3xl font-black text-white">{analyticsData.totalConversions.toLocaleString()}</div>
+                    <div className="text-[10px] text-gray-600 mt-2">Purchases</div>
+                  </div>
+                  
+                  <div className="bg-black/20 rounded-2xl p-6 border border-white/5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 bg-pink-600/20 rounded-xl">
+                        <Activity className="w-5 h-5 text-pink-400" />
+                      </div>
+                      <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Conversion Rate</div>
+                    </div>
+                    <div className="text-3xl font-black text-white">{analyticsData.conversionRate.toFixed(2)}%</div>
+                    <div className="text-[10px] text-gray-600 mt-2">Performance</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-64 flex flex-col items-center justify-center text-center">
+                  <BarChart3 className="w-12 h-12 text-gray-700 mb-4" />
+                  <p className="text-sm text-gray-500">No analytics data available yet.</p>
+                  <p className="text-xs text-gray-600 mt-2">Firebase Analytics will populate as users interact with the site.</p>
+                </div>
+              )}
+           </div>
+
+           {/* Generations Live */}
+           <div className="bg-dark-900 border border-white/10 rounded-[3rem] p-10 shadow-2xl">
+              <div className="flex items-center justify-between mb-10">
+                <div>
+                  <h3 className="text-xl font-black text-white uppercase italic flex items-center gap-3">
+                    <Zap className="w-6 h-6 text-amber-400" /> Generations Live
+                  </h3>
+                  <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest mt-1">Real-time multimodal activity (auto-refresh 5s)</p>
+                </div>
+                <button 
+                  onClick={fetchLiveGenerationData}
+                  className="px-4 py-2 bg-amber-600/10 hover:bg-amber-600/20 border border-amber-600/20 rounded-xl text-xs font-bold text-amber-400 transition-all flex items-center gap-2"
+                  disabled={liveGenLoading}
+                >
+                  <RefreshCw className={`w-4 h-4 ${liveGenLoading ? 'animate-spin' : ''}`} />
+                  {liveGenLoading ? 'Refreshing...' : 'Refresh'}
+                </button>
+              </div>
+
+              {liveGenStats ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  {[{
+                    label: 'Total Generations',
+                    value: liveGenStats.totalGenerations,
+                    color: 'text-white',
+                    badge: '7 days'
+                  }, {
+                    label: 'AI Images',
+                    value: liveGenStats.imageCount,
+                    color: 'text-indigo-400',
+                    badge: 'Images'
+                  }, {
+                    label: 'AI Videos',
+                    value: liveGenStats.videoCount,
+                    color: 'text-purple-400',
+                    badge: 'Videos'
+                  }, {
+                    label: 'AI Audio',
+                    value: liveGenStats.audioCount,
+                    color: 'text-pink-400',
+                    badge: 'Audio'
+                  }].map((card, idx) => (
+                    <div key={idx} className="bg-black/20 border border-white/5 rounded-2xl p-6 shadow-inner">
+                      <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">{card.label}</div>
+                      <div className={`text-3xl font-black ${card.color}`}>{card.value?.toLocaleString?.() ?? 0}</div>
+                      <div className="text-[9px] text-gray-600 uppercase tracking-widest mt-1">{card.badge}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mb-8 text-sm text-gray-500">No generation analytics yet.</div>
+              )}
+
+              {liveGenStats && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                    <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Success Rate</div>
+                    <div className="text-3xl font-black text-green-400">{liveGenStats.successRate.toFixed(1)}%</div>
+                    <div className="text-[9px] text-gray-600 uppercase tracking-widest mt-1">Completed vs total</div>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                    <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Active Creators</div>
+                    <div className="text-3xl font-black text-white">{liveGenStats.uniqueUsers}</div>
+                    <div className="text-[9px] text-gray-600 uppercase tracking-widest mt-1">Unique users (7d)</div>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                    <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Top Users</div>
+                    <div className="space-y-2">
+                      {(liveGenStats.topUsers || []).slice(0,3).map((u: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between text-xs text-gray-200">
+                          <span className="truncate">{u.userName || 'Unknown'}</span>
+                          <span className="text-gray-500 font-black">{u.count}</span>
+                        </div>
+                      ))}
+                      {(liveGenStats.topUsers || []).length === 0 && (
+                        <p className="text-[10px] text-gray-500 uppercase">No data</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-black/20 border border-white/5 rounded-[2rem]">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/5">
+                  <div>
+                    <h4 className="text-sm font-black text-white uppercase tracking-widest">Live Activity Feed</h4>
+                    <p className="text-[10px] text-gray-600 uppercase tracking-widest">Last 50 generations</p>
+                  </div>
+                  <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest text-green-400">
+                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" /> Live
+                  </div>
+                </div>
+
+                <div className="max-h-[480px] overflow-y-auto custom-scrollbar">
+                  {liveGenLoading && liveGenerations.length === 0 ? (
+                    <div className="py-16 flex items-center justify-center text-sm text-gray-500">
+                      <RefreshCw className="w-5 h-5 mr-2 animate-spin" /> Loading live generations...
+                    </div>
+                  ) : liveGenerations.length > 0 ? (
+                    <div className="divide-y divide-white/5">
+                      {liveGenerations.map((gen: any) => {
+                        const isImage = gen.type === 'image';
+                        const isVideo = gen.type === 'video';
+                        const isAudio = gen.type === 'audio';
+
+                        let badgeColor = 'bg-indigo-600/20 text-indigo-300';
+                        if (isVideo) badgeColor = 'bg-purple-600/20 text-purple-300';
+                        if (isAudio) badgeColor = 'bg-pink-600/20 text-pink-300';
+
+                        const statusColor = gen.status === 'completed' ? 'text-green-400' : gen.status === 'failed' ? 'text-red-400' : 'text-amber-400';
+
+                        return (
+                          <div key={gen.id} className="p-5 hover:bg-white/5 transition-colors">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex items-start gap-3 min-w-0">
+                                <div className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${badgeColor}`}>
+                                  AI {gen.type?.toUpperCase?.()}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-sm font-black text-white truncate">{gen.userName || 'Unknown User'}</div>
+                                  <div className="text-[10px] text-gray-500 uppercase tracking-widest truncate">{gen.userEmail || 'no-email'}</div>
+                                  <p className="text-xs text-gray-400 mt-1 line-clamp-2">"{gen.prompt}"</p>
+                                  {gen.engine && <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Engine: {gen.engine}</p>}
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className={`text-[10px] font-black uppercase tracking-widest ${statusColor}`}>{gen.status || 'processing'}</div>
+                                <div className="text-[9px] text-gray-600 mt-1 whitespace-nowrap">{new Date(gen.timestamp).toLocaleTimeString()}</div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="py-16 text-center text-sm text-gray-500">No live generations yet.</div>
+                  )}
+                </div>
+              </div>
+           </div>
+
            {/* Revenue and Geographic Data */}
            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
            <div className="bg-dark-900 border border-white/10 rounded-[3rem] p-10 shadow-2xl">
@@ -561,23 +970,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
                              </td>
                              <td className="px-10 py-6">
-                                <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                   <button onClick={() => setEditingUser(u)} className="p-3 bg-white/5 hover:bg-indigo-600/10 text-indigo-400 rounded-xl border border-white/10 transition-all" title="Modify User"><Edit3 className="w-4 h-4" /></button>
-                                   <button onClick={() => onDeleteUser(u.id)} className="p-3 bg-white/5 hover:bg-red-500/10 text-red-500 rounded-xl border border-white/10 transition-all" title="Delete User"><Trash2 className="w-4 h-4" /></button>
-                                   <button onClick={async () => {
-                                     const subject = window.prompt('Subject for user email:');
-                                     const content = window.prompt('Message body:');
-                                     if (subject && content) {
-                                       try {
-                                         await onSendMessageToUser(u.id, { subject, content });
-                                       } catch (e) {
-                                         alert('Failed to send message.');
-                                       }
-                                     }
-                                   }} className="p-3 bg-white/5 hover:bg-indigo-600/10 text-indigo-400 rounded-xl border border-white/10 transition-all" title="Contact User"><Mail className="w-4 h-4" /></button>
-                                   <button onClick={() => onUpdateUser({...u, status: (u.status === 'suspended' ? 'active' : 'suspended')})} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all" title="Toggle Suspend">
-                                     {u.status === 'suspended' ? <UserCheck className="w-4 h-4 text-green-400" /> : <UserMinus className="w-4 h-4 text-red-400" />}
+                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                   <button 
+                                     onClick={() => openUserDetail(u)} 
+                                     className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2" 
+                                     title="View Full Details"
+                                   >
+                                     <Eye className="w-3 h-3" /> Details
                                    </button>
+                                   <button onClick={() => setEditingUser(u)} className="p-2 bg-white/5 hover:bg-indigo-600/10 text-indigo-400 rounded-xl border border-white/10 transition-all" title="Modify User"><Edit3 className="w-3 h-3" /></button>
+                                   <button onClick={() => handleToggleUserStatus(u)} className="p-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all" title="Toggle Suspend">
+                                     {u.status === 'suspended' ? <UserCheck className="w-3 h-3 text-green-400" /> : <UserMinus className="w-3 h-3 text-red-400" />}
+                                   </button>
+                                   <button onClick={() => onDeleteUser(u.id)} className="p-2 bg-white/5 hover:bg-red-500/10 text-red-500 rounded-xl border border-white/10 transition-all" title="Delete User"><Trash2 className="w-3 h-3" /></button>
                                 </div>
                              </td>
                           </tr>
@@ -1052,6 +1457,225 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </button>
                  </div>
               </div>
+              <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-indigo-600/10 blur-[100px] rounded-full" />
+           </div>
+        </div>
+      )}
+
+      {/* MODAL: User Detail with Advanced Management */}
+      {selectedUser && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-dark-950/95 backdrop-blur-3xl animate-fade-in overflow-y-auto">
+           <div className="bg-dark-900 border border-white/10 rounded-[3rem] w-full max-w-6xl overflow-hidden shadow-2xl relative my-8">
+              <div className="p-10 border-b border-white/5 bg-black/20 flex justify-between items-center relative z-10">
+                 <div className="flex items-center gap-4">
+                   <div className="p-3 bg-indigo-600 rounded-2xl"><UserIcon className="w-6 h-6 text-white" /></div>
+                   <div>
+                     <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter">{selectedUser.name}</h3>
+                     <p className="text-[10px] text-gray-600 uppercase tracking-widest mt-1">{selectedUser.email}</p>
+                   </div>
+                 </div>
+                 <button onClick={() => setSelectedUser(null)} className="p-2 hover:bg-white/10 text-gray-500 transition-all"><X className="w-6 h-6" /></button>
+              </div>
+
+              <div className="p-10 space-y-8 relative z-10 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                 
+                 {/* User Info Card */}
+                 <div className="bg-black/40 border border-white/5 rounded-[2rem] p-8">
+                    <h4 className="text-lg font-black text-white uppercase italic mb-6 flex items-center gap-2">
+                      <UserIcon className="w-5 h-5 text-indigo-400" /> User Information
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                      <div>
+                        <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">User ID</div>
+                        <div className="text-sm font-bold text-white">#{selectedUser.id.substring(0, 12)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Plan</div>
+                        <div className={`inline-block px-3 py-1 rounded-lg text-[9px] font-black uppercase ${selectedUser.plan === 'premium' ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-400'}`}>
+                          {selectedUser.plan}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Credits</div>
+                        <div className="text-sm font-black text-amber-500 flex items-center gap-2">
+                          <Zap className="w-4 h-4" /> {selectedUser.credits}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Status</div>
+                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-[9px] font-black uppercase ${selectedUser.status === 'suspended' ? 'bg-red-600/20 text-red-400' : 'bg-green-600/20 text-green-400'}`}>
+                          <div className={`w-2 h-2 rounded-full ${selectedUser.status === 'suspended' ? 'bg-red-500' : 'bg-green-500'}`} />
+                          {selectedUser.status || 'active'}
+                        </div>
+                      </div>
+                    </div>
+                 </div>
+
+                 {/* Add Credits Section */}
+                 <div className="bg-black/40 border border-white/5 rounded-[2rem] p-8">
+                    <h4 className="text-lg font-black text-white uppercase italic mb-6 flex items-center gap-2">
+                      <Zap className="w-5 h-5 text-amber-400" /> Credit Management
+                    </h4>
+                    <div className="flex items-end gap-4">
+                      <div className="flex-1">
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">Credit Amount</label>
+                        <input 
+                          type="number" 
+                          value={creditAmount}
+                          onChange={e => setCreditAmount(parseInt(e.target.value) || 0)}
+                          placeholder="Enter amount..."
+                          className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold outline-none focus:border-amber-500"
+                        />
+                      </div>
+                      <button 
+                        onClick={handleAddCredits}
+                        disabled={addingCredits || creditAmount <= 0}
+                        className="px-8 py-4 bg-amber-600 hover:bg-amber-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all disabled:opacity-30 flex items-center gap-2"
+                      >
+                        {addingCredits ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                        Grant Credits
+                      </button>
+                    </div>
+                 </div>
+
+                 {/* Send Email Section */}
+                 <div className="bg-black/40 border border-white/5 rounded-[2rem] p-8">
+                    <h4 className="text-lg font-black text-white uppercase italic mb-6 flex items-center gap-2">
+                      <Mail className="w-5 h-5 text-indigo-400" /> Send Email
+                    </h4>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">Subject</label>
+                        <input 
+                          type="text"
+                          value={emailData.subject}
+                          onChange={e => setEmailData({...emailData, subject: e.target.value})}
+                          placeholder="Email subject..."
+                          className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">Message</label>
+                        <textarea 
+                          value={emailData.content}
+                          onChange={e => setEmailData({...emailData, content: e.target.value})}
+                          placeholder="Email content..."
+                          className="w-full h-32 bg-black/40 border border-white/10 rounded-[1.5rem] px-6 py-4 text-white font-bold outline-none focus:border-indigo-500 resize-none"
+                        />
+                      </div>
+                      <button 
+                        onClick={handleSendEmail}
+                        disabled={sendingEmail || !emailData.subject || !emailData.content}
+                        className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all disabled:opacity-30 flex items-center justify-center gap-2"
+                      >
+                        {sendingEmail ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        Send Email
+                      </button>
+                    </div>
+                 </div>
+
+                 {/* IP Address Logs */}
+                 <div className="bg-black/40 border border-white/5 rounded-[2rem] p-8">
+                    <div className="flex items-center justify-between mb-6">
+                      <h4 className="text-lg font-black text-white uppercase italic flex items-center gap-2">
+                        <MapPin className="w-5 h-5 text-pink-400" /> IP Address Logs
+                      </h4>
+                      <button 
+                        onClick={() => fetchUserIPLogs(selectedUser.id)}
+                        className="px-4 py-2 bg-pink-600/10 hover:bg-pink-600/20 border border-pink-600/20 rounded-xl text-xs font-bold text-pink-400 transition-all flex items-center gap-2"
+                      >
+                        <RefreshCw className={`w-4 h-4 ${loadingIPLogs ? 'animate-spin' : ''}`} />
+                        Refresh
+                      </button>
+                    </div>
+                    
+                    {loadingIPLogs ? (
+                      <div className="py-12 flex items-center justify-center">
+                        <RefreshCw className="w-8 h-8 text-pink-500 animate-spin" />
+                      </div>
+                    ) : userIPLogs.length > 0 ? (
+                      <div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar">
+                        {userIPLogs.map((log: any, i) => (
+                          <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 transition-all">
+                            <div className="flex items-center gap-4">
+                              <div className="p-2 bg-pink-600/20 rounded-lg">
+                                <MapPin className="w-4 h-4 text-pink-400" />
+                              </div>
+                              <div>
+                                <div className="text-sm font-black text-white">{log.ipAddress}</div>
+                                <div className="text-[10px] text-gray-600">
+                                  {new Date(log.timestamp).toLocaleString()} • {log.location || 'Unknown Location'}
+                                </div>
+                              </div>
+                            </div>
+                            <button 
+                              onClick={() => handleBlockIP(log.ipAddress)}
+                              className="px-4 py-2 bg-red-600/10 hover:bg-red-600/20 border border-red-600/20 rounded-xl text-[9px] font-black uppercase text-red-400 transition-all flex items-center gap-2"
+                            >
+                              <Ban className="w-3 h-3" /> Block IP
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="py-12 text-center">
+                        <MapPin className="w-12 h-12 text-gray-700 mx-auto mb-4" />
+                        <p className="text-sm text-gray-500">No IP logs recorded yet.</p>
+                      </div>
+                    )}
+                 </div>
+
+                 {/* Blocked IPs */}
+                 <div className="bg-black/40 border border-white/5 rounded-[2rem] p-8">
+                    <div className="flex items-center justify-between mb-6">
+                      <h4 className="text-lg font-black text-white uppercase italic flex items-center gap-2">
+                        <Ban className="w-5 h-5 text-red-400" /> Blocked IP Addresses
+                      </h4>
+                      <button 
+                        onClick={fetchBlockedIPs}
+                        className="px-4 py-2 bg-red-600/10 hover:bg-red-600/20 border border-red-600/20 rounded-xl text-xs font-bold text-red-400 transition-all flex items-center gap-2"
+                      >
+                        <RefreshCw className={`w-4 h-4 ${loadingBlockedIPs ? 'animate-spin' : ''}`} />
+                        Refresh
+                      </button>
+                    </div>
+                    
+                    {loadingBlockedIPs ? (
+                      <div className="py-12 flex items-center justify-center">
+                        <RefreshCw className="w-8 h-8 text-red-500 animate-spin" />
+                      </div>
+                    ) : blockedIPs.length > 0 ? (
+                      <div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar">
+                        {blockedIPs.map((ip: any, i) => (
+                          <div key={i} className="flex items-center justify-between p-4 bg-red-600/5 rounded-xl border border-red-600/20 hover:bg-red-600/10 transition-all">
+                            <div className="flex items-center gap-4">
+                              <div className="p-2 bg-red-600/20 rounded-lg">
+                                <Ban className="w-4 h-4 text-red-400" />
+                              </div>
+                              <div>
+                                <div className="text-sm font-black text-white">{ip.ipAddress}</div>
+                                <div className="text-[10px] text-gray-600">{ip.reason || 'No reason provided'}</div>
+                              </div>
+                            </div>
+                            <button 
+                              onClick={() => handleUnblockIP(ip.ipAddress)}
+                              className="px-4 py-2 bg-green-600/10 hover:bg-green-600/20 border border-green-600/20 rounded-xl text-[9px] font-black uppercase text-green-400 transition-all flex items-center gap-2"
+                            >
+                              <Check className="w-3 h-3" /> Unblock
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="py-12 text-center">
+                        <ShieldCheck className="w-12 h-12 text-gray-700 mx-auto mb-4" />
+                        <p className="text-sm text-gray-500">No blocked IP addresses.</p>
+                      </div>
+                    )}
+                 </div>
+
+              </div>
+              
               <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-indigo-600/10 blur-[100px] rounded-full" />
            </div>
         </div>

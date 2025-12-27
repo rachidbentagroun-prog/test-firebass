@@ -87,6 +87,24 @@ export const notifyAdminOfSupportRequest = async (session: SupportSession, messa
 };
 
 /**
+ * User-initiated contact to admin. Creates a support session, records the message,
+ * and triggers admin notification with simulated email dispatch.
+ */
+export const contactAdmin = async (
+  name: string,
+  email: string | undefined,
+  userId: string | undefined,
+  subject: string,
+  message: string
+): Promise<{ sessionId: string }> => {
+  const session = await createSupportSession(name, email, userId);
+  const payload = subject ? `${subject}\n\n${message}` : message;
+  await sendSupportChatMessage(session.id, payload, 'user');
+  await notifyAdminOfSupportRequest(session, payload, true);
+  return { sessionId: session.id };
+};
+
+/**
  * Saves an AI-generated image to the Supabase database.
  */
 export const saveImageToDB = async (image: GeneratedImage, userId: string): Promise<void> => {
@@ -383,6 +401,34 @@ export const getAllSupportSessions = async (): Promise<SupportSession[]> => {
   }));
 };
 
+export const getSupportSessionsForUser = async (userId: string): Promise<SupportSession[]> => {
+  const { data, error } = await supabase
+    .from('support_sessions')
+    .select(`
+      *,
+      support_messages (
+        id, sender, text, created_at
+      )
+    `)
+    .eq('user_id', userId)
+    .order('last_message_at', { ascending: false });
+
+  if (error) return [];
+  return (data || []).map((s: any) => ({
+    id: s.id,
+    name: s.name,
+    email: s.email,
+    isGuest: s.is_guest,
+    lastMessageAt: new Date(s.last_message_at).getTime(),
+    chatHistory: (s.support_messages || []).map((m: any) => ({
+      id: m.id,
+      sender: m.sender,
+      text: m.text,
+      timestamp: new Date(m.created_at).getTime()
+    })).sort((a: any, b: any) => a.timestamp - b.timestamp)
+  }));
+};
+
 /* --- ADMIN METHODS --- */
 
 export const getAllUsersFromDB = async (): Promise<User[]> => {
@@ -484,7 +530,10 @@ export const broadcastMessageToAllInDB = async (msg: {subject: string, content: 
       .insert(inserts);
     if (error) throw error;
   } catch (e) {
-    console.error("Global broadcast disruption:", e.message || e);
+    console.error(
+      "Global broadcast disruption:",
+      e instanceof Error ? e.message : String(e)
+    );
   }
 };
 

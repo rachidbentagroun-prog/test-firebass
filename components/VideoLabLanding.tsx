@@ -1,5 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { generateVideoWithSora } from '../services/soraService';
+import { generateVideoWithKlingAI } from '../services/klingaiService';
 import { 
   Play, Sparkles, Film, Zap, ArrowRight, Scissors, 
   Layers, MonitorPlay, Clapperboard, ChevronRight,
@@ -141,7 +143,6 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
         
         console.log('[VideoLabLanding] Generating with Sora:', { model: 'sora-2', prompt, size, seconds, hasReference: !!referenceFrame });
         
-        const { generateVideoWithSora } = await import('../services/soraService').then(m => ({ generateVideoWithSora: (m as any).generateVideoWithSora }));
         const body: any = { model: 'sora-2', prompt, size, seconds };
         if (moteurMode === 'video' && referenceFrame) {
           body.input_reference = referenceFrame;
@@ -154,8 +155,6 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
         const duration = resolution === '1080p' ? 10 : 5;
         
         console.log('[VideoLabLanding] Generating with KlingAI:', { prompt, aspect_ratio: aspectRatio, duration, hasReference: !!referenceFrame });
-        
-        const { generateVideoWithKlingAI } = await import('../services/klingaiService').then(m => ({ generateVideoWithKlingAI: (m as any).generateVideoWithKlingAI }));
         const body: any = { 
           prompt, 
           aspect_ratio: aspectRatio,
@@ -205,64 +204,35 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
           <div className="absolute inset-0 bg-gradient-to-b from-dark-950/90 via-dark-950/20 to-dark-950" />
         </div>
 
-        <div className="relative z-10 max-w-6xl mx-auto px-4 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 mb-8 shadow-2xl animate-fade-in">
-            <Cpu className="w-4 h-4 text-indigo-400" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300">Neural Production Protocol v3.1</span>
-          </div>
-          
-          <h1 className="text-5xl md:text-8xl font-black mb-8 tracking-tighter uppercase italic leading-tight animate-fade-in-up">
-             Make UGC / <br />
-             VIDEO ADS / <br />
-             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-500">
-               ANY CONTENT WITH Ai Video
-             </span>
-          </h1>
-
-          <p className="max-w-2xl mx-auto text-gray-400 text-lg md:text-2xl font-medium mb-12 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-            {hero.subtitle}
-          </p>
-          
-          <div className="flex flex-wrap items-center justify-center gap-6 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-            <button 
-              onClick={handleCTAClick}
-              disabled={showIdentityCheck}
-              className={`px-12 py-6 rounded-2xl font-black text-xl flex items-center gap-3 transition-all transform hover:scale-105 shadow-[0_20px_50px_rgba(79,70,229,0.3)] group ${showIdentityCheck ? 'bg-white/5 opacity-60 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`}
-              title={showIdentityCheck ? 'A verification link was sent to your email. Please confirm your identity to proceed.' : undefined}
-            >
-              <Zap className="w-6 h-6 fill-white group-hover:animate-pulse" /> 
-              {showIdentityCheck ? 'VERIFY EMAIL TO PROCEED' : 'Start Free Generation'}
-            </button>
-          </div>
-        </div>
+        <div className="relative z-10 max-w-6xl mx-auto px-4 text-center" />
       </section>
 
       {/* 2. PRODUCTION MOTEUR SECTION */}
-      <section id="moteur" className="py-32 relative bg-dark-900/40 border-b border-white/5">
+      <section id="moteur" className="pt-0 pb-16 sm:pb-24 md:pb-32 relative bg-dark-900/40 border-b border-white/5">
         <div className="max-w-[1400px] mx-auto px-4">
-           <div className="text-center mb-20">
-              <h2 className="text-sm font-black text-indigo-400 uppercase tracking-[0.4em] mb-4">Live Production Engine</h2>
-              <h3 className="text-5xl font-black text-white uppercase italic tracking-tighter">Ai Video Synthesis Moteur</h3>
+           <div className="text-center mb-12 sm:mb-16 md:mb-20">
+              <h2 className="text-xs sm:text-sm font-black text-indigo-400 uppercase tracking-[0.4em] mb-3 sm:mb-4">Live Production Engine</h2>
+              <h3 className="text-3xl sm:text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter">Ai Video Synthesis Moteur</h3>
            </div>
 
            {showIdentityCheck && (
-             <div className="max-w-2xl mx-auto mb-6 p-4 rounded-2xl bg-amber-900/10 border border-amber-500/10 text-center">
-               <div className="flex items-center justify-center gap-3">
-                 <AlertCircle className="w-5 h-5 text-amber-300" />
-                 <h4 className="text-sm font-black uppercase text-amber-300">IDENTITY CHECK</h4>
+             <div className="max-w-2xl mx-auto mb-6 p-3 sm:p-4 rounded-2xl bg-amber-900/10 border border-amber-500/10 text-center">
+               <div className="flex items-center justify-center gap-2 sm:gap-3">
+                 <AlertCircle className="w-4 sm:w-5 h-4 sm:h-5 text-amber-300" />
+                 <h4 className="text-xs sm:text-sm font-black uppercase text-amber-300">IDENTITY CHECK</h4>
                </div>
-               <p className="text-gray-300 text-sm mt-2">A verification link was sent to your email. Access is strictly restricted until you confirm your identity via that link.</p>
+               <p className="text-gray-300 text-xs sm:text-sm mt-2">A verification link was sent to your email. Access is strictly restricted until you confirm your identity via that link.</p>
              </div>
            )}
 
-           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 md:gap-8 lg:gap-10 items-start">
               {/* Controls Column */}
-              <div className="lg:col-span-5 space-y-8">
+              <div className="md:col-span-1 lg:col-span-5 space-y-8">
                  <div className="bg-dark-900 border border-white/10 rounded-[2.5rem] p-8 shadow-2xl relative">
                     <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-600/10 blur-[80px] rounded-full -mr-20 -mt-20 pointer-events-none" />
                     
                     {/* AI Engine Selector */}
-                    <div className="mb-6 relative z-10">
+                    <div className="mb-4 relative z-10">
                       <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-2 block">AI Engine</label>
                       <div className="flex bg-black/50 p-1.5 rounded-xl border border-white/5">
                         <button 
@@ -280,7 +250,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex bg-black/50 p-1.5 rounded-2xl mb-10 border border-white/5 relative z-10">
+                    <div className="flex bg-black/50 p-1.5 rounded-2xl mb-5 border border-white/5 relative z-10">
                       <button 
                         onClick={() => setMoteurMode('text')}
                         className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${moteurMode === 'text' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
@@ -295,7 +265,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                       </button>
                     </div>
 
-                    <div className="space-y-8 relative z-10">
+                    <div className="space-y-6 relative z-10">
                        {moteurMode === 'text' ? (
                           <div className="animate-fade-in">
                              <div className="flex justify-between mb-2">
@@ -385,7 +355,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
               </div>
 
               {/* Viewport Column */}
-              <div className="lg:col-span-7 bg-black/40 border border-white/5 rounded-[3rem] p-2.5 min-h-[500px] flex flex-col relative overflow-hidden">
+              <div className="md:col-span-1 lg:col-span-7 bg-black/40 border border-white/5 rounded-[3rem] p-2.5 min-h-[500px] flex flex-col relative overflow-hidden\">
                 <div className="flex-1 rounded-[2.5rem] overflow-hidden bg-dark-950 flex flex-col items-center justify-center relative group/viewport">
                    <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-indigo-600/5 via-transparent to-purple-600/5 pointer-events-none" />
                    <video autoPlay muted loop playsInline src={scriptToCinema.videoUrl} className="max-h-full w-auto opacity-50 grayscale group-hover/viewport:opacity-100 group-hover/viewport:grayscale-0 transition-all duration-700" />
@@ -400,15 +370,6 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
         </div>
       </section>
       
-      {/* Ready to Direct CTA Section */}
-      <section className="py-32 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-           <h2 className="text-5xl md:text-8xl font-black text-white uppercase italic tracking-tighter mb-8 leading-none">Ready to <br /> Direct the Future?</h2>
-            <button onClick={handleCTAClick} disabled={showIdentityCheck || isGenerating} className={`px-16 py-8 rounded-[2rem] font-black text-3xl uppercase italic tracking-widest shadow-2xl transition-transform hover:scale-105 active:scale-95 ${showIdentityCheck || isGenerating ? 'bg-white/5 opacity-60 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`} title={showIdentityCheck ? 'A verification link was sent to your email. Please confirm your identity to proceed.' : undefined}>
-              {showIdentityCheck ? 'VERIFY EMAIL TO PROCEED' : (user?.isRegistered ? (isGenerating ? 'Starting Sora…' : 'Enter Ai Video Production') : 'Generate Free Now')}
-           </button>
-        </div>
-      </section>
     </div>
   );
 };

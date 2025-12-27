@@ -4,8 +4,6 @@ import { checkActionCode } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
 
 export default function PostVerify() {
-  const [params] = useSearchParams();
-  const navigate = useNavigate();
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'needs-login'>('loading');
   const [message, setMessage] = useState<string>('Verifying your email...');
 
@@ -96,7 +94,7 @@ export default function PostVerify() {
               <h2 className="text-2xl font-bold text-white">Verified</h2>
               <p className="text-gray-300 mt-2">{message}</p>
               <div className="mt-6 flex justify-center gap-4">
-                <button onClick={() => navigate('/?goto=dashboard&openAuth=1')} className="px-4 py-2 bg-indigo-600 text-white rounded-lg">Login</button>
+                <button onClick={() => { window.location.href = '/?goto=dashboard&openAuth=1'; }} className="px-4 py-2 bg-indigo-600 text-white rounded-lg">Login</button>
               </div>
             </div>
           )}
@@ -106,7 +104,7 @@ export default function PostVerify() {
               <h2 className="text-2xl font-bold text-red-400">Verification failed</h2>
               <p className="text-gray-300 mt-2">{message}</p>
               <div className="mt-6">
-                <button onClick={() => navigate('/')} className="px-4 py-2 bg-white/5 text-gray-200 rounded-lg">Return</button>
+                <button onClick={() => { window.location.href = '/'; }} className="px-4 py-2 bg-white/5 text-gray-200 rounded-lg">Return</button>
               </div>
             </div>
           )}

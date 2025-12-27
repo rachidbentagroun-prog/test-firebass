@@ -1,23 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar.tsx';
 import { Hero } from './components/Hero.tsx';
+import { FutureLanding } from './components/FutureLanding.tsx';
 import { Pricing } from './components/Pricing.tsx';
 import { Generator } from './components/Generator.tsx';
-import { VideoGenerator } from './components/VideoGenerator.tsx';
 import { VideoLabLanding } from './components/VideoLabLanding.tsx';
+import { VideoGenerator } from './components/VideoGenerator.tsx';
 import { TTSGenerator } from './components/TTSGenerator.tsx';
 import { TTSLanding } from './components/TTSLanding.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
 import { UpgradeModal } from './components/UpgradeModal.tsx';
+import { LanguageProvider } from './utils/i18n';
 import { Gallery } from './components/Gallery.tsx';
 import { AdminDashboard } from './components/AdminDashboard.tsx';
 import { UserProfile } from './components/UserProfile.tsx';
+import { UpgradePage } from './components/UpgradePage.tsx';
 import { Showcase } from './components/Showcase.tsx';
+import { ExplorePage } from './components/ExplorePage.tsx';
 import { MultimodalSection } from './components/MultimodalSection.tsx';
 import { ChatWidget } from './components/ChatWidget.tsx';
 import SignUp from './components/SignUp.tsx';
 import PostVerify from './components/PostVerify';
-import { User, GeneratedImage, GeneratedVideo, GeneratedAudio, SiteConfig } from './types.ts';
+import { User, GeneratedImage, GeneratedVideo, GeneratedAudio, SiteConfig, Plan } from './types.ts';
 import { supabase } from './services/supabase.ts';
 import { 
   getImagesFromDB, saveImageToDB, getVideosFromDB, 
@@ -91,12 +95,22 @@ const App: React.FC = () => {
   const [gallery, setGallery] = useState<GeneratedImage[]>([]);
   const [videoGallery, setVideoGallery] = useState<GeneratedVideo[]>([]);
   const [audioGallery, setAudioGallery] = useState<GeneratedAudio[]>([]);
+  const [openContactFromUpgrade, setOpenContactFromUpgrade] = useState(false);
+  const [openInboxFromDropdown, setOpenInboxFromDropdown] = useState(false);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>(() => {
     try { 
       const saved = localStorage.getItem(CONFIG_KEY); 
       return saved ? { ...DEFAULT_CONFIG, ...JSON.parse(saved) } : DEFAULT_CONFIG; 
     } catch (e) { return DEFAULT_CONFIG; }
+  });
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window === 'undefined') return 'dark';
+    try {
+      return (localStorage.getItem('site_theme') as 'dark' | 'light') || 'dark';
+    } catch {
+      return 'dark';
+    }
   });
 
   const [currentPage, setCurrentPage] = useState<string>(() => {
@@ -135,6 +149,36 @@ const App: React.FC = () => {
     };
     checkApiKey();
   }, []);
+
+  // Apply theme to document root
+  useEffect(() => {
+    try {
+      const root = document.documentElement;
+      if (theme === 'light') root.classList.add('light-theme');
+      else root.classList.remove('light-theme');
+      localStorage.setItem('site_theme', theme);
+    } catch (e) {
+      /* noop */
+    }
+  }, [theme]);
+
+  // If navigating to profile from Upgrade -> Contact Us, open the contact modal once
+  useEffect(() => {
+    if (currentPage === 'profile' && openContactFromUpgrade) {
+      // reset on next tick so the modal only auto-opens once
+      const t = setTimeout(() => setOpenContactFromUpgrade(false), 0);
+      return () => clearTimeout(t);
+    }
+  }, [currentPage, openContactFromUpgrade]);
+
+  // If navigating to profile from dropdown -> Inbox, open the inbox tab once
+  useEffect(() => {
+    if (currentPage === 'profile' && openInboxFromDropdown) {
+      // reset on next tick so the inbox only auto-opens once
+      const t = setTimeout(() => setOpenInboxFromDropdown(false), 0);
+      return () => clearTimeout(t);
+    }
+  }, [currentPage, openInboxFromDropdown]);
 
   useEffect(() => {
     let didCancel = false;
@@ -210,9 +254,38 @@ const App: React.FC = () => {
                 // Auto-verify the super-admin email so they can access the Admin Dashboard without an email verification
                 isVerified: isSuperAdmin || !!fbUser.emailVerified || !!profile?.verified,
                 gallery: [],
+                audioGallery: [],
               };
 
               setUser(updatedUser);
+              
+              // Load galleries from BOTH Supabase AND Firebase, then merge
+              try {
+                const { getImagesFromDB, getVideosFromDB, getAudioFromDB } = await import('./services/dbService');
+                const { getImagesFromFirebase, getVideosFromFirebase, getAudioFromFirebase } = await import('./services/firebase');
+                
+                const [supaImages, supaVideos, supaAudios, fbImages, fbVideos, fbAudios] = await Promise.all([
+                  getImagesFromDB(fbUser.uid),
+                  getVideosFromDB(fbUser.uid),
+                  getAudioFromDB(fbUser.uid),
+                  getImagesFromFirebase(fbUser.uid),
+                  getVideosFromFirebase(fbUser.uid),
+                  getAudioFromFirebase(fbUser.uid)
+                ]);
+
+                // Merge unique items from both sources
+                const mergeUnique = <T extends { id: string }>(arr1: T[], arr2: T[]) => {
+                  const map = new Map<string, T>();
+                  [...arr1, ...arr2].forEach(item => map.set(item.id, item));
+                  return Array.from(map.values()).sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
+                };
+
+                setGallery(mergeUnique(supaImages, fbImages));
+                setVideoGallery(mergeUnique(supaVideos, fbVideos));
+                setAudioGallery(mergeUnique(supaAudios, fbAudios));
+              } catch (err) {
+                console.warn('Failed to load galleries:', err);
+              }
 
               // Admins: fetch all users but don't block UI
               if (updatedUser.role === 'admin') {
@@ -355,7 +428,7 @@ const App: React.FC = () => {
   // Developer helpers: support dev-only URL actions for testing flows
   useEffect(() => {
     try {
-      if (!import.meta.env.DEV) return; // only in dev
+      if (process.env.NODE_ENV === 'production') return; // only in dev
       const params = new URLSearchParams(window.location.search);
       const action = params.get('action');
 
@@ -458,6 +531,25 @@ const App: React.FC = () => {
     setCurrentPage('home');
   };
 
+  const handleSelectPlan = (plan: Plan) => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    if (user.plan === 'free' && plan.id !== 'free') {
+      setCurrentPage('upgrade');
+      return;
+    }
+
+    if (plan.buttonUrl) {
+      window.open(plan.buttonUrl, '_blank');
+      return;
+    }
+
+    setCurrentPage('profile');
+  };
+
   const renderPage = () => {
     if (currentPage === 'verify-email') {
       return (
@@ -494,40 +586,49 @@ const App: React.FC = () => {
     switch (currentPage) {
       case 'home':
         return (
-          <>
-            <Hero 
-              onGetStarted={() => setIsAuthModalOpen(true)} 
-              onGenerate={(p) => { setInitialPrompt(p); if (user) setCurrentPage('dashboard'); else setIsAuthModalOpen(true); }} 
-              title={siteConfig.heroTitle} 
-              subtitle={siteConfig.heroSubtitle} 
-              slideshowImages={siteConfig.slideshow} 
-            />
-            <MultimodalSection onNavigate={setCurrentPage} onLoginClick={() => setIsAuthModalOpen(true)} isRegistered={!!user} isIdentityCheckActive={isIdentityCheckActive} />
-            <Showcase images={siteConfig.showcaseImages} />
-            <Pricing plans={siteConfig.plans} onSelectPlan={() => setIsAuthModalOpen(true)} />
-          </>
+          <FutureLanding 
+            onGetStarted={() => setIsAuthModalOpen(true)} 
+            onNavigate={setCurrentPage}
+            isRegistered={!!user}
+            onSelectPlan={handleSelectPlan}
+            plans={siteConfig.plans}
+          />
         );
       case 'dashboard':
-        if (!user) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
-        if (!user.isVerified) { setCurrentPage('verify-email'); return null; }
-        return <Generator user={user} gallery={gallery} onCreditUsed={() => {}} onUpgradeRequired={() => setIsUpgradeModalOpen(true)} onImageGenerated={(img) => { setGallery(p => [img, ...p]); saveImageToDB(img, user!.id); }} initialPrompt={initialPrompt} />;
+        return (
+          <Generator 
+            user={user} 
+            gallery={gallery} 
+            onCreditUsed={() => {}} 
+            onUpgradeRequired={() => setCurrentPage('upgrade')} 
+            onImageGenerated={(img) => { setGallery(p => [img, ...p]); if (user?.id) saveImageToDB(img, user.id); }} 
+            initialPrompt={initialPrompt} 
+            hasApiKey={hasApiKey} 
+            onSelectKey={() => {}} 
+            onLoginClick={() => setIsAuthModalOpen(true)}
+          />
+        );
       case 'video-lab-landing':
         return <VideoLabLanding user={user} config={siteConfig.videoLab} onStartCreating={() => setCurrentPage('video-generator')} onLoginClick={() => setIsAuthModalOpen(true)} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
       case 'video-generator':
         if (!user) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
-        return <VideoGenerator user={user} onCreditUsed={() => {}} onUpgradeRequired={() => setIsUpgradeModalOpen(true)} onVideoGenerated={(vid) => { setVideoGallery(p => [vid, ...p]); saveVideoToDB(vid, user!.id); }} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
+        return <VideoGenerator user={user} onCreditUsed={() => {}} onUpgradeRequired={() => setIsUpgradeModalOpen(true)} onVideoGenerated={(video) => { setVideoGallery(p => [video, ...p]); saveVideoToDB(video, user!.id); }} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
       case 'tts-lab-landing':
-        return <TTSLanding user={user} config={siteConfig.ttsLab} onStartCreating={() => setCurrentPage('tts-generator')} onLoginClick={() => setIsAuthModalOpen(true)} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
+        return <TTSLanding user={user} config={siteConfig.ttsLab} onStartCreating={() => setCurrentPage('tts-generator')} onLoginClick={() => setIsAuthModalOpen(true)} onAudioGenerated={(aud) => { setAudioGallery(p => [aud, ...p]); if (user?.id) saveAudioToDB(aud, user.id); }} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
       case 'tts-generator':
         if (!user) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
         return <TTSGenerator user={user} onCreditUsed={() => {}} onUpgradeRequired={() => setIsUpgradeModalOpen(true)} onAudioGenerated={(aud) => { setAudioGallery(p => [aud, ...p]); saveAudioToDB(aud, user!.id); }} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
       case 'gallery':
         if (!user) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
         return <Gallery images={gallery} videos={videoGallery} audioGallery={audioGallery} onDelete={() => {}} />;
+      case 'explore':
+        return <ExplorePage user={user} images={gallery} videos={videoGallery} siteConfig={siteConfig} onNavigate={setCurrentPage} />;
       case 'admin':
         return user?.role === 'admin' ? <AdminDashboard users={allUsers} siteConfig={siteConfig} onUpdateConfig={setSiteConfig} onDeleteUser={handleDeleteUser} onUpdateUser={handleUpdateUser} onSendMessageToUser={handleSendMessageToUser} onBroadcastMessage={handleBroadcastMessage} onSupportReply={() => {}} hasApiKey={hasApiKey} onSelectKey={() => {}} onSyncFirebase={handleSyncFirebaseUsers} /> : null;
       case 'profile':
-        return user ? <UserProfile user={user} gallery={gallery} videoGallery={videoGallery} audioGallery={audioGallery} onLogout={handleLogout} onBack={() => setCurrentPage('home')} onUpdateUser={() => {}} onGalleryImport={() => {}} /> : null;
+        return user ? <UserProfile user={user} gallery={gallery} videoGallery={videoGallery} audioGallery={audioGallery} onLogout={handleLogout} onBack={() => setCurrentPage('home')} onUpdateUser={() => {}} onGalleryImport={() => {}} onNavigate={setCurrentPage} initialContactOpen={openContactFromUpgrade} initialInboxOpen={openInboxFromDropdown} theme={theme} onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} /> : null;
+      case 'upgrade':
+        return <UpgradePage onBack={() => setCurrentPage(user ? 'profile' : 'home')} onContactUs={() => { setOpenContactFromUpgrade(true); setCurrentPage('profile'); }} />;
       case 'signup':
         return <SignUp />;
       case 'post-verify':
@@ -557,7 +658,8 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-dark-950">
+      <LanguageProvider>
+        <div className="min-h-screen bg-dark-950">
       <Navbar 
         user={user} 
         onLogout={handleLogout} 
@@ -566,6 +668,9 @@ const App: React.FC = () => {
         currentPage={currentPage} 
         customMenu={[]} 
         onUpgradeClick={() => setIsUpgradeModalOpen(true)}
+        theme={theme}
+        onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+        onOpenInbox={() => setOpenInboxFromDropdown(true)}
       />
       <main className="pt-16">
         {renderPage()}
@@ -584,7 +689,17 @@ const App: React.FC = () => {
         onClose={() => setIsUpgradeModalOpen(false)} 
         onSelectPlan={() => setIsUpgradeModalOpen(false)} 
       />
-    </div>
+      <style>{`
+        :root.light-theme { filter: invert(1) hue-rotate(180deg); }
+        :root.light-theme img,
+        :root.light-theme video,
+        :root.light-theme picture,
+        :root.light-theme iframe {
+          filter: invert(1) hue-rotate(180deg);
+        }
+      `}</style>
+      </div>
+    </LanguageProvider>
   );
 };
 

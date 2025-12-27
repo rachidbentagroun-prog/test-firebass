@@ -60,17 +60,22 @@ export interface GeneratedVideo {
   createdAt: number;
   aspectRatio: '16:9' | '9:16' | '1:1' | '4:3' | '3:4';
   resolution: '480p' | '720p' | '1080p' | '4K';
+  durationSeconds?: number;
+  durationLabel?: string;
   rawVideoData?: any; // Stores the object required for video extension
 }
 
 export interface GeneratedAudio {
   id: string;
-  url: string; // Blob URL
+  url: string; // Blob or data URL
   text: string;
   voice: string;
   createdAt: number;
   blob?: Blob; // Store actual blob for export
+  base64Audio?: string; // Base64 encoded audio for persistence
   isCloned?: boolean;
+  engine?: string;
+  mimeType?: string;
 }
 
 export interface VideoLabConfig {

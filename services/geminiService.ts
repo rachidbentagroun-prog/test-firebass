@@ -164,7 +164,8 @@ export const generateImageWithGemini = async (
   base64Image?: string, 
   mimeType: string = 'image/png', 
   aspectRatio: string = '1:1',
-  highQuality: boolean = false
+  highQuality: boolean = false,
+  negativePrompt?: string
 ): Promise<string> => {
   const ai = getAI();
   const model = highQuality ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image';
@@ -174,6 +175,10 @@ export const generateImageWithGemini = async (
     parts.push({ inlineData: { data: base64Image, mimeType: mimeType } });
   }
   parts.push({ text: prompt });
+  const cleanNegativePrompt = negativePrompt?.trim();
+  if (cleanNegativePrompt) {
+    parts.push({ text: `Avoid: ${cleanNegativePrompt}` });
+  }
 
   const response = await ai.models.generateContent({
     model: model,

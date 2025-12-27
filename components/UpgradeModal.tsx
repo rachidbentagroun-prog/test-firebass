@@ -43,19 +43,19 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onS
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
       <div 
         className="absolute inset-0 bg-dark-950/90 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
       
-      <div className="relative bg-dark-900 border border-white/10 rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl animate-fade-in-up flex flex-col max-h-[90vh]">
+      <div className="relative bg-dark-900 border border-white/10 rounded-2xl w-full max-w-2xl sm:max-w-4xl overflow-hidden shadow-2xl animate-fade-in-up flex flex-col max-h-[95vh] sm:max-h-[90vh]">
         
         {/* Header */}
-        <div className="p-6 border-b border-white/10 flex justify-between items-center bg-gradient-to-r from-indigo-900/50 to-purple-900/50">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-indigo-500 rounded-xl shadow-lg shadow-indigo-500/20">
-              <Zap className="w-6 h-6 text-white fill-white" />
+        <div className="p-4 sm:p-6 border-b border-white/10 flex justify-between items-center bg-gradient-to-r from-indigo-900/50 to-purple-900/50">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="p-2 sm:p-3 bg-indigo-500 rounded-xl shadow-lg shadow-indigo-500/20">
+              <Zap className="w-5 sm:w-6 h-5 sm:h-6 text-white fill-white" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-white">Upgrade Your Experience</h2>
