@@ -230,28 +230,40 @@ export async function generateVideoWithSeedance(body: SeedanceRequest): Promise<
   // Always call local proxy in browser to avoid CORS and hide keys
   const base = '/api/seedance';
 
-  // Transform legacy format to new content array format
-  let requestBody: any = { ...body };
+  // ByteDance Seedance API requires the content array format
+  let requestBody: any = {
+    model: body.model || 'seedance-1-0-pro-250528',
+  };
   
-  // Convert old format to new format if needed
-  if (!body.content) {
-    const content: SeedanceContentItem[] = [];
+  // Build content array (required by ByteDance API)
+  const content: SeedanceContentItem[] = [];
+  
+  // If content array is provided directly, use it
+  if (body.content && Array.isArray(body.content)) {
+    content.push(...body.content);
+  } else {
+    // Otherwise, convert legacy format to content array
+    let textContent = body.prompt || '';
     
-    // Build prompt text with parameters
-    let promptText = body.prompt || '';
-    if (body.resolution) promptText += ` --resolution ${body.resolution}`;
-    if (body.duration) promptText += ` --duration ${body.duration}`;
-    if (body.fps) promptText += ` --fps ${body.fps}`;
+    // Embed parameters in the text content as per ByteDance format
+    if (body.resolution) textContent += ` --resolution ${body.resolution}`;
+    if (body.duration) textContent += ` --duration ${body.duration}`;
+    if (body.fps) textContent += ` --fps ${body.fps}`;
+    if (body.aspect_ratio) textContent += ` --aspect_ratio ${body.aspect_ratio}`;
+    if (body.quality) textContent += ` --quality ${body.quality}`;
+    if (body.negative_prompt) textContent += ` --negative_prompt ${body.negative_prompt}`;
+    if (body.seed !== undefined) textContent += ` --seed ${body.seed}`;
+    if (body.cfg_scale !== undefined) textContent += ` --cfg_scale ${body.cfg_scale}`;
+    if (body.motion_strength !== undefined) textContent += ` --motion_strength ${body.motion_strength}`;
     
-    // Add text content
-    if (promptText) {
+    if (textContent.trim()) {
       content.push({
         type: 'text',
-        text: promptText
+        text: textContent.trim()
       });
     }
     
-    // Add image content if present
+    // Add image_url if provided
     if (body.image_url) {
       content.push({
         type: 'image_url',
@@ -260,12 +272,14 @@ export async function generateVideoWithSeedance(body: SeedanceRequest): Promise<
         }
       });
     }
-    
-    requestBody = {
-      model: body.model || 'seedance-1-0-pro-250528',
-      content
-    };
   }
+  
+  // Content array is required
+  if (content.length === 0) {
+    throw new Error('At least one content item (text or image_url) is required');
+  }
+  
+  requestBody.content = content;
 
   console.log('[Seedance] Creating task with request:', requestBody);
 

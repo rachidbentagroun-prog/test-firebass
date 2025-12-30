@@ -246,7 +246,7 @@ export const FutureLanding: React.FC<FutureLandingProps> = ({
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
             <button 
-              onClick={() => isRegistered ? onNavigate('dashboard') : onGetStarted()}
+              onClick={() => isRegistered ? onNavigate('video-generator') : onGetStarted()}
               className="group px-8 py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-black text-lg uppercase tracking-wider shadow-2xl hover:shadow-indigo-500/50 transition-all transform hover:scale-105 flex items-center gap-3"
             >
               Start Creating Free <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
@@ -554,7 +554,7 @@ export const FutureLanding: React.FC<FutureLandingProps> = ({
             Join 50,000+ creators using IMAGIN AI. Start with 3 free generations.
           </p>
           <button 
-            onClick={() => isRegistered ? onNavigate('dashboard') : onGetStarted()}
+            onClick={() => isRegistered ? onNavigate('video-generator') : onGetStarted()}
             className="px-12 py-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-black text-xl uppercase tracking-wider shadow-2xl hover:shadow-indigo-500/50 transition-all transform hover:scale-105 inline-flex items-center gap-3"
           >
             Start Creating Free <Sparkles className="w-6 h-6" />

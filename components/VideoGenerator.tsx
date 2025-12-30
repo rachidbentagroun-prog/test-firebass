@@ -380,7 +380,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               )}
 
               <div>
-                <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 block mb-1.5 sm:mb-2">Cinematic Script</label>
+                <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 block mb-1.5 sm:mb-2">Enter Prompt</label>
                 <textarea 
                   value={prompt} onChange={(e) => setPrompt(e.target.value)}
                   disabled={isOutOfCredits || isGenerating}

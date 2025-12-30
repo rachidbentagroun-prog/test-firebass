@@ -262,6 +262,7 @@ export default defineConfig(({ mode }) => {
                         headers: {
                           'Content-Type': 'application/json',
                           'Authorization': `Bearer ${seedanceKey}`,
+                          'X-API-Key': seedanceKey,
                           'Accept': 'application/json',
                         },
                       });
