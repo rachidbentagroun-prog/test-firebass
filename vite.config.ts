@@ -30,7 +30,9 @@ export default defineConfig(({ mode }) => {
   const apiKey = process.env.API_KEY || env.API_KEY || '';
   const soraKey = process.env.SORA_API_KEY || env.SORA_API_KEY || '';
   const klingaiKey = process.env.KLINGAI_API_KEY || env.KLINGAI_API_KEY || '';
+  const seedanceKey = process.env.SEEDANCE_API_KEY || env.SEEDANCE_API_KEY || '';
   const elevenlabsKey = process.env.ELEVENLABS_API_KEY || env.ELEVENLABS_API_KEY || '';
+  const seedreamKey = process.env.SEEDREAM_API_KEY || env.SEEDREAM_API_KEY || '';
   const deapiKey = process.env.VITE_DEAPI_API_KEY || env.VITE_DEAPI_API_KEY || '';
   const deapiBase = process.env.VITE_DEAPI_API_BASE || env.VITE_DEAPI_API_BASE || 'https://api.deapi.ai';
   const deapiModel = process.env.VITE_DEAPI_MODEL || env.VITE_DEAPI_MODEL || '';
@@ -43,6 +45,8 @@ export default defineConfig(({ mode }) => {
   
   const soraBase = process.env.SORA_API_BASE || env.SORA_API_BASE || 'https://api.sora.com/v1/videos';
   const klingaiBase = process.env.KLINGAI_API_BASE || env.KLINGAI_API_BASE || 'https://api.klingai.com/v1/videos/text2video';
+  const seedanceBase = process.env.SEEDANCE_API_BASE || env.SEEDANCE_API_BASE || 'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks';
+  const seedreamBase = process.env.SEEDREAM_API_BASE || env.SEEDREAM_API_BASE || 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
 
   return {
     base: '/',
@@ -123,6 +127,168 @@ export default defineConfig(({ mode }) => {
                   res.statusCode = 500;
                   res.setHeader('Content-Type', 'application/json');
                   res.end(JSON.stringify({ error: e?.message || 'Proxy error' }));
+                }
+              });
+
+              // ByteDance Seedream 4.5 Image generation proxy
+              server.middlewares.use('/api/seedream', async (req, res) => {
+                try {
+                  // Handle POST create and GET status like seedance
+                  const taskIdMatch = req.url?.match(/^\/([a-zA-Z0-9\-_]+)$/);
+                  const taskId = taskIdMatch ? taskIdMatch[1] : null;
+
+                  if (req.method === 'POST') {
+                    if (!seedreamKey) {
+                      res.statusCode = 500;
+                      res.setHeader('Content-Type', 'application/json');
+                      res.end(JSON.stringify({ error: 'SEEDREAM_API_KEY is missing on server.' }));
+                      return;
+                    }
+                    const body = await readJson(req);
+                    const upstream = await fetch(seedreamBase, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${seedreamKey}`,
+                        'X-API-Key': seedreamKey,
+                        'Accept': 'application/json',
+                      },
+                      body: JSON.stringify(body),
+                    });
+                    const text = await upstream.text();
+                    res.statusCode = upstream.status;
+                    res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json');
+                    res.end(text);
+                    return;
+                  }
+
+                  if (req.method === 'GET' && taskId) {
+                    if (!seedreamKey) {
+                      res.statusCode = 500;
+                      res.setHeader('Content-Type', 'application/json');
+                      res.end(JSON.stringify({ error: 'SEEDREAM_API_KEY is missing on server.' }));
+                      return;
+                    }
+                    const taskUrl = `${seedreamBase}/${taskId}`;
+                    const upstream = await fetch(taskUrl, {
+                      method: 'GET',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${seedreamKey}`,
+                        'Accept': 'application/json',
+                      },
+                    });
+                    const text = await upstream.text();
+                    res.statusCode = upstream.status;
+                    res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json');
+                    res.end(text);
+                    return;
+                  }
+
+                  res.statusCode = 405;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ error: 'Method Not Allowed. Use POST to create images or GET /api/seedream/{taskId} to query status.' }));
+                } catch (e: any) {
+                  res.statusCode = 500;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ error: e?.message || 'Proxy error' }));
+                }
+              });
+
+              server.middlewares.use('/api/seedance', async (req, res, next) => {
+                try {
+                  // Inside this middleware, req.url is relative to /api/seedance
+                  // So "/" means /api/seedance, and "/taskId" means /api/seedance/taskId
+                  console.log(`[Seedance] ${req.method} ${req.url}`);
+                  
+                  // Extract task ID from relative URL
+                  // If req.url is "/", it's a POST to create task
+                  // If req.url is "/taskId", it's a GET to query task status
+                  const taskIdMatch = req.url?.match(/^\/([a-zA-Z0-9\-_]+)$/);
+                  const taskId = taskIdMatch ? taskIdMatch[1] : null;
+
+                  console.log(`[Seedance] Method: ${req.method}, relative url: ${req.url}, taskId: ${taskId}`);
+
+                  // Handle POST request for task creation
+                  if (req.method === 'POST') {
+                    try {
+                      if (!seedanceKey) {
+                        res.statusCode = 500;
+                        res.setHeader('Content-Type', 'application/json');
+                        res.end(JSON.stringify({ error: 'SEEDANCE_API_KEY is missing on server.' }));
+                        return;
+                      }
+                      const body = await readJson(req);
+                      console.log('[Seedance] Creating task with body:', JSON.stringify(body).substring(0, 100));
+                      const upstream = await fetch(seedanceBase, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${seedanceKey}`,
+                          'X-API-Key': seedanceKey,
+                          'Accept': 'application/json',
+                        },
+                        body: JSON.stringify(body),
+                      });
+                      const text = await upstream.text();
+                      console.log('[Seedance] Response status:', upstream.status);
+                      res.statusCode = upstream.status;
+                      res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json');
+                      res.end(text);
+                    } catch (e: any) {
+                      console.error('[Seedance] Error:', e);
+                      res.statusCode = 500;
+                      res.setHeader('Content-Type', 'application/json');
+                      res.end(JSON.stringify({ error: e?.message || 'Proxy error' }));
+                    }
+                    return;
+                  }
+
+                  // Handle GET request for task status query
+                  if (req.method === 'GET' && taskId) {
+                    try {
+                      if (!seedanceKey) {
+                        res.statusCode = 500;
+                        res.setHeader('Content-Type', 'application/json');
+                        res.end(JSON.stringify({ error: 'SEEDANCE_API_KEY is missing on server.' }));
+                        return;
+                      }
+                      
+                      // Query task status
+                      const taskUrl = `${seedanceBase}/${taskId}`;
+                      console.log('[Seedance] Querying task:', taskUrl);
+                      const upstream = await fetch(taskUrl, {
+                        method: 'GET',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${seedanceKey}`,
+                          'Accept': 'application/json',
+                        },
+                      });
+                      const text = await upstream.text();
+                      console.log('[Seedance] Task status response:', text.substring(0, 500));
+                      res.statusCode = upstream.status;
+                      res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json');
+                      res.end(text);
+                    } catch (e: any) {
+                      console.error('[Seedance] Error:', e);
+                      res.statusCode = 500;
+                      res.setHeader('Content-Type', 'application/json');
+                      res.end(JSON.stringify({ error: e?.message || 'Proxy error' }));
+                    }
+                    return;
+                  }
+
+                  // Method not allowed for other methods/paths
+                  console.log('[Seedance] Method not allowed:', req.method, req.url);
+                  res.statusCode = 405;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ error: 'Method Not Allowed. Use POST to create tasks or GET /api/seedance/{taskId} to query status.' }));
+                } catch (e: any) {
+                  console.error('[Seedance] Middleware error:', e);
+                  res.statusCode = 500;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ error: 'Internal server error' }));
                 }
               });
 
@@ -268,6 +434,8 @@ export default defineConfig(({ mode }) => {
       'process.env.SORA_API_KEY': JSON.stringify(soraKey),
       'process.env.KLINGAI_API_KEY': JSON.stringify(klingaiKey),
       'process.env.ELEVENLABS_API_KEY': JSON.stringify(elevenlabsKey),
+      'process.env.SEEDREAM_API_KEY': JSON.stringify(seedreamKey),
+      'process.env.SEEDREAM_MODEL': JSON.stringify(process.env.SEEDREAM_MODEL || env.SEEDREAM_MODEL || ''),
       'process.env.VITE_DEAPI_API_KEY': JSON.stringify(deapiKey),
       'process.env.VITE_DEAPI_API_BASE': JSON.stringify(deapiBase),
       'process.env.VITE_DEAPI_MODEL': JSON.stringify(deapiModel),

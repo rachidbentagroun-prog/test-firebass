@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { convertBlobToBase64 } from '../services/geminiService';
 import { generateVideoWithSora } from '../services/soraService';
+import { generateVideoWithSeedance } from '../services/seedanceService';
 import { User, GeneratedVideo } from '../types';
 import { saveVideoToFirebase, getVideosFromFirebase, deleteVideoFromFirebase } from '../services/firebase';
 import { saveWorkState, getWorkState } from '../services/dbService';
@@ -54,6 +55,23 @@ const DURATION_OPTIONS: { id: '5s' | '10s' | '15s' | '60s', label: string }[] = 
   { id: '60s', label: '60S' }
 ];
 
+const ENGINE_OPTIONS: { id: 'sora' | 'seedance', label: string, desc: string, badge: string }[] = [
+  { id: 'sora', label: 'Sora 2', desc: 'OpenAI Engine', badge: 'SORA' },
+  { id: 'seedance', label: 'Seedance 1.0 Pro', desc: 'ByteDance Engine', badge: 'SEEDANCE' },
+];
+
+const FPS_OPTIONS: { id: 24 | 30 | 60, label: string }[] = [
+  { id: 24, label: '24 FPS' },
+  { id: 30, label: '30 FPS' },
+  { id: 60, label: '60 FPS' },
+];
+
+const QUALITY_LEVELS: { id: 'standard' | 'high' | 'ultra', label: string, desc: string }[] = [
+  { id: 'standard', label: 'Standard', desc: 'Fast Generation' },
+  { id: 'high', label: 'High', desc: 'Balanced Quality' },
+  { id: 'ultra', label: 'Ultra', desc: 'Maximum Quality' },
+];
+
 export const VideoGenerator: React.FC<VideoGeneratorProps> = ({ 
   user, onCreditUsed, onUpgradeRequired, onVideoGenerated, 
   hasApiKey, onSelectKey, onResetKey 
@@ -64,16 +82,27 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
   const [resolution, setResolution] = useState<'720p' | '1080p'>('720p');
   const [duration, setDuration] = useState<'5s' | '10s' | '15s' | '60s'>('10s');
   const [negativePrompt, setNegativePrompt] = useState('');
+  const [engine, setEngine] = useState<'sora' | 'seedance'>('sora');
+  const [fps, setFps] = useState<24 | 30 | 60>(30);
+  const [qualityLevel, setQualityLevel] = useState<'standard' | 'high' | 'ultra'>('high');
+  const [motionStrength, setMotionStrength] = useState<number>(0.7);
+  const [cfgScale, setCfgScale] = useState<number>(7);
   
   const [isDimMenuOpen, setIsDimMenuOpen] = useState(false);
   const [isQualityMenuOpen, setIsQualityMenuOpen] = useState(false);
   const [isDurationMenuOpen, setIsDurationMenuOpen] = useState(false);
   const [isNegativeMenuOpen, setIsNegativeMenuOpen] = useState(false);
+  const [isEngineMenuOpen, setIsEngineMenuOpen] = useState(false);
+  const [isFpsMenuOpen, setIsFpsMenuOpen] = useState(false);
+  const [isQualityLevelMenuOpen, setIsQualityLevelMenuOpen] = useState(false);
   
   const dimMenuRef = useRef<HTMLDivElement>(null);
   const qualityMenuRef = useRef<HTMLDivElement>(null);
   const durationMenuRef = useRef<HTMLDivElement>(null);
   const negativeMenuRef = useRef<HTMLDivElement>(null);
+  const engineMenuRef = useRef<HTMLDivElement>(null);
+  const fpsMenuRef = useRef<HTMLDivElement>(null);
+  const qualityLevelMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [startImage, setStartImage] = useState<{file: File, url: string} | null>(null);
@@ -106,6 +135,11 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
           if (state.resolution) setResolution(state.resolution);
           if (state.negativePrompt) setNegativePrompt(state.negativePrompt);
           if (state.duration) setDuration(state.duration);
+          if (state.engine) setEngine(state.engine);
+          if (state.fps) setFps(state.fps);
+          if (state.qualityLevel) setQualityLevel(state.qualityLevel);
+          if (state.motionStrength !== undefined) setMotionStrength(state.motionStrength);
+          if (state.cfgScale !== undefined) setCfgScale(state.cfgScale);
         }
       });
     }
@@ -114,11 +148,11 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
   useEffect(() => {
     if (user) {
       const timeoutId = setTimeout(() => {
-        saveWorkState(user.id, 'video-generator', { mode, prompt, aspectRatio, resolution, negativePrompt, duration });
+        saveWorkState(user.id, 'video-generator', { mode, prompt, aspectRatio, resolution, negativePrompt, duration, engine, fps, qualityLevel, motionStrength, cfgScale });
       }, 1000);
       return () => clearTimeout(timeoutId);
     }
-  }, [user, mode, prompt, aspectRatio, resolution, negativePrompt, duration]);
+  }, [user, mode, prompt, aspectRatio, resolution, negativePrompt, duration, engine, fps, qualityLevel, motionStrength, cfgScale]);
 
   useEffect(() => {
     let msgInterval: any;
@@ -152,6 +186,9 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
       if (qualityMenuRef.current && !qualityMenuRef.current.contains(target)) setIsQualityMenuOpen(false);
       if (durationMenuRef.current && !durationMenuRef.current.contains(target)) setIsDurationMenuOpen(false);
       if (negativeMenuRef.current && !negativeMenuRef.current.contains(target)) setIsNegativeMenuOpen(false);
+      if (engineMenuRef.current && !engineMenuRef.current.contains(target)) setIsEngineMenuOpen(false);
+      if (fpsMenuRef.current && !fpsMenuRef.current.contains(target)) setIsFpsMenuOpen(false);
+      if (qualityLevelMenuRef.current && !qualityLevelMenuRef.current.contains(target)) setIsQualityLevelMenuOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -200,7 +237,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
     setResultVideo(null);
 
     try {
-      // Map resolution/aspect to Sora size
+      // Map resolution/aspect to size
       const size = (() => {
         if (aspectRatio === '9:16') {
           return resolution === '1080p' ? '1080x1920' : '720x1280';
@@ -220,13 +257,33 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
       const cleanNegative = negativePrompt.trim();
       const finalPrompt = cleanNegative ? `${cleanPrompt}\nAvoid: ${cleanNegative}` : cleanPrompt;
 
-      const videoUrl = await generateVideoWithSora({
-        model: 'sora-2',
-        prompt: finalPrompt,
-        size,
-        seconds: durationSeconds,
-        input_reference,
-      });
+      let videoUrl: string;
+
+      if (engine === 'seedance') {
+        // ByteDance Seedance 1.0 Pro
+        videoUrl = await generateVideoWithSeedance({
+          model: 'seedance-1-0-pro-250528',
+          prompt: finalPrompt,
+          aspect_ratio: aspectRatio,
+          resolution: resolution,
+          duration: durationSeconds,
+          quality: qualityLevel,
+          fps: fps,
+          image_url: input_reference,
+          negative_prompt: cleanNegative,
+          cfg_scale: cfgScale,
+          motion_strength: motionStrength,
+        });
+      } else {
+        // Sora (default)
+        videoUrl = await generateVideoWithSora({
+          model: 'sora-2',
+          prompt: finalPrompt,
+          size,
+          seconds: durationSeconds,
+          input_reference,
+        });
+      }
       
       const newVideo: GeneratedVideo = {
         id: Date.now().toString(),
@@ -257,6 +314,9 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
 
   const currentDimOption = ASPECT_RATIOS.find(opt => opt.id === aspectRatio);
   const currentQualityOption = QUALITIES.find(opt => opt.id === resolution);
+  const currentEngineOption = ENGINE_OPTIONS.find(opt => opt.id === engine);
+  const currentFpsOption = FPS_OPTIONS.find(opt => opt.id === fps);
+  const currentQualityLevelOption = QUALITY_LEVELS.find(opt => opt.id === qualityLevel);
 
   return (
     <>
@@ -433,6 +493,126 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                      </div>
               </div>
 
+              {/* Engine Selection */}
+              <div className="space-y-1.5 sm:space-y-2 relative" ref={engineMenuRef}>
+                <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">AI Engine</label>
+                <button onClick={() => !isGenerating && setIsEngineMenuOpen(!isEngineMenuOpen)} className="w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 bg-black/40 border border-white/10 rounded-lg text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
+                  <div className="flex items-center gap-2 truncate">
+                    <Sparkles className="w-3 h-3 text-indigo-400 flex-shrink-0" />
+                    <span className="truncate text-[7px] sm:text-[8px]">{ENGINE_OPTIONS.find(e => e.id === engine)?.label}</span>
+                  </div>
+                  <ChevronDown className={`w-2.5 h-2.5 text-gray-500 transition-transform flex-shrink-0 ${isEngineMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {isEngineMenuOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-1 z-[100] bg-dark-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl animate-scale-in">
+                    {ENGINE_OPTIONS.map(opt => (
+                      <button key={opt.id} onClick={() => { setEngine(opt.id); setIsEngineMenuOpen(false); }} className={`w-full text-left px-3 py-2 transition-all ${engine === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
+                        <div className="flex flex-col">
+                          <span className="text-[8px] font-black uppercase tracking-widest">{opt.label}</span>
+                          <span className="text-[7px] text-gray-500">{opt.desc}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Seedance-specific controls */}
+              {engine === 'seedance' && (
+                <div className="space-y-3 sm:space-y-4 animate-fade-in">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                    {/* FPS Control */}
+                    <div className="space-y-1.5 sm:space-y-2 relative" ref={fpsMenuRef}>
+                      <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">FPS</label>
+                      <button onClick={() => !isGenerating && setIsFpsMenuOpen(!isFpsMenuOpen)} className="w-full flex items-center justify-between px-2 sm:px-3 py-2 sm:py-3 bg-black/40 border border-white/10 rounded-lg text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
+                        <div className="flex items-center gap-1 truncate">
+                          <Activity className="w-3 h-3 text-purple-400 flex-shrink-0" />
+                          <span className="text-[7px] sm:text-[8px]">{fps} FPS</span>
+                        </div>
+                        <ChevronDown className={`w-2.5 h-2.5 text-gray-500 transition-transform flex-shrink-0 ${isFpsMenuOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {isFpsMenuOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-1 z-[100] bg-dark-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl animate-scale-in">
+                          {FPS_OPTIONS.map(opt => (
+                            <button key={opt.id} onClick={() => { setFps(opt.id); setIsFpsMenuOpen(false); }} className={`w-full text-left px-2 py-2 transition-all ${fps === opt.id ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
+                              <span className="text-[8px] font-black uppercase tracking-widest">{opt.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Quality Level Control */}
+                    <div className="space-y-1.5 sm:space-y-2 relative" ref={qualityLevelMenuRef}>
+                      <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Quality</label>
+                      <button onClick={() => !isGenerating && setIsQualityLevelMenuOpen(!isQualityLevelMenuOpen)} className="w-full flex items-center justify-between px-2 sm:px-3 py-2 sm:py-3 bg-black/40 border border-white/10 rounded-lg text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
+                        <div className="flex items-center gap-1 truncate">
+                          <Gauge className="w-3 h-3 text-purple-400 flex-shrink-0" />
+                          <span className="text-[7px] sm:text-[8px]">{qualityLevel.toUpperCase()}</span>
+                        </div>
+                        <ChevronDown className={`w-2.5 h-2.5 text-gray-500 transition-transform flex-shrink-0 ${isQualityLevelMenuOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {isQualityLevelMenuOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-1 z-[100] bg-dark-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl animate-scale-in">
+                          {QUALITY_LEVELS.map(opt => (
+                            <button key={opt.id} onClick={() => { setQualityLevel(opt.id); setIsQualityLevelMenuOpen(false); }} className={`w-full text-left px-2 py-2 transition-all ${qualityLevel === opt.id ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
+                              <div className="flex flex-col">
+                                <span className="text-[8px] font-black uppercase tracking-widest">{opt.label}</span>
+                                <span className="text-[7px] text-gray-500">{opt.desc}</span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Motion Strength Slider */}
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Motion Strength</label>
+                      <span className="text-[8px] sm:text-[9px] font-black text-purple-400 uppercase">{(motionStrength * 100).toFixed(0)}%</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={motionStrength}
+                        onChange={(e) => setMotionStrength(parseFloat(e.target.value))}
+                        disabled={isGenerating}
+                        className="w-full h-2 bg-black/40 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-purple-500 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer disabled:opacity-50"
+                      />
+                    </div>
+                  </div>
+
+                  {/* CFG Scale Slider */}
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">CFG Scale (Creativity)</label>
+                      <span className="text-[8px] sm:text-[9px] font-black text-purple-400 uppercase">{cfgScale}</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="range"
+                        min="1"
+                        max="20"
+                        step="0.5"
+                        value={cfgScale}
+                        onChange={(e) => setCfgScale(parseFloat(e.target.value))}
+                        disabled={isGenerating}
+                        className="w-full h-2 bg-black/40 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-purple-500 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer disabled:opacity-50"
+                      />
+                    </div>
+                    <div className="flex justify-between text-[7px] text-gray-600 uppercase tracking-widest">
+                      <span>More Literal</span>
+                      <span>More Creative</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {error && (
                 <div className="p-2 sm:p-3 md:p-4 bg-red-600/10 border border-red-600/20 rounded-lg sm:rounded-2xl flex items-start gap-2 sm:gap-3 animate-fade-in">
                   <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 flex-shrink-0 mt-0.5" />
@@ -463,7 +643,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                   <div className="p-3 sm:p-4 md:p-6 lg:p-8 border-t border-white/10 bg-dark-900/80 backdrop-blur-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
                     <div>
                        <p className="text-white font-black uppercase tracking-tight text-xs sm:text-sm italic leading-none">Synthesis Complete</p>
-                       <p className="text-[8px] sm:text-[9px] text-gray-500 uppercase tracking-[0.15em] mt-1">{resultVideo.resolution} • SORA 2 • {resultVideo.aspectRatio}</p>
+                       <p className="text-[8px] sm:text-[9px] text-gray-500 uppercase tracking-[0.15em] mt-1">{resultVideo.resolution} • {engine === 'seedance' ? 'SEEDANCE 1.0 PRO' : 'SORA 2'} • {resultVideo.aspectRatio}</p>
                     </div>
                     <a href={resultVideo.url} download className="w-full sm:w-auto p-2 sm:p-3 md:p-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg sm:rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 px-3 sm:px-6">
                       <Download className="w-3 h-3 sm:w-4 sm:h-4" />

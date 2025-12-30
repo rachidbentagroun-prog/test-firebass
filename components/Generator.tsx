@@ -72,7 +72,7 @@ const PROMPT_HISTORY_KEY = 'imaginai_prompt_history';
 
 export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUsed, onUpgradeRequired, onImageGenerated, onDeleteImage, onUpdateUser, initialPrompt, hasApiKey, onSelectKey, onLoginClick }) => {
   const [genMode, setGenMode] = useState<'tti' | 'iti'>('tti');
-  const [imageEngine, setImageEngine] = useState<'klingai' | 'gemini' | 'deapi' | 'runware'>('runware');
+  const [imageEngine, setImageEngine] = useState<'klingai' | 'gemini' | 'deapi' | 'runware' | 'seedream'>('runware');
   const [prompt, setPrompt] = useState(initialPrompt || '');
   const [negativePrompt, setNegativePrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('1:1');
@@ -81,6 +81,12 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isProMode, setIsProMode] = useState(false);
+  // Seedream-specific preferences
+  const [seedreamResolution, setSeedreamResolution] = useState<string>('1024x1024');
+  const [seedreamQuality, setSeedreamQuality] = useState<'standard' | 'high' | 'ultra'>('high');
+  const [seedreamGuidance, setSeedreamGuidance] = useState<number>(8);
+  const [seedreamSeed, setSeedreamSeed] = useState<number | undefined>(undefined);
+  const [seedreamModel, setSeedreamModel] = useState<string>('sd-4.5');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [resultImage, setResultImage] = useState<GeneratedImage | null>(null);
@@ -137,6 +143,13 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
           if (state.aspectRatio) setAspectRatio(state.aspectRatio);
           if (state.selectedStyle) setSelectedStyle(state.selectedStyle);
           if (state.isProMode !== undefined) setIsProMode(state.isProMode);
+          if (state.seedreamSettings) {
+            if (state.seedreamSettings.resolution) setSeedreamResolution(state.seedreamSettings.resolution);
+            if (state.seedreamSettings.quality) setSeedreamQuality(state.seedreamSettings.quality);
+            if (typeof state.seedreamSettings.guidance === 'number') setSeedreamGuidance(state.seedreamSettings.guidance);
+            if (typeof state.seedreamSettings.seed === 'number') setSeedreamSeed(state.seedreamSettings.seed);
+            if (typeof state.seedreamSettings.model === 'string') setSeedreamModel(state.seedreamSettings.model);
+          }
         }
       });
     }
@@ -153,12 +166,19 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
           negativePrompt,
           aspectRatio,
           selectedStyle,
-          isProMode
+          isProMode,
+          seedreamSettings: {
+            resolution: seedreamResolution,
+            quality: seedreamQuality,
+            guidance: seedreamGuidance,
+            seed: seedreamSeed,
+            model: seedreamModel,
+          }
         });
       }, 1000);
       return () => clearTimeout(timeoutId);
     }
-  }, [user, genMode, imageEngine, prompt, negativePrompt, aspectRatio, selectedStyle, isProMode]);
+  }, [user, genMode, imageEngine, prompt, negativePrompt, aspectRatio, selectedStyle, isProMode, seedreamResolution, seedreamQuality, seedreamGuidance, seedreamSeed, seedreamModel]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -388,6 +408,26 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
         console.log('[Generator] Calling Runware.ai API via proxy');
         generatedDataUrl = await generateImageWithRunware(body);
         console.log('[Generator] Runware.ai responded with URL:', generatedDataUrl);
+      } else if (imageEngine === 'seedream') {
+        console.log('[Generator] Generating with Seedream 4.5:', { prompt: finalPrompt, aspect_ratio: supportedRatio, resolution: seedreamResolution, quality: seedreamQuality, guidance: seedreamGuidance, seed: seedreamSeed });
+        const { generateImageWithSeedream } = await import('../services/seedreamService').then(m => ({ generateImageWithSeedream: (m as any).generateImageWithSeedream }));
+        const body: any = {
+          model: seedreamModel || undefined,
+          prompt: finalPrompt,
+          negative_prompt: cleanNegativePrompt || undefined,
+          aspect_ratio: supportedRatio,
+          image_count: 1,
+          resolution: seedreamResolution,
+          quality: seedreamQuality,
+          guidance: seedreamGuidance,
+          seed: seedreamSeed,
+        };
+        if (base64Image) {
+          body.image_url = `data:${mimeType};base64,${base64Image}`;
+        }
+        console.log('[Generator] Calling Seedream 4.5 via proxy');
+        generatedDataUrl = await generateImageWithSeedream(body);
+        console.log('[Generator] Seedream responded with URL/Data');
       } else {
         // Gemini generation requires the shared Gemini API key (same as Voice & Audio)
         if (!hasApiKey) {
@@ -513,6 +553,12 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                     >
                       Runware.ai
                     </button>
+                    <button 
+                      onClick={() => setImageEngine('seedream')}
+                      className={`flex-shrink-0 px-2 sm:px-3 py-1.5 sm:py-2.5 md:py-3 rounded-lg text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${imageEngine === 'seedream' ? 'bg-gradient-to-r from-fuchsia-600 to-rose-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                    >
+                      Seedream 4.5
+                    </button>
                   </div>
                 </div>
 
@@ -606,6 +652,68 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                       onChange={(e) => setPrompt(e.target.value)}
                     />
                   </div>
+
+                  {/* Seedream Preferences */}
+                  {imageEngine === 'seedream' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-2 sm:col-span-2">
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Model ID (optional - defaults to doubao-image-1)</label>
+                        <input
+                          type="text"
+                          value={seedreamModel}
+                          onChange={(e) => setSeedreamModel(e.target.value)}
+                          placeholder="doubao-image-1 (default)"
+                          className="w-full px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white tracking-widest"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Seedream Resolution</label>
+                        <select
+                          value={seedreamResolution}
+                          onChange={(e) => setSeedreamResolution(e.target.value)}
+                          className="w-full px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest"
+                        >
+                          {['512x512','768x768','1024x1024'].map(r => (
+                            <option key={r} value={r}>{r}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Quality</label>
+                        <select
+                          value={seedreamQuality}
+                          onChange={(e) => setSeedreamQuality(e.target.value as any)}
+                          className="w-full px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest"
+                        >
+                          {['standard','high','ultra'].map(q => (
+                            <option key={q} value={q}>{q.toUpperCase()}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Guidance</label>
+                        <input
+                          type="range"
+                          min={1}
+                          max={20}
+                          value={seedreamGuidance}
+                          onChange={(e) => setSeedreamGuidance(Number(e.target.value))}
+                          className="w-full"
+                        />
+                        <div className="text-[9px] text-gray-500 ml-1">CFG: {seedreamGuidance}</div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Seed (optional)</label>
+                        <input
+                          type="number"
+                          value={seedreamSeed ?? ''}
+                          onChange={(e) => setSeedreamSeed(e.target.value ? Number(e.target.value) : undefined)}
+                          placeholder="random"
+                          className="w-full px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white tracking-widest"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Negative Prompt */}
                   <div className="animate-fade-in relative bg-black/30 border border-white/10 rounded-2xl p-4" ref={negativeMenuRef}>

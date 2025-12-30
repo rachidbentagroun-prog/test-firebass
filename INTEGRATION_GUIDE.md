@@ -54,6 +54,7 @@ const handleGenerate = async () => {
 - `'gemini'` - for Gemini image generation
 - `'runware'` - for Runware API
 - `'klingai'` - for KlingAI image generation
+ - `'seedream'` - for ByteDance Seedream 4.5
 - `'dalle'` - for DALL-E
 
 ---
