@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar.tsx';
 import { Hero } from './components/Hero.tsx';
-import { FutureLanding } from './components/FutureLanding.tsx';
+import { HomeLanding } from './components/HomeLanding.tsx';
 import { Pricing } from './components/Pricing.tsx';
+import { PricingLanding } from './components/PricingLanding.tsx';
 import { Generator } from './components/Generator.tsx';
 import { VideoLabLanding } from './components/VideoLabLanding.tsx';
 import { VideoGenerator } from './components/VideoGenerator.tsx';
 import { TTSGenerator } from './components/TTSGenerator.tsx';
 import { TTSLanding } from './components/TTSLanding.tsx';
+import { ChatLanding } from './components/ChatLanding.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
 import { UpgradeModal } from './components/UpgradeModal.tsx';
 import { LanguageProvider } from './utils/i18n';
@@ -54,9 +56,81 @@ const DEFAULT_CONFIG: SiteConfig = {
   testimonials: [],
   articles: [],
   plans: [
-    { id: 'free', name: 'Free Trial', price: '$0', credits: 3, features: ['3 Free Generations', 'Public Gallery'] },
-    { id: 'basic', name: 'Basic Creator', price: '$9.9', credits: 100, features: ['100 Generations per month', 'Access to AI Image Generator', 'Access to AI Voice & Audio', 'Access to AI Video Generator', 'Private Gallery Storage', 'Standard Processing Speed', 'Email Support', 'Commercial License'], recommended: true, buttonUrl: 'https://bentagroun.gumroad.com/l/huodf' },
-    { id: 'premium', name: 'Premium', price: '$20', credits: 250, features: ['250 Generations per month', 'Priority Processing Speed', 'Early Access to New Features', 'Advanced AI Models', 'Extended Video Length', 'HD Audio Quality', 'Priority Support', 'Commercial License', 'API Access (Coming Soon)', 'Team Collaboration (Coming Soon)'], buttonUrl: 'https://bentagroud.gumroad.com/l/zrgraz' }
+    { 
+      id: 'free', 
+      name: 'Free Trial', 
+      price: '$0', 
+      credits: 3, 
+      features: [
+        '1 videos / month',
+        'Or Up to 3 images / month',
+        'New: Sora2 and 15s / 25s HD video generation supported',
+        '3 parallel tasks',
+        '1080P HD Output',
+        'No Watermarks',
+        'No Queues and Instant Generation',
+        'Access to all models',
+        'Dall-E 3 - Sora2 - Chatgpt'
+      ]
+    },
+    { 
+      id: 'test', 
+      name: 'Test Plan', 
+      price: '$1', 
+      credits: 20, 
+      features: [
+        'Up to 3 videos / month',
+        'Or Up to 10 images / month',
+        'Up to 1 Minute Ai Voice&Audio / month',
+        'New: Sora2 and 15s / 25s HD video generation supported',
+        '3 parallel tasks',
+        '1080P HD Output',
+        'No Watermarks',
+        'No Queues and Instant Generation',
+        'Access to all models',
+        'Dall-E 3 - Sora2 - Chatgpt'
+      ],
+      buttonUrl: 'https://bentagroun.gumroad.com/l/bnisgtn'
+    },
+    { 
+      id: 'basic', 
+      name: 'Basic Plan', 
+      price: '$9.9', 
+      credits: 100, 
+      features: [
+        'Up to 10 videos / month',
+        'Or Up to 80 images / month',
+        'Up to 20 Minutes Ai Voice&Audio / month',
+        'New: Sora2 and 15s / 25s HD video generation supported',
+        '3 parallel tasks',
+        '1080P HD Output',
+        'No Watermarks',
+        'No Queues and Instant Generation',
+        'Access to all models',
+        'Dall-E 3 - Sora2 - Chatgpt'
+      ], 
+      recommended: true, 
+      buttonUrl: 'https://bentagroun.gumroad.com/l/huodf' 
+    },
+    { 
+      id: 'premium', 
+      name: 'Premium Plan', 
+      price: '$20', 
+      credits: 250, 
+      features: [
+        'Up to 20 videos / month',
+        'Or Up to 180 images / month',
+        'Up to 40 Minutes Ai Voice&Audio / month',
+        'New: Sora2 and 15s / 25s HD video generation supported',
+        '3 parallel tasks',
+        '1080P HD Output',
+        'No Watermarks',
+        'No Queues and Instant Generation',
+        'Access to all models',
+        'Dall-E 3 - Sora2 - Chatgpt'
+      ], 
+      buttonUrl: 'https://bentagroun.gumroad.com/l/zrgraz' 
+    }
   ],
   topMenu: [],
   footerMenu: [],
@@ -114,6 +188,18 @@ const App: React.FC = () => {
       return 'dark';
     }
   });
+
+  // Persist theme preference and apply to DOM
+  useEffect(() => {
+    try {
+      localStorage.setItem('site_theme', theme);
+      document.documentElement.setAttribute('data-theme', theme);
+      document.body.classList.remove('theme-dark', 'theme-light');
+      document.body.classList.add(`theme-${theme}`);
+    } catch (err) {
+      console.warn('Failed to persist theme:', err);
+    }
+  }, [theme]);
 
   const [currentPage, setCurrentPage] = useState<string>(() => {
     // If app is opened via verification action URL, show the post-verify page
@@ -268,6 +354,11 @@ const App: React.FC = () => {
                 gallery: [],
                 audioGallery: [],
               };
+
+              // Note: Theme preference is stored in localStorage/body class, not in database
+              // if (profile?.theme && (profile.theme === 'dark' || profile.theme === 'light')) {
+              //   setTheme(profile.theme as 'dark' | 'light');
+              // }
 
               setUser(updatedUser);
               
@@ -610,6 +701,13 @@ const App: React.FC = () => {
       } catch (err) {
         console.warn('Failed to update credits in Supabase:', err);
       }
+
+      // If credits reach 0, redirect to pricing landing page
+      if (newCredits === 0) {
+        setTimeout(() => {
+          setCurrentPage('pricing-landing');
+        }, 500);
+      }
     } catch (err) {
       console.error('Credit deduction error:', err);
     }
@@ -625,7 +723,34 @@ const App: React.FC = () => {
     setCurrentPage('home');
   };
 
+  const handleToggleTheme = async () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    
+    // Save theme preference to user profile if logged in
+    if (user?.id) {
+      try {
+        const { doc, updateDoc } = await import('firebase/firestore');
+        const { db } = await import('./services/firebase');
+        const userDocRef = doc(db, 'users', user.id);
+        await updateDoc(userDocRef, { theme: newTheme });
+        
+        // Update local user state
+        setUser(prev => prev ? { ...prev, theme: newTheme as any } : null);
+      } catch (err) {
+        console.warn('Failed to save theme preference:', err);
+      }
+    }
+  };
+
   const handleSelectPlan = (plan: Plan) => {
+    // If the plan has a buttonUrl (external purchase link), open it directly
+    if (plan.buttonUrl) {
+      window.open(plan.buttonUrl, '_blank');
+      return;
+    }
+
+    // For free plan or plans without buttonUrl, require authentication
     if (!user) {
       setIsAuthModalOpen(true);
       return;
@@ -633,11 +758,6 @@ const App: React.FC = () => {
 
     if (user.plan === 'free' && plan.id !== 'free') {
       setCurrentPage('upgrade');
-      return;
-    }
-
-    if (plan.buttonUrl) {
-      window.open(plan.buttonUrl, '_blank');
       return;
     }
 
@@ -680,12 +800,12 @@ const App: React.FC = () => {
     switch (currentPage) {
       case 'home':
         return (
-          <FutureLanding 
-            onGetStarted={() => setIsAuthModalOpen(true)} 
-            onNavigate={setCurrentPage}
-            isRegistered={!!user}
-            onSelectPlan={handleSelectPlan}
-            plans={siteConfig.plans}
+          <HomeLanding 
+            onSubmitPrompt={(promptText) => { setInitialPrompt(promptText); setCurrentPage('dashboard'); }}
+            onGoToImage={() => setCurrentPage('dashboard')}
+            onGoToVideo={() => setCurrentPage('video-generator')}
+            onGoToWebsite={() => setCurrentPage('chat-landing')}
+            onGoToAudio={() => setCurrentPage('tts-generator')}
           />
         );
       case 'dashboard':
@@ -707,6 +827,8 @@ const App: React.FC = () => {
       case 'video-generator':
         if (!user) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
         return <VideoGenerator user={user} onCreditUsed={handleCreditUsed} onUpgradeRequired={() => setIsUpgradeModalOpen(true)} onVideoGenerated={(video) => { setVideoGallery(p => [video, ...p]); saveVideoToDB(video, user!.id); }} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
+      case 'chat-landing':
+        return <ChatLanding user={user} onStartChat={() => { if (!user) { setIsAuthModalOpen(true); return; } setIsChatOpen(true); }} onLoginClick={() => setIsAuthModalOpen(true)} />;
       case 'tts-lab-landing':
         return <TTSLanding user={user} config={siteConfig.ttsLab} onStartCreating={() => setCurrentPage('tts-generator')} onCreditUsed={handleCreditUsed} onUpgradeRequired={() => setIsUpgradeModalOpen(true)} onLoginClick={() => setIsAuthModalOpen(true)} onAudioGenerated={(aud) => { setAudioGallery(p => [aud, ...p]); if (user?.id) saveAudioToDB(aud, user.id); }} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
       case 'tts-generator':
@@ -717,10 +839,12 @@ const App: React.FC = () => {
         return <Gallery images={gallery} videos={videoGallery} audioGallery={audioGallery} onDelete={() => {}} />;
       case 'explore':
         return <ExplorePage user={user} images={gallery} videos={videoGallery} siteConfig={siteConfig} onNavigate={setCurrentPage} />;
+      case 'pricing':
+        return <PricingLanding plans={siteConfig.plans} onSelectPlan={handleSelectPlan} />;
       case 'admin':
         return user?.role === 'admin' ? <AdminDashboard users={allUsers} siteConfig={siteConfig} onUpdateConfig={setSiteConfig} onDeleteUser={handleDeleteUser} onUpdateUser={handleUpdateUser} onSendMessageToUser={handleSendMessageToUser} onBroadcastMessage={handleBroadcastMessage} onSupportReply={() => {}} hasApiKey={hasApiKey} onSelectKey={() => {}} onSyncFirebase={handleSyncFirebaseUsers} /> : null;
       case 'profile':
-        return user ? <UserProfile user={user} gallery={gallery} videoGallery={videoGallery} audioGallery={audioGallery} onLogout={handleLogout} onBack={() => setCurrentPage('home')} onUpdateUser={() => {}} onGalleryImport={() => {}} onNavigate={setCurrentPage} initialContactOpen={openContactFromUpgrade} initialInboxOpen={openInboxFromDropdown} theme={theme} onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} /> : null;
+        return user ? <UserProfile user={user} gallery={gallery} videoGallery={videoGallery} audioGallery={audioGallery} onLogout={handleLogout} onBack={() => setCurrentPage('home')} onUpdateUser={() => {}} onGalleryImport={() => {}} onNavigate={setCurrentPage} initialContactOpen={openContactFromUpgrade} initialInboxOpen={openInboxFromDropdown} theme={theme} onToggleTheme={handleToggleTheme} /> : null;
       case 'upgrade':
         return <UpgradePage onBack={() => setCurrentPage(user ? 'profile' : 'home')} onContactUs={() => { setOpenContactFromUpgrade(true); setCurrentPage('profile'); }} />;
       case 'signup':
@@ -734,18 +858,18 @@ const App: React.FC = () => {
 
   if (isInitializing) {
     return (
-      <div className="min-h-screen bg-dark-950 flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-white text-gray-900 flex flex-col items-center justify-center">
         <Sparkles className="w-12 h-12 text-indigo-500 animate-spin mb-4" />
         {authInitTimedOut ? (
-          <div className="text-center">
-            <p className="text-red-400 font-bold mb-4">Authentication initialization timed out. The app couldn't connect to Firebase Auth.</p>
-            <div className="flex gap-2 justify-center">
-              <button onClick={() => window.location.reload()} className="px-4 py-2 bg-indigo-600 text-white rounded-lg">Retry</button>
-              <button onClick={() => setIsInitializing(false)} className="px-4 py-2 bg-white/5 text-gray-200 rounded-lg">Continue (limited)</button>
+          <div className="text-center max-w-md space-y-4 px-6">
+            <p className="text-rose-600 font-semibold leading-relaxed">Authentication initialization timed out. The app couldn't connect to Firebase Auth.</p>
+            <div className="flex gap-3 justify-center">
+              <button onClick={() => window.location.reload()} className="px-4 py-2 rounded-xl bg-indigo-600 text-white shadow-md hover:bg-indigo-500">Retry</button>
+              <button onClick={() => setIsInitializing(false)} className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 hover:bg-white">Continue (limited)</button>
             </div>
           </div>
         ) : (
-          <p className="text-indigo-400 font-black uppercase tracking-[0.3em] text-[10px]">Initializing Neural Link...</p>
+          <p className="text-indigo-600 font-black uppercase tracking-[0.3em] text-[10px]">Initializing Neural Link...</p>
         )}
       </div>
     );
@@ -753,7 +877,11 @@ const App: React.FC = () => {
 
   return (
       <LanguageProvider>
-        <div className="min-h-screen bg-dark-950">
+        <div className={`min-h-screen transition-colors duration-300 ${
+          theme === 'dark'
+            ? 'landing-theme bg-gradient-to-b from-dark-950 via-dark-900 to-dark-950 text-white'
+            : 'landing-theme bg-gradient-to-b from-white via-gray-50 to-white text-gray-900'
+        }`}>
       <Navbar 
         user={user} 
         onLogout={handleLogout} 
@@ -763,7 +891,7 @@ const App: React.FC = () => {
         customMenu={[]} 
         onUpgradeClick={() => setIsUpgradeModalOpen(true)}
         theme={theme}
-        onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+        onToggleTheme={handleToggleTheme}
         onOpenInbox={() => setOpenInboxFromDropdown(true)}
       />
       <main className="pt-16">
@@ -840,15 +968,6 @@ const App: React.FC = () => {
         onClose={() => setIsUpgradeModalOpen(false)} 
         onSelectPlan={() => setIsUpgradeModalOpen(false)} 
       />
-      <style>{`
-        :root.light-theme { filter: invert(1) hue-rotate(180deg); }
-        :root.light-theme img,
-        :root.light-theme video,
-        :root.light-theme picture,
-        :root.light-theme iframe {
-          filter: invert(1) hue-rotate(180deg);
-        }
-      `}</style>
       </div>
     </LanguageProvider>
   );

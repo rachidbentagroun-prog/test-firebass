@@ -358,6 +358,38 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               </button>
             </div>
 
+              {/* Engine Selection */}
+              <div className="space-y-1.5 sm:space-y-2 relative z-[50] mb-4 sm:mb-5" ref={engineMenuRef}>
+                <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">AI Engine</label>
+                <button 
+                  onClick={() => !isGenerating && setIsEngineMenuOpen(!isEngineMenuOpen)} 
+                  disabled={isGenerating}
+                  className="w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 bg-black/40 border border-white/10 rounded-lg text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <Sparkles className="w-3 h-3 text-indigo-400 flex-shrink-0" />
+                    <span className="truncate text-[7px] sm:text-[8px]">{ENGINE_OPTIONS.find(e => e.id === engine)?.label}</span>
+                  </div>
+                  <ChevronDown className={`w-2.5 h-2.5 text-gray-500 transition-transform flex-shrink-0 ${isEngineMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {isEngineMenuOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-2 z-[200] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                    {ENGINE_OPTIONS.map(opt => (
+                      <button 
+                        key={opt.id} 
+                        onClick={() => { setEngine(opt.id); setIsEngineMenuOpen(false); }} 
+                        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${engine === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">{opt.label}</span>
+                          <span className="text-[7px] sm:text-[8px] text-gray-500">{opt.desc}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-3 sm:space-y-4 md:space-y-5 relative z-10">
               {mode === 'interpolation' && (
                 <div className="space-y-2 sm:space-y-3 animate-fade-in">
@@ -436,7 +468,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                   onChange={(e) => setNegativePrompt(e.target.value)}
                   disabled={isGenerating}
                   placeholder="Short: e.g., blurry, extra limbs"
-                  className="w-full h-20 bg-black/40 border border-white/10 rounded-lg p-3 text-white text-xs focus:ring-1 focus:ring-indigo-500/40 outline-none resize-none transition-all placeholder:text-gray-700 custom-scrollbar disabled:opacity-50"
+                  className="w-full h-16 bg-black/40 border border-white/10 rounded-lg p-3 text-white text-xs focus:ring-1 focus:ring-indigo-500/40 outline-none resize-none transition-all placeholder:text-gray-700 custom-scrollbar disabled:opacity-50"
                 />
               </div>
 
@@ -491,30 +523,6 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                           </div>
                         )}
                      </div>
-              </div>
-
-              {/* Engine Selection */}
-              <div className="space-y-1.5 sm:space-y-2 relative" ref={engineMenuRef}>
-                <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">AI Engine</label>
-                <button onClick={() => !isGenerating && setIsEngineMenuOpen(!isEngineMenuOpen)} className="w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 bg-black/40 border border-white/10 rounded-lg text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
-                  <div className="flex items-center gap-2 truncate">
-                    <Sparkles className="w-3 h-3 text-indigo-400 flex-shrink-0" />
-                    <span className="truncate text-[7px] sm:text-[8px]">{ENGINE_OPTIONS.find(e => e.id === engine)?.label}</span>
-                  </div>
-                  <ChevronDown className={`w-2.5 h-2.5 text-gray-500 transition-transform flex-shrink-0 ${isEngineMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {isEngineMenuOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-1 z-[100] bg-dark-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl animate-scale-in">
-                    {ENGINE_OPTIONS.map(opt => (
-                      <button key={opt.id} onClick={() => { setEngine(opt.id); setIsEngineMenuOpen(false); }} className={`w-full text-left px-3 py-2 transition-all ${engine === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
-                        <div className="flex flex-col">
-                          <span className="text-[8px] font-black uppercase tracking-widest">{opt.label}</span>
-                          <span className="text-[7px] text-gray-500">{opt.desc}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {/* Seedance-specific controls */}
@@ -622,11 +630,12 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
 
               <button
                 onClick={handleGenerate} disabled={isGenerating || showIdentityCheck}
-                className={`w-full py-3 sm:py-4 md:py-6 rounded-lg sm:rounded-2xl font-black text-xs sm:text-sm md:text-lg flex items-center justify-center gap-2 sm:gap-3 md:gap-4 transition-all transform active:scale-95 shadow-2xl ${isGenerating ? 'bg-gray-800 text-gray-600' : (showIdentityCheck ? 'bg-white/5 opacity-60 cursor-not-allowed' : (isOutOfCredits ? 'bg-amber-600 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/20'))}`}
+                className={`w-full h-[68px] rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] border-2 relative overflow-hidden group uppercase tracking-[0.25em] ${isGenerating ? 'bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 text-gray-500 border-gray-700/20 shadow-none cursor-wait' : (showIdentityCheck ? 'bg-gradient-to-r from-white/5 via-white/5 to-white/5 text-white/30 border-white/5 shadow-none cursor-not-allowed' : (isOutOfCredits ? 'bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:via-amber-400 hover:to-amber-500 text-white border-amber-400/20 hover:border-amber-300/40 shadow-[0_8px_32px_rgba(251,191,36,0.4)] hover:shadow-[0_12px_48px_rgba(251,191,36,0.6)]' : 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-600 hover:from-indigo-500 hover:via-indigo-400 hover:to-indigo-500 text-white border-indigo-400/20 hover:border-indigo-300/40 shadow-[0_8px_32px_rgba(99,102,241,0.4)] hover:shadow-[0_12px_48px_rgba(99,102,241,0.6)]'))}`}
                 title={showIdentityCheck ? 'A verification link was sent to your email. Please confirm your identity to proceed.' : undefined}
               >
-                {isGenerating ? <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 animate-spin" /> : (isOutOfCredits ? <Lock className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" /> : <Zap className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 fill-white" />)}
-                <span className="uppercase tracking-[0.1em] sm:tracking-[0.15em] md:tracking-[0.2em] italic text-[10px] sm:text-xs md:text-base">{isGenerating ? 'Synthesis' : (showIdentityCheck ? 'VERIFY EMAIL' : 'GENERATE (1)')}</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 group-hover:animate-shimmer"></div>
+                {isGenerating ? <RefreshCw className="w-6 h-6 animate-spin relative z-10" /> : (isOutOfCredits ? <Lock className="w-6 h-6 relative z-10" /> : <Zap className="w-6 h-6 fill-white drop-shadow-[0_2px_8px_rgba(255,255,255,0.5)] relative z-10" />)}
+                <span className="relative z-10">{isGenerating ? 'SYNTHESIZING...' : (showIdentityCheck ? 'VERIFY EMAIL FIRST' : 'GENERATE VIDEO NOW (3 CREDITS)')}</span>
               </button>
             </div>
           </div>
@@ -789,6 +798,74 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
           </div>
         </div>
       </div>
+
+      {/* RECENTLY GENERATED Section */}
+      {videoHistory.length > 0 && (
+        <section className="py-16 bg-gradient-to-b from-dark-900/40 to-transparent">
+          <div className="max-w-[1400px] mx-auto px-4">
+            <div className="flex items-center justify-between mb-10">
+              <div>
+                <h3 className="text-sm font-black text-purple-400 uppercase tracking-[0.4em] mb-3 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  Your Videos
+                </h3>
+                <h4 className="text-3xl md:text-4xl font-black text-white uppercase italic tracking-tighter">Recently Generated</h4>
+              </div>
+              <div className="text-xs font-black text-gray-600 uppercase tracking-widest px-4 py-2 bg-purple-600/10 border border-purple-500/20 rounded-full">
+                {videoHistory.length} {videoHistory.length === 1 ? 'Video' : 'Videos'}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+              {videoHistory.slice(0, 12).map((vid) => (
+                <div 
+                  key={vid.id} 
+                  className="group relative bg-dark-900 border border-white/10 rounded-2xl overflow-hidden hover:border-purple-500/50 hover:-translate-y-2 transition-all shadow-xl cursor-pointer"
+                  onClick={() => setResultVideo(vid)}
+                >
+                  <div className="aspect-video relative bg-black overflow-hidden">
+                    <video 
+                      src={vid.url} 
+                      className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" 
+                      loop 
+                      muted 
+                      playsInline
+                      onMouseOver={e => e.currentTarget.play()} 
+                      onMouseOut={e => e.currentTarget.pause()}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:opacity-0 transition-opacity duration-300">
+                      <div className="p-4 bg-white/10 backdrop-blur-md rounded-full border border-white/10">
+                        <Play className="w-6 h-6 text-white fill-white" />
+                      </div>
+                    </div>
+                    <div className="absolute top-3 left-3 px-3 py-1 bg-black/60 backdrop-blur-sm rounded-full text-[8px] font-black text-purple-400 border border-purple-500/30 uppercase tracking-wider">
+                      {vid.resolution || '1080p'}
+                    </div>
+                  </div>
+                  <div className="p-4 bg-gradient-to-t from-dark-900 to-dark-900/95">
+                    <p className="text-gray-300 text-xs font-medium line-clamp-2 mb-3 italic leading-relaxed">"{vid.prompt}"</p>
+                    <div className="flex items-center justify-between text-[9px] text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(vid.createdAt).toLocaleDateString()}
+                      </span>
+                      <span className="px-2 py-0.5 bg-purple-600/10 border border-purple-500/20 rounded-full font-black uppercase">
+                        {vid.aspectRatio || '16:9'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {user && (
+              <div className="mt-8 text-center">
+                <p className="text-xs text-gray-500 font-medium">
+                  Your generated videos are automatically saved and synced with Gallery
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Explore Ideas Section */}
       <div className="max-w-[1400px] mx-auto px-4 py-16 mt-12">

@@ -751,7 +751,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                       value={negativePrompt}
                       onChange={(e) => setNegativePrompt(e.target.value)}
                       placeholder="background noise, distortion, static"
-                      className="w-full h-28 bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:ring-2 focus:ring-pink-500/30 outline-none resize-none custom-scrollbar"
+                      className="w-full h-16 bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:ring-2 focus:ring-pink-500/30 outline-none resize-none custom-scrollbar"
                     />
                   </div>
                 )}
@@ -764,14 +764,15 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                 </div>
               )}
 
-              <button 
+              <button
                 onClick={handleGenerate} 
-                disabled={isSynthesizing || isTranscoding || mode === 'stt' || showIdentityCheck} 
-                className={`w-full py-6 rounded-2xl font-black text-lg flex items-center justify-center gap-4 transition-all shadow-2xl transform active:scale-[0.98] ${isSynthesizing ? 'bg-gray-800 text-gray-600' : (showIdentityCheck ? 'bg-white/5 opacity-60 cursor-not-allowed' : (mode === 'stt' ? 'bg-gray-900 text-gray-700 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500 text-white'))}`}
+                disabled={isSynthesizing || isTranscoding || mode === 'stt' || showIdentityCheck}
+                className={`w-full h-[68px] rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] border-2 relative overflow-hidden group uppercase tracking-[0.25em] ${isSynthesizing ? 'bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 text-gray-500 border-gray-700/20 shadow-none cursor-wait' : (showIdentityCheck ? 'bg-gradient-to-r from-white/5 via-white/5 to-white/5 text-white/30 border-white/5 shadow-none cursor-not-allowed' : (mode === 'stt' ? 'bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 text-gray-500 border-gray-700/20 shadow-none cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-600 hover:from-indigo-500 hover:via-indigo-400 hover:to-indigo-500 text-white border-indigo-400/20 hover:border-indigo-300/40 shadow-[0_8px_32px_rgba(99,102,241,0.4)] hover:shadow-[0_12px_48px_rgba(99,102,241,0.6)]'))}`}
                 title={showIdentityCheck ? 'A verification link was sent to your email. Please confirm your identity to proceed.' : undefined}
               >
-                {isSynthesizing ? <RefreshCw className="w-6 h-6 animate-spin" /> : <Zap className="w-6 h-6 fill-white" />}
-                <span className="uppercase tracking-[0.2em] italic">{isSynthesizing ? 'Synthesizing...' : (showIdentityCheck ? 'VERIFY EMAIL TO PROCEED' : (mode === 'song' ? 'CREATE SONG (1 CREDIT)' : 'GENERATE NOW (1 CREDIT)'))}</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 group-hover:animate-shimmer"></div>
+                {isSynthesizing ? <RefreshCw className="w-6 h-6 animate-spin relative z-10" /> : <Zap className="w-6 h-6 fill-white drop-shadow-[0_2px_8px_rgba(255,255,255,0.5)] relative z-10" />}
+                <span className="relative z-10">{isSynthesizing ? 'SYNTHESIZING...' : (showIdentityCheck ? 'VERIFY EMAIL FIRST' : (mode === 'song' ? 'CREATE SONG (1 CREDIT)' : 'GENERATE NOW (1 CREDIT)'))}</span>
               </button>
 
               {/* Recently Generated Section (Sticky) */}

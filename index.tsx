@@ -3,6 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 import { Analytics } from '@vercel/analytics/react';
+import { initAllAnimations } from './animations.js';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -16,3 +17,6 @@ root.render(
     <Analytics />
   </React.StrictMode>
 );
+
+// Initialize modern CSS animations and micro-interactions
+initAllAnimations();

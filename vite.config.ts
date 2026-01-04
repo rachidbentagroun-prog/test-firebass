@@ -42,6 +42,8 @@ export default defineConfig(({ mode }) => {
   const runwareImagePath = process.env.VITE_RUNWARE_IMAGE_PATH || env.VITE_RUNWARE_IMAGE_PATH || '';
   const runwareTaskType = process.env.VITE_RUNWARE_TASK_TYPE || env.VITE_RUNWARE_TASK_TYPE || '';
   const runwareModel = process.env.VITE_RUNWARE_MODEL || env.VITE_RUNWARE_MODEL || '';
+  const openaiKey = process.env.OPENAI_API_KEY || env.OPENAI_API_KEY || '';
+  const openaiChatKey = process.env.OPENAI_CHAT_API_KEY || env.OPENAI_CHAT_API_KEY || openaiKey;
   
   const soraBase = process.env.SORA_API_BASE || env.SORA_API_BASE || 'https://api.sora.com/v1/videos';
   const klingaiBase = process.env.KLINGAI_API_BASE || env.KLINGAI_API_BASE || 'https://api.klingai.com/v1/videos/text2video';
@@ -130,6 +132,88 @@ export default defineConfig(({ mode }) => {
                 }
               });
 
+              // OpenAI DALL·E 3 image generation proxy (dev server)
+              server.middlewares.use('/api/dalle3', async (req, res) => {
+                if (req.method !== 'POST') {
+                  res.statusCode = 405;
+                  res.end('Method Not Allowed');
+                  return;
+                }
+                try {
+                  if (!openaiKey) {
+                    res.statusCode = 500;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify({ error: 'OPENAI_API_KEY is missing on server.' }));
+                    return;
+                  }
+                  const body = await readJson(req);
+                  const upstream = await fetch('https://api.openai.com/v1/images/generations', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${openaiKey}`,
+                      'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      model: 'dall-e-3',
+                      prompt: body?.prompt,
+                      size: body?.size || '1024x1024',
+                      quality: body?.quality || 'standard',
+                      style: body?.style || 'vivid',
+                      response_format: 'b64_json',
+                    }),
+                  });
+                  const text = await upstream.text();
+                  res.statusCode = upstream.status;
+                  res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json');
+                  res.end(text);
+                } catch (e: any) {
+                  res.statusCode = 500;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ error: e?.message || 'Proxy error' }));
+                }
+              });
+
+              // OpenAI Chat Completions proxy (dev server)
+              server.middlewares.use('/api/chatgpt', async (req, res) => {
+                if (req.method !== 'POST') {
+                  res.statusCode = 405;
+                  res.end('Method Not Allowed');
+                  return;
+                }
+                try {
+                  if (!openaiChatKey) {
+                    res.statusCode = 500;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify({ error: 'OPENAI_CHAT_API_KEY (or OPENAI_API_KEY) is missing on server.' }));
+                    return;
+                  }
+                  const body = await readJson(req);
+                  const upstream = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${openaiChatKey}`,
+                      'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      model: body?.model || 'gpt-4o-mini',
+                      messages: body?.messages || [],
+                      temperature: typeof body?.temperature === 'number' ? body.temperature : 0.3,
+                      max_tokens: typeof body?.max_tokens === 'number' ? body.max_tokens : 512,
+                    }),
+                  });
+                  const text = await upstream.text();
+                  res.statusCode = upstream.status;
+                  res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json');
+                  res.end(text);
+                } catch (e: any) {
+                  res.statusCode = 500;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ error: e?.message || 'Proxy error' }));
+                }
+              });
+
               // ByteDance Seedream 4.5 Image generation proxy
               server.middlewares.use('/api/seedream', async (req, res) => {
                 try {
@@ -175,6 +259,7 @@ export default defineConfig(({ mode }) => {
                       headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${seedreamKey}`,
+                        'X-API-Key': seedreamKey,
                         'Accept': 'application/json',
                       },
                     });

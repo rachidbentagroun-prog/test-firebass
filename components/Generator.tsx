@@ -10,6 +10,11 @@ import {
   ShieldCheck, Clock, Layout, Terminal, FileImage, Lightbulb, RotateCcw as RotateIcon, Rocket
 } from 'lucide-react';
 import { generateImageWithGemini, convertBlobToBase64, enhancePrompt, generateSpeechWithGemini } from '../services/geminiService';
+import { generateImageWithDalle3 } from '../services/dalleService';
+import { generateImageWithKlingAI } from '../services/klingaiImageService';
+import { generateImageWithDeAPI } from '../services/deapiService';
+import { generateImageWithRunware } from '../services/runwareService';
+import { generateImageWithSeedream } from '../services/seedreamService';
 import { User, GeneratedImage } from '../types';
 import { saveImageToFirebase, getImagesFromFirebase, deleteImageFromFirebase } from '../services/firebase';
 import { ImageEditor } from './ImageEditor';
@@ -72,7 +77,7 @@ const PROMPT_HISTORY_KEY = 'imaginai_prompt_history';
 
 export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUsed, onUpgradeRequired, onImageGenerated, onDeleteImage, onUpdateUser, initialPrompt, hasApiKey, onSelectKey, onLoginClick }) => {
   const [genMode, setGenMode] = useState<'tti' | 'iti'>('tti');
-  const [imageEngine, setImageEngine] = useState<'klingai' | 'gemini' | 'deapi' | 'runware' | 'seedream'>('runware');
+  const [imageEngine, setImageEngine] = useState<'klingai' | 'gemini' | 'deapi' | 'runware' | 'seedream' | 'seedream40' | 'dalle3'>('runware');
   const [prompt, setPrompt] = useState(initialPrompt || '');
   const [negativePrompt, setNegativePrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('1:1');
@@ -86,7 +91,11 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
   const [seedreamQuality, setSeedreamQuality] = useState<'standard' | 'high' | 'ultra'>('high');
   const [seedreamGuidance, setSeedreamGuidance] = useState<number>(8);
   const [seedreamSeed, setSeedreamSeed] = useState<number | undefined>(undefined);
-  const [seedreamModel, setSeedreamModel] = useState<string>('sd-4.5');
+  const [seedreamModel, setSeedreamModel] = useState<string>('seedream-4-5-251128');
+  // DALL·E 3 preferences
+  const [dalleSize, setDalleSize] = useState<'1024x1024'>('1024x1024');
+  const [dalleQuality, setDalleQuality] = useState<'standard' | 'hd'>('standard');
+  const [dalleStyle, setDalleStyle] = useState<'vivid' | 'natural'>('vivid');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [resultImage, setResultImage] = useState<GeneratedImage | null>(null);
@@ -107,6 +116,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
   const [isAspectRatioMenuOpen, setIsAspectRatioMenuOpen] = useState(false);
   const [isStyleMenuOpen, setIsStyleMenuOpen] = useState(false);
   const [isNegativeMenuOpen, setIsNegativeMenuOpen] = useState(false);
+  const [isImageEngineMenuOpen, setIsImageEngineMenuOpen] = useState(false);
   const [showPromptHistory, setShowPromptHistory] = useState(false);
   const [isCreditDropdownOpen, setIsCreditDropdownOpen] = useState(false);
   
@@ -124,6 +134,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
   const aspectRatioMenuRef = useRef<HTMLDivElement>(null);
   const styleMenuRef = useRef<HTMLDivElement>(null);
   const negativeMenuRef = useRef<HTMLDivElement>(null);
+  const imageEngineMenuRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
   const zoomContainerRef = useRef<HTMLDivElement>(null);
   const creditDropdownRef = useRef<HTMLDivElement>(null);
@@ -150,6 +161,11 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
             if (typeof state.seedreamSettings.seed === 'number') setSeedreamSeed(state.seedreamSettings.seed);
             if (typeof state.seedreamSettings.model === 'string') setSeedreamModel(state.seedreamSettings.model);
           }
+          if (state.dalleSettings) {
+            if (state.dalleSettings.size) setDalleSize(state.dalleSettings.size);
+            if (state.dalleSettings.quality) setDalleQuality(state.dalleSettings.quality);
+            if (state.dalleSettings.style) setDalleStyle(state.dalleSettings.style);
+          }
         }
       });
     }
@@ -173,12 +189,32 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
             guidance: seedreamGuidance,
             seed: seedreamSeed,
             model: seedreamModel,
-          }
+            },
+            dalleSettings: {
+              size: dalleSize,
+              quality: dalleQuality,
+              style: dalleStyle,
+            }
         });
       }, 1000);
       return () => clearTimeout(timeoutId);
     }
-  }, [user, genMode, imageEngine, prompt, negativePrompt, aspectRatio, selectedStyle, isProMode, seedreamResolution, seedreamQuality, seedreamGuidance, seedreamSeed, seedreamModel]);
+  }, [user, genMode, imageEngine, prompt, negativePrompt, aspectRatio, selectedStyle, isProMode, seedreamResolution, seedreamQuality, seedreamGuidance, seedreamSeed, seedreamModel, dalleSize, dalleQuality, dalleStyle]);
+
+  // Keep Seedream model defaults aligned with selected engine
+  useEffect(() => {
+    if (imageEngine === 'seedream40') {
+      const model40Env = (process as any)?.env?.SEEDREAM_MODEL_40;
+      const preferred40 = model40Env || 'seedream-4-0-250828';
+      if (!seedreamModel || ['seedream-4.5','seedream-4-5','seedream-4-5-251128'].includes(seedreamModel)) {
+        setSeedreamModel(preferred40);
+      }
+    } else if (imageEngine === 'seedream') {
+      if (!seedreamModel || seedreamModel === 'seedream-4.0' || seedreamModel === 'seedream-4-0' || seedreamModel === 'seedream-4-0-250828') {
+        setSeedreamModel('seedream-4-5-251128');
+      }
+    }
+  }, [imageEngine, seedreamModel]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -191,6 +227,9 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
       }
       if (negativeMenuRef.current && !negativeMenuRef.current.contains(target)) {
         setIsNegativeMenuOpen(false);
+      }
+      if (imageEngineMenuRef.current && !imageEngineMenuRef.current.contains(target)) {
+        setIsImageEngineMenuOpen(false);
       }
       if (historyRef.current && !historyRef.current.contains(target)) {
         setShowPromptHistory(false);
@@ -323,6 +362,13 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
       return;
     }
 
+    // Check if user has enough credits for DALL-E 3 (3 credits)
+    if (imageEngine === 'dalle3' && user && user.plan !== 'premium' && user.credits < 3) {
+      setError('DALL·E 3 requires 3 credits. Please upgrade or switch to another engine.');
+      onUpgradeRequired();
+      return;
+    }
+
     if (!prompt.trim()) { setError("Input a directorial script to begin synthesis."); return; }
     
     if (genMode === 'iti' && !selectedImage && !previewUrl) { 
@@ -362,7 +408,6 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
       if (imageEngine === 'klingai') {
         // KlingAI generation
         console.log('[Generator] Generating with KlingAI:', { prompt: finalPrompt, aspect_ratio: supportedRatio, mode: isProMode ? 'pro' : 'standard' });
-        const { generateImageWithKlingAI } = await import('../services/klingaiImageService').then(m => ({ generateImageWithKlingAI: (m as any).generateImageWithKlingAI }));
         const body: any = {
           prompt: finalPrompt,
           negative_prompt: cleanNegativePrompt || undefined,
@@ -379,7 +424,6 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
       } else if (imageEngine === 'deapi') {
         // DeAPI.ai generation
         console.log('[Generator] Generating with DeAPI.ai:', { prompt: finalPrompt, aspect_ratio: supportedRatio, mode: isProMode ? 'pro' : 'standard' });
-        const { generateImageWithDeAPI } = await import('../services/deapiService').then(m => ({ generateImageWithDeAPI: (m as any).generateImageWithDeAPI }));
         const body: any = {
           prompt: finalPrompt,
           negative_prompt: cleanNegativePrompt || undefined,
@@ -395,7 +439,6 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
         console.log('[Generator] DeAPI.ai responded with URL:', generatedDataUrl);
       } else if (imageEngine === 'runware') {
         console.log('[Generator] Generating with Runware.ai:', { prompt: finalPrompt, aspect_ratio: supportedRatio });
-        const { generateImageWithRunware } = await import('../services/runwareService').then(m => ({ generateImageWithRunware: (m as any).generateImageWithRunware }));
         const body: any = {
           prompt: finalPrompt,
           negative_prompt: cleanNegativePrompt || undefined,
@@ -408,11 +451,22 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
         console.log('[Generator] Calling Runware.ai API via proxy');
         generatedDataUrl = await generateImageWithRunware(body);
         console.log('[Generator] Runware.ai responded with URL:', generatedDataUrl);
-      } else if (imageEngine === 'seedream') {
-        console.log('[Generator] Generating with Seedream 4.5:', { prompt: finalPrompt, aspect_ratio: supportedRatio, resolution: seedreamResolution, quality: seedreamQuality, guidance: seedreamGuidance, seed: seedreamSeed });
-        const { generateImageWithSeedream } = await import('../services/seedreamService').then(m => ({ generateImageWithSeedream: (m as any).generateImageWithSeedream }));
+      } else if (imageEngine === 'seedream' || imageEngine === 'seedream40') {
+        const isSeedream40 = imageEngine === 'seedream40';
+        const seedreamDefaultModel = isSeedream40 ? 'seedream-4-0-250828' : 'seedream-4-5-251128';
+        const effectiveModel = (seedreamModel && seedreamModel.trim()) || seedreamDefaultModel;
+
+        console.log(`[Generator] Generating with Seedream ${isSeedream40 ? '4.0' : '4.5'}:`, {
+          model: effectiveModel,
+          prompt: finalPrompt,
+          aspect_ratio: supportedRatio,
+          resolution: seedreamResolution,
+          quality: seedreamQuality,
+          guidance: seedreamGuidance,
+          seed: seedreamSeed
+        });
         const body: any = {
-          model: seedreamModel || undefined,
+          model: effectiveModel,
           prompt: finalPrompt,
           negative_prompt: cleanNegativePrompt || undefined,
           aspect_ratio: supportedRatio,
@@ -425,9 +479,21 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
         if (base64Image) {
           body.image_url = `data:${mimeType};base64,${base64Image}`;
         }
-        console.log('[Generator] Calling Seedream 4.5 via proxy');
+        console.log(`[Generator] Calling Seedream ${isSeedream40 ? '4.0' : '4.5'} via proxy`);
         generatedDataUrl = await generateImageWithSeedream(body);
         console.log('[Generator] Seedream responded with URL/Data');
+      } else if (imageEngine === 'dalle3') {
+        if (genMode === 'iti') {
+          throw new Error('DALL·E 3 currently supports text-to-image only. Switch to Text mode.');
+        }
+        console.log('[Generator] Generating with DALL·E 3:', { prompt: finalPrompt, size: dalleSize, quality: dalleQuality, style: dalleStyle });
+        generatedDataUrl = await generateImageWithDalle3({
+          prompt: finalPrompt,
+          size: dalleSize,
+          quality: dalleQuality,
+          style: dalleStyle,
+          negativePrompt: cleanNegativePrompt || undefined,
+        });
       } else {
         // Gemini generation requires the shared Gemini API key (same as Voice & Audio)
         if (!hasApiKey) {
@@ -466,6 +532,9 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
       // AUTO-SAVE LOGIC: Persistence triggers immediately on success
       if (user) {
         onImageGenerated(newImage);
+        // Deduct 3 credits for all image generations
+        onCreditUsed();
+        onCreditUsed();
         onCreditUsed();
         try { await saveImageToFirebase(newImage, user.id); } catch {}
       }
@@ -493,11 +562,6 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
       {/* Header Section */}
       <section className="pt-6 sm:pt-8 pb-8 sm:pb-12 relative">
         <div className="max-w-[1400px] mx-auto px-3 sm:px-4">
-          <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-[10px] sm:text-xs font-black text-indigo-400 uppercase tracking-[0.3em] sm:tracking-[0.4em] mb-2 sm:mb-3 md:mb-4 px-2">Live Production Engine</h2>
-            <h3 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white uppercase italic tracking-tighter px-2">Generate High-Quality Images</h3>
-          </div>
-
           {error && (
             <div className="max-w-2xl mx-auto mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-red-900/10 border border-red-500/20 text-center">
               <div className="flex items-center justify-center gap-2 sm:gap-3">
@@ -526,40 +590,73 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                 <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 bg-indigo-600/10 blur-[40px] sm:blur-[60px] md:blur-[80px] rounded-full -mr-12 sm:-mr-16 md:-mr-20 -mt-12 sm:-mt-16 md:-mt-20 pointer-events-none" />
                 
                 {/* AI Engine Selector */}
-                <div className="mb-3 sm:mb-4 relative z-10">
+                <div className="mb-3 sm:mb-4 relative z-[50]" ref={imageEngineMenuRef}>
                   <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-1.5 sm:mb-2 block">AI Engine</label>
-                  <div className="flex overflow-x-auto bg-black/50 p-1 sm:p-1.5 rounded-lg sm:rounded-xl border border-white/5 gap-1 no-scrollbar">
-                    <button 
-                      onClick={() => setImageEngine('klingai')}
-                      className={`flex-shrink-0 px-2 sm:px-3 py-1.5 sm:py-2.5 md:py-3 rounded-lg text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${imageEngine === 'klingai' ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-                    >
-                      KlingAI
-                    </button>
-                    <button 
-                      onClick={() => setImageEngine('gemini')}
-                      className={`flex-shrink-0 px-2 sm:px-3 py-1.5 sm:py-2.5 md:py-3 rounded-lg text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${imageEngine === 'gemini' ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-                    >
-                      Gemini 2.5
-                    </button>
-                    <button 
-                      onClick={() => setImageEngine('deapi')}
-                      className={`flex-shrink-0 px-2 sm:px-3 py-1.5 sm:py-2.5 md:py-3 rounded-lg text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${imageEngine === 'deapi' ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-                    >
-                      DeAPI.ai
-                    </button>
-                    <button 
-                      onClick={() => setImageEngine('runware')}
-                      className={`flex-shrink-0 px-2 sm:px-3 py-1.5 sm:py-2.5 md:py-3 rounded-lg text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${imageEngine === 'runware' ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-                    >
-                      Runware.ai
-                    </button>
-                    <button 
-                      onClick={() => setImageEngine('seedream')}
-                      className={`flex-shrink-0 px-2 sm:px-3 py-1.5 sm:py-2.5 md:py-3 rounded-lg text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${imageEngine === 'seedream' ? 'bg-gradient-to-r from-fuchsia-600 to-rose-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-                    >
-                      Seedream 4.5
-                    </button>
-                  </div>
+                  <button 
+                    onClick={() => !isGenerating && setIsImageEngineMenuOpen(!isImageEngineMenuOpen)}
+                    disabled={isGenerating}
+                    className="w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 bg-black/50 border border-white/10 rounded-lg sm:rounded-xl text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <Sparkles className="w-3 h-3 text-indigo-400 flex-shrink-0" />
+                      <span className="truncate text-[7px] sm:text-[8px]">
+                        {imageEngine === 'klingai' && 'KlingAI'}
+                        {imageEngine === 'gemini' && 'Gemini 2.5'}
+                        {imageEngine === 'deapi' && 'DeAPI.ai'}
+                        {imageEngine === 'runware' && 'Runware.ai'}
+                        {imageEngine === 'seedream' && 'Seedream 4.5'}
+                        {imageEngine === 'seedream40' && 'Seedream 4.0'}
+                        {imageEngine === 'dalle3' && 'DALL·E 3'}
+                      </span>
+                    </div>
+                    <ChevronDown className={`w-2.5 h-2.5 text-gray-500 transition-transform flex-shrink-0 ${isImageEngineMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isImageEngineMenuOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-2 z-[200] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                      <button 
+                        onClick={() => { setImageEngine('klingai'); setIsImageEngineMenuOpen(false); }}
+                        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'klingai' ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5'}`}
+                      >
+                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">KlingAI</span>
+                      </button>
+                      <button 
+                        onClick={() => { setImageEngine('gemini'); setIsImageEngineMenuOpen(false); }}
+                        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'gemini' ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5'}`}
+                      >
+                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Gemini 2.5</span>
+                      </button>
+                      <button 
+                        onClick={() => { setImageEngine('deapi'); setIsImageEngineMenuOpen(false); }}
+                        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'deapi' ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5'}`}
+                      >
+                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">DeAPI.ai</span>
+                      </button>
+                      <button 
+                        onClick={() => { setImageEngine('runware'); setIsImageEngineMenuOpen(false); }}
+                        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'runware' ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5'}`}
+                      >
+                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Runware.ai</span>
+                      </button>
+                      <button 
+                        onClick={() => { setImageEngine('seedream'); setIsImageEngineMenuOpen(false); }}
+                        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'seedream' ? 'bg-gradient-to-r from-fuchsia-600 to-rose-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5'}`}
+                      >
+                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Seedream 4.5</span>
+                      </button>
+                      <button 
+                        onClick={() => { setImageEngine('seedream40'); setIsImageEngineMenuOpen(false); }}
+                        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'seedream40' ? 'bg-gradient-to-r from-purple-600 to-pink-500 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5'}`}
+                      >
+                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Seedream 4.0</span>
+                      </button>
+                      <button 
+                        onClick={() => { setImageEngine('dalle3'); setIsImageEngineMenuOpen(false); }}
+                        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'dalle3' ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+                      >
+                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">DALL·E 3</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Mode Selector */}
@@ -568,13 +665,13 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                     onClick={() => setGenMode('tti')}
                     className={`flex-1 py-2 sm:py-2.5 md:py-3 lg:py-4 rounded-lg text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 ${genMode === 'tti' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
                   >
-                    <Terminal className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" /> <span className="hidden xs:inline">Text</span>Image
+                    <Terminal className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" /> Text To Image
                   </button>
                   <button 
                     onClick={() => setGenMode('iti')}
                     className={`flex-1 py-2 sm:py-2.5 md:py-3 lg:py-4 rounded-lg text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 ${genMode === 'iti' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
                   >
-                    <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" /> <span className="hidden xs:inline">Image</span>Transform
+                    <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" /> Image To Image
                   </button>
                 </div>
 
@@ -715,6 +812,54 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                     </div>
                   )}
 
+                  {/* DALL·E 3 Preferences */}
+                  {imageEngine === 'dalle3' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-fade-in">
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Resolution</label>
+                        <select
+                          value={dalleSize}
+                          onChange={(e) => setDalleSize(e.target.value as any)}
+                          className="w-full px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest"
+                        >
+                          <option value="1024x1024">1024 × 1024</option>
+                        </select>
+                        <p className="text-[9px] text-gray-500 ml-1">Fixed square output from DALL·E 3.</p>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Quality</label>
+                        <select
+                          value={dalleQuality}
+                          onChange={(e) => setDalleQuality(e.target.value as any)}
+                          className="w-full px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest"
+                        >
+                          <option value="standard">Standard</option>
+                          <option value="hd">HD</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2 sm:col-span-2">
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Style</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setDalleStyle('vivid')}
+                            className={`px-3 py-3 rounded-xl border text-[9px] font-black uppercase tracking-widest ${dalleStyle === 'vivid' ? 'border-indigo-400 bg-indigo-500/10 text-white' : 'border-white/10 text-gray-400 hover:border-white/20'}`}
+                          >
+                            Vivid
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDalleStyle('natural')}
+                            className={`px-3 py-3 rounded-xl border text-[9px] font-black uppercase tracking-widest ${dalleStyle === 'natural' ? 'border-indigo-400 bg-indigo-500/10 text-white' : 'border-white/10 text-gray-400 hover:border-white/20'}`}
+                          >
+                            Natural
+                          </button>
+                        </div>
+                        <p className="text-[9px] text-gray-500 ml-1">OpenAI presets: vivid = richer colors, natural = realistic.</p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Negative Prompt */}
                   <div className="animate-fade-in relative bg-black/30 border border-white/10 rounded-2xl p-4" ref={negativeMenuRef}>
                     <div className="flex justify-between gap-3 mb-2">
@@ -757,7 +902,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                     )}
                     <textarea 
                       placeholder="Things you want to avoid (e.g., blurry, watermarks, distorted hands)"
-                      className="w-full h-28 bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm outline-none focus:ring-2 focus:ring-pink-500/40 resize-none"
+                      className="w-full h-16 bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm outline-none focus:ring-2 focus:ring-pink-500/40 resize-none"
                       value={negativePrompt}
                       onChange={(e) => setNegativePrompt(e.target.value)}
                     />
@@ -821,24 +966,15 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                   </div>
 
                   {/* Generate Button */}
-                  <button 
+                  <button
                     onClick={handleGenerate} 
                     disabled={isGenerating || showIdentityCheck || (!prompt.trim() && genMode === 'tti') || (genMode === 'iti' && !selectedImage)}
-                    className="w-full py-4 sm:py-5 lg:py-6 bg-indigo-600 hover:bg-indigo-500 disabled:bg-white/10 disabled:text-white/50 disabled:cursor-not-allowed text-white rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm uppercase tracking-[0.15em] sm:tracking-[0.2em] shadow-xl flex items-center justify-center gap-2 sm:gap-3 transition-all transform active:scale-[0.98] min-h-[56px]"
+                    className={`w-full h-[68px] rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] border-2 relative overflow-hidden group uppercase tracking-[0.25em] ${isGenerating ? 'bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 text-gray-500 border-gray-700/20 shadow-none cursor-wait' : (showIdentityCheck ? 'bg-gradient-to-r from-white/5 via-white/5 to-white/5 text-white/30 border-white/5 shadow-none cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-600 hover:from-indigo-500 hover:via-indigo-400 hover:to-indigo-500 text-white border-indigo-400/20 hover:border-indigo-300/40 shadow-[0_8px_32px_rgba(99,102,241,0.4)] hover:shadow-[0_12px_48px_rgba(99,102,241,0.6)]')}`}
+                    title={showIdentityCheck ? 'A verification link was sent to your email. Please confirm your identity to proceed.' : undefined}
                   >
-                    {isGenerating ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-                        <span className="hidden xs:inline">Synthesizing...</span>
-                        <span className="xs:hidden">Creating...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-white" />
-                        <span className="hidden sm:inline">{showIdentityCheck ? 'Verify Email First' : 'Generate Image (1 Credit)'}</span>
-                        <span className="sm:hidden">{showIdentityCheck ? 'Verify Email' : 'Generate (1)'}</span>
-                      </>
-                    )}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 group-hover:animate-shimmer"></div>
+                    {isGenerating ? <RefreshCw className="w-6 h-6 animate-spin relative z-10" /> : <Zap className="w-6 h-6 fill-white drop-shadow-[0_2px_8px_rgba(255,255,255,0.5)] relative z-10" />}
+                    <span className="relative z-10">{isGenerating ? 'SYNTHESIZING...' : (showIdentityCheck ? 'VERIFY EMAIL FIRST' : (imageEngine === 'dalle3' ? 'GENERATE IMAGE NOW (3 CREDITS)' : 'GENERATE IMAGE NOW (3 CREDIT)'))}</span>
                   </button>
                 </div>
               </div>
@@ -1041,33 +1177,54 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
         </section>
       )}
 
-      {/* Recent History Section */}
+      {/* RECENTLY GENERATED Section */}
       {imageHistory.length > 0 && (
-        <section className="py-16">
+        <section className="py-16 bg-gradient-to-b from-dark-900/40 to-transparent">
           <div className="max-w-[1400px] mx-auto px-4">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-10">
               <div>
-                <h3 className="text-sm font-black text-pink-400 uppercase tracking-[0.4em] mb-2">Neural Vault</h3>
-                <h4 className="text-3xl font-black text-white uppercase italic tracking-tighter">Recent History</h4>
+                <h3 className="text-sm font-black text-indigo-400 uppercase tracking-[0.4em] mb-3 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  Your Creations
+                </h3>
+                <h4 className="text-3xl md:text-4xl font-black text-white uppercase italic tracking-tighter">Recently Generated</h4>
               </div>
-              <div className="text-xs font-black text-gray-600 uppercase tracking-widest">
-                {imageHistory.length} Creations
+              <div className="text-xs font-black text-gray-600 uppercase tracking-widest px-4 py-2 bg-indigo-600/10 border border-indigo-500/20 rounded-full">
+                {imageHistory.length} {imageHistory.length === 1 ? 'Image' : 'Images'}
               </div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {imageHistory.slice(0, 12).map((img) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
+              {imageHistory.slice(0, 18).map((img) => (
                 <div 
                   key={img.id} 
                   onClick={() => { setResultImage(img); setPreviewZoom(1); }}
-                  className="group aspect-square bg-dark-900 border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 transition-all cursor-pointer relative"
+                  className="group aspect-square bg-dark-900 border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 hover:-translate-y-1 transition-all cursor-pointer relative shadow-lg"
                 >
-                  <img src={img.url} alt="History" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <Eye className="w-6 h-6 text-white" />
+                  <img src={img.url} alt="Generated" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute bottom-3 left-3 right-3">
+                      <p className="text-white text-[9px] font-medium line-clamp-2 mb-2">{img.prompt}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[8px] text-gray-400">{new Date(img.createdAt).toLocaleDateString()}</span>
+                        <Eye className="w-4 h-4 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="px-2 py-1 bg-indigo-600/90 backdrop-blur-sm rounded-lg">
+                      <span className="text-[8px] font-black text-white uppercase">View</span>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
+            {user && (
+              <div className="mt-8 text-center">
+                <p className="text-xs text-gray-500 font-medium">
+                  Your generated images are automatically saved and synced with Gallery
+                </p>
+              </div>
+            )}
           </div>
         </section>
       )}

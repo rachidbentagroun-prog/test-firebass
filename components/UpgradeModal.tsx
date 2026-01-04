@@ -11,35 +11,57 @@ interface UpgradeModalProps {
 
 const UPGRADE_PLANS: Plan[] = [
   {
-    id: 'basic',
-    name: 'Basic Creator',
-    price: '$9.9',
-    credits: 100,
+    id: 'test',
+    name: 'Test Plan',
+    price: '$1',
+    credits: 10,
     features: [
-      '100 Generations / mo',
-      'Faster Generation',
-      'Private Gallery',
-      'Commercial License'
+      'Up to 3 videos / month',
+      'Or Up to 10 images / month',
+      'Up to 1 Minute Ai Voice&Audio / month',
+      'Sora2 and 15s / 25s HD video',
+      '3 parallel tasks',
+      '1080P HD Output',
+      'No Watermarks',
+      'Instant Generation',
+      'Dall-E 3 - Sora2 - Chatgpt'
+    ],
+    buttonUrl: 'https://bentagroun.gumroad.com/l/bnisgtn'
+  },
+  {
+    id: 'basic',
+    name: 'Basic Plan',
+    price: '$9.9',
+    credits: 80,
+    features: [
+      'Up to 10 videos / month',
+      'Or Up to 80 images / month',
+      'Up to 20 Minutes Ai Voice&Audio / month',
+      'Sora2 and 15s / 25s HD video',
+      '3 parallel tasks',
+      '1080P HD Output',
+      'No Watermarks',
+      'Instant Generation',
+      'Dall-E 3 - Sora2 - Chatgpt'
     ],
     recommended: true,
     buttonUrl: 'https://bentagroun.gumroad.com/l/huodf'
   },
   {
     id: 'premium',
-    name: 'Premium',
+    name: 'Premium Plan',
     price: '$20',
-    credits: 250,
+    credits: 180,
     features: [
-      '250 Generations / mo',
-      'Priority Processing Speed',
-      'Early Access to New Features',
-      'Advanced AI Models',
-      'Extended Video Length',
-      'HD Audio Quality',
-      'Priority Support',
-      'Commercial License',
-      'API Access (Coming Soon)',
-      'Team Collaboration (Coming Soon)'
+      'Up to 20 videos / month',
+      'Or Up to 180 images / month',
+      'Up to 40 Minutes Ai Voice&Audio / month',
+      'Sora2 and 15s / 25s HD video',
+      '3 parallel tasks',
+      '1080P HD Output',
+      'No Watermarks',
+      'Instant Generation',
+      'Dall-E 3 - Sora2 - Chatgpt'
     ],
     buttonUrl: 'https://bentagroun.gumroad.com/l/zrgraz'
   }

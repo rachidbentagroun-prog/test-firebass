@@ -197,7 +197,7 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
             <button onClick={() => onNavigate('dashboard')} className="px-5 py-3 rounded-xl bg-white text-dark-950 font-bold text-sm hover:bg-gray-100 transition-colors">
               Start Creating
             </button>
-            <button onClick={() => onNavigate('upgrade')} className="px-5 py-3 rounded-xl bg-white/5 text-white border border-white/10 font-bold text-sm hover:bg-white/10 transition-colors">
+            <button onClick={() => onNavigate('pricing')} className="px-5 py-3 rounded-xl bg-white/5 text-white border border-white/10 font-bold text-sm hover:bg-white/10 transition-colors">
               View Pricing
             </button>
           </div>
@@ -348,7 +348,7 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
           </div>
           <div className="flex gap-3">
             <button onClick={() => onNavigate(user ? 'dashboard' : 'signup')} className="px-5 py-3 rounded-xl bg-white text-dark-950 font-bold text-sm hover:bg-gray-100 transition-colors">{user ? 'Open Dashboard' : 'Get Started'}</button>
-            <button onClick={() => onNavigate('upgrade')} className="px-5 py-3 rounded-xl bg-white/5 text-white border border-white/10 font-bold text-sm hover:bg-white/10 transition-colors">View Plans</button>
+            <button onClick={() => onNavigate('pricing')} className="px-5 py-3 rounded-xl bg-white/5 text-white border border-white/10 font-bold text-sm hover:bg-white/10 transition-colors">View Plans</button>
           </div>
         </div>
       </div>

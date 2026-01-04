@@ -1484,10 +1484,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <h4 className="text-lg font-black text-white uppercase italic mb-6 flex items-center gap-2">
                       <UserIcon className="w-5 h-5 text-indigo-400" /> User Information
                     </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                       <div>
                         <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">User ID</div>
                         <div className="text-sm font-bold text-white">#{selectedUser.id.substring(0, 12)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Email</div>
+                        <div className="text-sm font-bold text-white break-words">{selectedUser.email || 'No email on record'}</div>
                       </div>
                       <div>
                         <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Plan</div>

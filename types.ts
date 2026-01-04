@@ -43,6 +43,7 @@ export interface User {
   status?: 'active' | 'suspended';
   joinedAt?: number;
   avatarUrl?: string;
+  theme?: 'dark' | 'light'; // Theme preference
 }
 
 export interface GeneratedImage {

@@ -25,23 +25,27 @@ export const WhatsAppWidget: React.FC<WhatsAppWidgetProps> = ({
   };
 
   const positionClasses = position === 'bottom-left' 
-    ? 'bottom-6 left-6 sm:bottom-8 sm:left-8' 
-    : 'bottom-6 right-6 sm:bottom-8 sm:right-8';
+    ? 'bottom-5 left-5 sm:bottom-6 sm:left-6' 
+    : 'bottom-5 right-5 sm:bottom-6 sm:right-6';
 
   return (
     <>
       {/* WhatsApp Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed ${positionClasses} z-40 group transition-all duration-300 transform hover:scale-110 active:scale-95`}
+        className={`fixed ${positionClasses} z-[9998] group transition-all duration-300 transform hover:scale-110 active:scale-95`}
         title="Chat on WhatsApp"
+        style={{ 
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          paddingRight: 'env(safe-area-inset-right)'
+        }}
       >
         <div className="relative flex items-center justify-center">
           {/* Animated Background Pulse */}
-          <div className="absolute inset-0 bg-green-500 rounded-full animate-pulse opacity-75 scale-100 group-hover:scale-110 transition-transform" />
+          <div className="absolute inset-0 bg-green-500 rounded-full animate-pulse opacity-75 scale-100 group-hover:scale-110 transition-transform pointer-events-none" />
           
           {/* Main Button */}
-          <div className="relative w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-2xl group-hover:shadow-green-500/50">
+          <div className="relative w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-2xl group-hover:shadow-green-500/50 transition-shadow">
             {isOpen ? (
               <X className="w-7 h-7 sm:w-8 sm:h-8 text-white transition-transform duration-300 rotate-90" />
             ) : (
@@ -61,7 +65,7 @@ export const WhatsAppWidget: React.FC<WhatsAppWidgetProps> = ({
 
       {/* Chat Modal */}
       {isOpen && (
-        <div className={`fixed ${positionClasses} z-50 mb-20 sm:mb-24 animate-fade-in`}>
+        <div className={`fixed ${positionClasses} z-[9999] mb-20 sm:mb-24 animate-fade-in`}>
           <div className="w-80 sm:w-96 bg-dark-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
             {/* Header */}
             <div className="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4 flex items-center justify-between">
@@ -176,7 +180,7 @@ export const WhatsAppWidget: React.FC<WhatsAppWidgetProps> = ({
 
       {/* Mobile-optimized notification badge */}
       {!isOpen && (
-        <div className="fixed bottom-24 sm:bottom-32 right-6 sm:right-8 z-40 animate-bounce" style={{ animationDuration: '2s' }}>
+        <div className="fixed bottom-20 sm:bottom-24 right-5 sm:right-6 z-[9997] animate-bounce" style={{ animationDuration: '2s' }}>
           <div className="bg-green-500 text-white text-[10px] font-black uppercase px-2 py-1 rounded-full shadow-lg">
             Need Help?
           </div>
