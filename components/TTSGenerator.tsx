@@ -426,6 +426,8 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
   };
 
   const handleGenerate = async () => {
+    // Guest gating: require signup/login before generation
+    if (!user) { onUpgradeRequired(); return; }
     if (isOutOfCredits) { onUpgradeRequired(); return; }
     if (!text.trim()) { setError("Input script required."); return; }
     if (mode === 'clone' && !clonedVoiceData) { setError("Reference voice required."); return; }

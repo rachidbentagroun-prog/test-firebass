@@ -333,6 +333,8 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
   };
 
   const handleGenerate = async () => {
+    // Guest gating: require signup/login before generation
+    if (!user) { onUpgradeRequired(); return; }
     if (!hasApiKey) { onSelectKey(); return; }
     if (isOutOfCredits) { onUpgradeRequired(); return; }
     if (!prompt.trim() && mode !== 'interpolation') { setError("Please describe the cinematic sequence."); return; }
