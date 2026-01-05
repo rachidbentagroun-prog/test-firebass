@@ -176,11 +176,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           <NavLink label="Explore" page="explore" icon={<Compass size={16} strokeWidth={2} />} />
           <NavLink label="AI Chat" page="chat-landing" icon={<MessageSquare size={16} strokeWidth={2} />} />
           <NavLink label="AI Image" page="dashboard" icon={<Sparkles size={16} strokeWidth={2} />} />
+          <NavLink label="AI Video" page="video-generator" icon={<Video size={16} strokeWidth={2} />} />
+          <NavLink label="AI Voice&Audio" page="tts-generator" icon={<Mic2 size={16} strokeWidth={2} />} />
 
           {user?.isRegistered && (
             <>
-              <NavLink label="AI Video" page="video-generator" icon={<Video size={16} strokeWidth={2} />} />
-              <NavLink label="AI Voice" page="tts-generator" icon={<Mic2 size={16} strokeWidth={2} />} />
               <NavLink label="Gallery" page="gallery" icon={<ImageIcon size={16} strokeWidth={2} />} />
             </>
           )}
@@ -489,11 +489,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button onClick={() => handleNavClick('explore')} className="mobile-link">Explore</button>
           <button onClick={() => handleNavClick('chat-landing')} className="mobile-link">AI Chat</button>
           <button onClick={() => handleNavClick('dashboard')} className="mobile-link">AI Image</button>
+          <button onClick={() => handleNavClick('video-generator')} className="mobile-link">AI Video</button>
+          <button onClick={() => handleNavClick('tts-generator')} className="mobile-link">AI Voice&Audio</button>
 
           {user?.isRegistered && (
             <>
-              <button onClick={() => handleNavClick('video-generator')} className="mobile-link">AI Video</button>
-              <button onClick={() => handleNavClick('tts-generator')} className="mobile-link">AI Voice</button>
               <button onClick={() => handleNavClick('gallery')} className="mobile-link">Gallery</button>
             </>
           )}
