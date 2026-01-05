@@ -177,7 +177,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <NavLink label="AI Chat" page="chat-landing" icon={<MessageSquare size={16} strokeWidth={2} />} />
           <NavLink label="AI Image" page="dashboard" icon={<Sparkles size={16} strokeWidth={2} />} />
           <NavLink label="AI Video" page="video-generator" icon={<Video size={16} strokeWidth={2} />} />
-          <NavLink label="AI Voice&Audio" page="tts-generator" icon={<Mic2 size={16} strokeWidth={2} />} />
+          <NavLink label="AI Voice" page="tts-generator" icon={<Mic2 size={16} strokeWidth={2} />} />
 
           {user?.isRegistered && (
             <>
@@ -490,7 +490,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button onClick={() => handleNavClick('chat-landing')} className="mobile-link">AI Chat</button>
           <button onClick={() => handleNavClick('dashboard')} className="mobile-link">AI Image</button>
           <button onClick={() => handleNavClick('video-generator')} className="mobile-link">AI Video</button>
-          <button onClick={() => handleNavClick('tts-generator')} className="mobile-link">AI Voice&Audio</button>
+          <button onClick={() => handleNavClick('tts-generator')} className="mobile-link">AI Voice</button>
 
           {user?.isRegistered && (
             <>
