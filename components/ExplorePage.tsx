@@ -56,6 +56,18 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
     ? videos.map(v => ({ id: v.id, url: v.url, prompt: v.prompt }))
     : sampleVideos.map((url, i) => ({ id: `sample_vid_${i}`, url }));
 
+  // Featured videos in 9:16 aspect ratio (portrait)
+  const featuredVideos: Array<{ id: string; url: string; title: string }> = [
+    { id: 'featured_1', url: 'https://drive.google.com/uc?export=download&id=1mFU7sTQCPo84WK6aM6BfU26M-CcJbeZJ', title: 'Temporal Sequence 1' },
+    { id: 'featured_2', url: 'https://drive.google.com/uc?export=download&id=1nJOHLUU84IGSd4REkT_fJiZ4OYMyvieo', title: 'Temporal Sequence 2' },
+    { id: 'featured_3', url: 'https://drive.google.com/uc?export=download&id=1AON4YybKQGq1eEHBygC3lSk0wPn3E3_w', title: 'Temporal Sequence 3' },
+    { id: 'featured_4', url: 'https://drive.google.com/uc?export=download&id=1u4r_VQHzWGJbcbiYOSRN1momoq6UmS3Y', title: 'Temporal Sequence 4' },
+    { id: 'featured_5', url: 'https://drive.google.com/uc?export=download&id=1XhGbhFNSQIR336RUHKo7SV037asRuePq', title: 'Temporal Sequence 5' },
+    { id: 'featured_6', url: 'https://drive.google.com/uc?export=download&id=1lZqtqyO8wLE_bZpCegPsnHOSBrzvDMdS', title: 'Temporal Sequence 6' },
+    { id: 'featured_7', url: 'https://drive.google.com/uc?export=download&id=1ikLFKwV-2kMUKBnPPjlYU7i3MOZwJex7', title: 'Temporal Sequence 7' },
+    { id: 'featured_8', url: 'https://drive.google.com/uc?export=download&id=1sjtL87kAAKcqj0asJnaecch8vW8UEMNX', title: 'Temporal Sequence 8' },
+  ];
+
   // Curated embeds from official vendor channels (YouTube/Vimeo)
   const curatedEmbeds: Array<{ id: string; vendor: string; title: string; embedUrl: string }>= [
     { id: 'HK6y8DAPN_0', vendor: 'OpenAI', title: 'OpenAI Sora - Official First Look', embedUrl: 'https://www.youtube.com/embed/HK6y8DAPN_0?autoplay=1&mute=1&controls=0&playsinline=1&loop=1&playlist=HK6y8DAPN_0&modestbranding=1&rel=0' },
@@ -204,8 +216,8 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
         </div>
       </div>
 
-      {/* Videos Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      {/* Featured Videos Section - Portrait 9:16 */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-b border-white/10">
         <div className="flex items-end justify-between mb-8">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -213,6 +225,54 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
               <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Featured Videos</span>
             </div>
             <h2 className="text-2xl md:text-3xl font-black text-white italic">Temporal Sequences</h2>
+          </div>
+          <button onClick={() => onNavigate('video-lab-landing')} className="text-sm font-bold text-indigo-400 hover:text-white transition-colors">Open Video Lab →</button>
+        </div>
+        
+        {/* Featured Videos Slideshow - 9:16 Portrait */}
+        <div className="relative overflow-hidden rounded-2xl border border-white/5 mb-16">
+          <div className="marquee-track">
+            {[...featuredVideos, ...featuredVideos].map((vid, i) => (
+              <div key={`featured_${i}`} className="w-[280px] mr-4 rounded-xl overflow-hidden bg-black/40 border border-white/5 hover:border-purple-500/30 transition-all group cursor-pointer" onClick={() => onNavigate('video-lab-landing')}>
+                <div className="aspect-[9/16] relative">
+                  <video
+                    ref={(el) => { videoRefs.current[`featured_${i}_${vid.id}`] = el; }}
+                    src={vid.url}
+                    loop
+                    muted
+                    playsInline
+                    autoPlay
+                    crossOrigin="anonymous"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute top-3 left-3">
+                    <span className="px-2 py-1 rounded-full text-[8px] font-black tracking-widest bg-purple-600/30 border border-purple-500/30 text-purple-200 uppercase backdrop-blur-sm">Featured</span>
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/10">
+                      <Play className="w-5 h-5 text-white fill-white" />
+                    </div>
+                  </div>
+                  <div className="absolute bottom-3 left-3 right-3">
+                    <p className="text-white text-[10px] font-black uppercase tracking-wider truncate">{vid.title}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Videos Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <VideoIcon className="w-4 h-4 text-purple-400" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">User Generated</span>
+            </div>
+            <h2 className="text-2xl md:text-3xl font-black text-white italic">Community Videos</h2>
           </div>
           <button onClick={() => onNavigate('video-lab-landing')} className="text-sm font-bold text-indigo-400 hover:text-white transition-colors">Open Video Lab →</button>
         </div>
@@ -347,7 +407,7 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
             </div>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => onNavigate(user ? 'dashboard' : 'signup')} className="px-5 py-3 rounded-xl bg-white text-dark-950 font-bold text-sm hover:bg-gray-100 transition-colors">{user ? 'Open Dashboard' : 'Get Started'}</button>
+            <button onClick={() => onNavigate(user ? 'video-generator' : 'signup')} className="px-5 py-3 rounded-xl bg-white text-dark-950 font-bold text-sm hover:bg-gray-100 transition-colors">{user ? 'Start Creating' : 'Get Started'}</button>
             <button onClick={() => onNavigate('pricing')} className="px-5 py-3 rounded-xl bg-white/5 text-white border border-white/10 font-bold text-sm hover:bg-white/10 transition-colors">View Plans</button>
           </div>
         </div>

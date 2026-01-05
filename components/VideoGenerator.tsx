@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Video, Play, Sparkles, Upload, X, Download, RefreshCw, AlertCircle, 
-  Film, Zap, Gauge, Binary, Activity, History, RectangleHorizontal, RectangleVertical, Monitor, ChevronDown, Lock, Clock
+  Film, Zap, Gauge, Binary, Activity, History, RectangleHorizontal, RectangleVertical, Monitor, ChevronDown, Lock, Clock, Check
 } from 'lucide-react';
 import { convertBlobToBase64 } from '../services/geminiService';
 import { generateVideoWithSora } from '../services/soraService';
@@ -95,6 +96,10 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
   const [isEngineMenuOpen, setIsEngineMenuOpen] = useState(false);
   const [isFpsMenuOpen, setIsFpsMenuOpen] = useState(false);
   const [isQualityLevelMenuOpen, setIsQualityLevelMenuOpen] = useState(false);
+  const [engineMenuPosition, setEngineMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [dimMenuPosition, setDimMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [qualityMenuPosition, setQualityMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [durationMenuPosition, setDurationMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   
   const dimMenuRef = useRef<HTMLDivElement>(null);
   const qualityMenuRef = useRef<HTMLDivElement>(null);
@@ -103,6 +108,14 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
   const engineMenuRef = useRef<HTMLDivElement>(null);
   const fpsMenuRef = useRef<HTMLDivElement>(null);
   const qualityLevelMenuRef = useRef<HTMLDivElement>(null);
+  const engineButtonRef = useRef<HTMLButtonElement>(null);
+  const dimButtonRef = useRef<HTMLButtonElement>(null);
+  const qualityButtonRef = useRef<HTMLButtonElement>(null);
+  const durationButtonRef = useRef<HTMLButtonElement>(null);
+  const enginePortalRef = useRef<HTMLDivElement>(null);
+  const dimPortalRef = useRef<HTMLDivElement>(null);
+  const qualityPortalRef = useRef<HTMLDivElement>(null);
+  const durationPortalRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [startImage, setStartImage] = useState<{file: File, url: string} | null>(null);
@@ -155,6 +168,98 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
   }, [user, mode, prompt, aspectRatio, resolution, negativePrompt, duration, engine, fps, qualityLevel, motionStrength, cfgScale]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isEngineMenuOpen) return;
+
+    const updatePosition = () => {
+      if (!engineButtonRef.current) return;
+      const rect = engineButtonRef.current.getBoundingClientRect();
+      const margin = 8;
+      const width = rect.width;
+      const maxLeft = window.innerWidth - width - margin;
+      const left = Math.max(margin, Math.min(rect.left, maxLeft));
+      setEngineMenuPosition({ top: rect.bottom + margin, left, width });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isEngineMenuOpen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isDimMenuOpen) return;
+
+    const updatePosition = () => {
+      if (!dimButtonRef.current) return;
+      const rect = dimButtonRef.current.getBoundingClientRect();
+      const margin = 8;
+      const width = rect.width;
+      const maxLeft = window.innerWidth - width - margin;
+      const left = Math.max(margin, Math.min(rect.left, maxLeft));
+      setDimMenuPosition({ top: rect.bottom + margin, left, width });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isDimMenuOpen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isQualityMenuOpen) return;
+
+    const updatePosition = () => {
+      if (!qualityButtonRef.current) return;
+      const rect = qualityButtonRef.current.getBoundingClientRect();
+      const margin = 8;
+      const width = rect.width;
+      const maxLeft = window.innerWidth - width - margin;
+      const left = Math.max(margin, Math.min(rect.left, maxLeft));
+      setQualityMenuPosition({ top: rect.bottom + margin, left, width });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isQualityMenuOpen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isDurationMenuOpen) return;
+
+    const updatePosition = () => {
+      if (!durationButtonRef.current) return;
+      const rect = durationButtonRef.current.getBoundingClientRect();
+      const margin = 8;
+      const width = rect.width;
+      const maxLeft = window.innerWidth - width - margin;
+      const left = Math.max(margin, Math.min(rect.left, maxLeft));
+      setDurationMenuPosition({ top: rect.bottom + margin, left, width });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isDurationMenuOpen]);
+
+  useEffect(() => {
     let msgInterval: any;
     let progressInterval: any;
     
@@ -182,11 +287,11 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (dimMenuRef.current && !dimMenuRef.current.contains(target)) setIsDimMenuOpen(false);
-      if (qualityMenuRef.current && !qualityMenuRef.current.contains(target)) setIsQualityMenuOpen(false);
-      if (durationMenuRef.current && !durationMenuRef.current.contains(target)) setIsDurationMenuOpen(false);
+      if (dimMenuRef.current && !dimMenuRef.current.contains(target) && (!dimPortalRef.current || !dimPortalRef.current.contains(target))) setIsDimMenuOpen(false);
+      if (qualityMenuRef.current && !qualityMenuRef.current.contains(target) && (!qualityPortalRef.current || !qualityPortalRef.current.contains(target))) setIsQualityMenuOpen(false);
+      if (durationMenuRef.current && !durationMenuRef.current.contains(target) && (!durationPortalRef.current || !durationPortalRef.current.contains(target))) setIsDurationMenuOpen(false);
       if (negativeMenuRef.current && !negativeMenuRef.current.contains(target)) setIsNegativeMenuOpen(false);
-      if (engineMenuRef.current && !engineMenuRef.current.contains(target)) setIsEngineMenuOpen(false);
+      if (engineMenuRef.current && !engineMenuRef.current.contains(target) && (!enginePortalRef.current || !enginePortalRef.current.contains(target))) setIsEngineMenuOpen(false);
       if (fpsMenuRef.current && !fpsMenuRef.current.contains(target)) setIsFpsMenuOpen(false);
       if (qualityLevelMenuRef.current && !qualityLevelMenuRef.current.contains(target)) setIsQualityLevelMenuOpen(false);
     };
@@ -318,13 +423,120 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
   const currentFpsOption = FPS_OPTIONS.find(opt => opt.id === fps);
   const currentQualityLevelOption = QUALITY_LEVELS.find(opt => opt.id === qualityLevel);
 
+  const engineMenuPortal = (isEngineMenuOpen && engineMenuPosition && typeof document !== 'undefined') ? createPortal(
+    <div
+      ref={enginePortalRef}
+      className="fixed z-[12000] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.55)] max-h-[70vh] overflow-y-auto animate-scale-in"
+      style={{
+        top: engineMenuPosition.top,
+        left: engineMenuPosition.left,
+        width: engineMenuPosition.width,
+        maxWidth: 'calc(100vw - 16px)',
+      }}
+    >
+      {ENGINE_OPTIONS.map(opt => (
+        <button
+          key={opt.id}
+          onClick={() => { setEngine(opt.id); setIsEngineMenuOpen(false); }}
+          className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${engine === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">{opt.label}</span>
+              <span className="text-[9px] sm:text-[10px] text-gray-500">{opt.desc}</span>
+            </div>
+            <span className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-white/5 border border-white/10 text-gray-200">{opt.badge}</span>
+          </div>
+        </button>
+      ))}
+    </div>,
+    document.body
+  ) : null;
+
+  const dimMenuPortal = (isDimMenuOpen && dimMenuPosition && typeof document !== 'undefined') ? createPortal(
+    <div
+      ref={dimPortalRef}
+      className="fixed z-[12000] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.55)] max-h-[70vh] overflow-y-auto animate-scale-in"
+      style={{
+        top: dimMenuPosition.top,
+        left: dimMenuPosition.left,
+        width: dimMenuPosition.width,
+        maxWidth: 'calc(100vw - 16px)',
+      }}
+    >
+      {ASPECT_RATIOS.map(opt => (
+        <button
+          key={opt.id}
+          onClick={() => { setAspectRatio(opt.id); setIsDimMenuOpen(false); }}
+          className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 text-[9px] font-black transition-all ${aspectRatio === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}
+        >
+          <div className="flex items-center gap-2 truncate"><opt.icon className="w-3.5 h-3.5" /><span className="truncate">{opt.label}</span></div>
+          {aspectRatio === opt.id && <Check className="w-2.5 h-2.5 shrink-0" />}
+        </button>
+      ))}
+    </div>,
+    document.body
+  ) : null;
+
+  const qualityMenuPortal = (isQualityMenuOpen && qualityMenuPosition && typeof document !== 'undefined') ? createPortal(
+    <div
+      ref={qualityPortalRef}
+      className="fixed z-[12000] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.55)] max-h-[70vh] overflow-y-auto animate-scale-in"
+      style={{
+        top: qualityMenuPosition.top,
+        left: qualityMenuPosition.left,
+        width: qualityMenuPosition.width,
+        maxWidth: 'calc(100vw - 16px)',
+      }}
+    >
+      {QUALITIES.map(opt => (
+        <button
+          key={opt.id}
+          onClick={() => { setResolution(opt.id); setIsQualityMenuOpen(false); }}
+          className={`w-full text-left px-3 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all ${resolution === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}
+        >
+          <div className="flex items-center justify-between">
+            <span>{opt.label}</span>
+            <span className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-white/5 border border-white/10 text-gray-200">{opt.badge}</span>
+          </div>
+          <span className="block text-[9px] text-gray-500 normal-case mt-0.5">{opt.desc}</span>
+        </button>
+      ))}
+    </div>,
+    document.body
+  ) : null;
+
+  const durationMenuPortal = (isDurationMenuOpen && durationMenuPosition && typeof document !== 'undefined') ? createPortal(
+    <div
+      ref={durationPortalRef}
+      className="fixed z-[12000] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.55)] max-h-[70vh] overflow-y-auto animate-scale-in"
+      style={{
+        top: durationMenuPosition.top,
+        left: durationMenuPosition.left,
+        width: durationMenuPosition.width,
+        maxWidth: 'calc(100vw - 16px)',
+      }}
+    >
+      {DURATION_OPTIONS.map(opt => (
+        <button
+          key={opt.id}
+          onClick={() => { setDuration(opt.id); setIsDurationMenuOpen(false); }}
+          className={`w-full text-left px-3 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all ${duration === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>,
+    document.body
+  ) : null;
+
   return (
     <>
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-0 animate-fade-in space-y-8 sm:space-y-12 md:space-y-16 flex flex-col items-center">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-0 animate-fade-in space-y-8 sm:space-y-12 md:space-y-16 flex flex-col items-center pt-20 md:pt-0">
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 md:gap-8 lg:gap-10 scroll-mt-24 w-full justify-center">
         
-        <div className="lg:col-span-2 space-y-3 sm:space-y-4 md:space-y-5 lg:space-y-6 w-full max-w-4xl mx-auto">
-          <div className="bg-dark-900 border border-white/10 rounded-xl sm:rounded-2xl md:rounded-[2rem] lg:rounded-[2.5rem] p-4 sm:p-6 md:p-8 shadow-2xl relative h-full overflow-hidden">
+        <div className="lg:col-span-2 space-y-3 sm:space-y-4 md:space-y-5 lg:space-y-6 w-full max-w-4xl mx-auto relative md:z-20">
+          <div className="bg-dark-900 border border-white/10 rounded-xl sm:rounded-2xl md:rounded-[2rem] lg:rounded-[2.5rem] p-4 sm:p-6 md:p-8 shadow-2xl relative h-full overflow-visible">
             <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 bg-indigo-600/5 blur-[60px] sm:blur-[80px] rounded-full -mr-12 sm:-mr-16 md:-mr-20 -mt-12 sm:-mt-16 md:-mt-20 pointer-events-none" />
             
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-3 mb-4 sm:mb-5 md:mb-6 relative z-10">
@@ -359,9 +571,10 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
             </div>
 
               {/* Engine Selection */}
-              <div className="space-y-1.5 sm:space-y-2 relative z-[50] mb-4 sm:mb-5" ref={engineMenuRef}>
+              <div className="space-y-1.5 sm:space-y-2 relative md:z-[1000] mb-4 sm:mb-5" ref={engineMenuRef}>
                 <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">AI Engine</label>
                 <button 
+                  ref={engineButtonRef}
                   onClick={() => !isGenerating && setIsEngineMenuOpen(!isEngineMenuOpen)} 
                   disabled={isGenerating}
                   className="w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 bg-black/40 border border-white/10 rounded-lg text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -372,22 +585,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                   </div>
                   <ChevronDown className={`w-2.5 h-2.5 text-gray-500 transition-transform flex-shrink-0 ${isEngineMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
-                {isEngineMenuOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-2 z-[200] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-                    {ENGINE_OPTIONS.map(opt => (
-                      <button 
-                        key={opt.id} 
-                        onClick={() => { setEngine(opt.id); setIsEngineMenuOpen(false); }} 
-                        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${engine === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">{opt.label}</span>
-                          <span className="text-[7px] sm:text-[8px] text-gray-500">{opt.desc}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                {engineMenuPortal}
               </div>
 
               <div className="space-y-3 sm:space-y-4 md:space-y-5 relative z-10">
@@ -448,7 +646,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                         <ChevronDown className={`w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-500 transition-transform ${isNegativeMenuOpen ? 'rotate-180' : ''}`} />
                       </button>
                       {isNegativeMenuOpen && (
-                        <div className="absolute right-0 mt-1 sm:mt-2 w-48 bg-dark-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-scale-in">
+                        <div className="sm:absolute fixed sm:right-0 left-0 right-0 sm:bottom-auto sm:top-full bottom-full sm:mt-1 mb-1 sm:mb-0 w-48 sm:w-auto bg-dark-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[1050] animate-scale-in">
                           {NEGATIVE_PRESETS.map((item, idx) => (
                             <button
                               key={idx}
@@ -475,53 +673,29 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                  <div className="space-y-1.5 sm:space-y-2 relative" ref={dimMenuRef}>
                     <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Aspect</label>
-                    <button onClick={() => !isGenerating && setIsDimMenuOpen(!isDimMenuOpen)} className="w-full flex items-center justify-between px-2 sm:px-3 py-2 sm:py-3 bg-black/40 border border-white/10 rounded-lg text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
+                    <button ref={dimButtonRef} onClick={() => !isGenerating && setIsDimMenuOpen(!isDimMenuOpen)} className="w-full flex items-center justify-between px-2 sm:px-3 py-2 sm:py-3 bg-black/40 border border-white/10 rounded-lg text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
                       <div className="flex items-center gap-1 truncate">{currentDimOption && <currentDimOption.icon className="w-3 h-3 text-indigo-400 flex-shrink-0" />}<span className="truncate text-[7px] sm:text-[8px]">{aspectRatio}</span></div>
                       <ChevronDown className={`w-2.5 h-2.5 text-gray-500 transition-transform flex-shrink-0 ${isDimMenuOpen ? 'rotate-180' : ''}`} />
                     </button>
-                    {isDimMenuOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-1 z-[100] bg-dark-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl animate-scale-in">
-                        {ASPECT_RATIOS.map(opt => (
-                          <button key={opt.id} onClick={() => { setAspectRatio(opt.id); setIsDimMenuOpen(false); }} className={`w-full flex items-center justify-between gap-1 px-2 py-2 text-[8px] font-black transition-all ${aspectRatio === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
-                            <div className="flex items-center gap-1 truncate"><opt.icon className="w-3 h-3 flex-shrink-0" /><span className="truncate">{opt.label}</span></div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                    {dimMenuPortal}
                  </div>
 
                   <div className="space-y-1.5 sm:space-y-2 relative" ref={qualityMenuRef}>
                     <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Size</label>
-                    <button onClick={() => !isGenerating && setIsQualityMenuOpen(!isQualityMenuOpen)} className="w-full flex items-center justify-between px-2 sm:px-3 py-2 sm:py-3 bg-black/40 border border-white/10 rounded-lg text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
+                    <button ref={qualityButtonRef} onClick={() => !isGenerating && setIsQualityMenuOpen(!isQualityMenuOpen)} className="w-full flex items-center justify-between px-2 sm:px-3 py-2 sm:py-3 bg-black/40 border border-white/10 rounded-lg text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
                       <div className="flex items-center gap-1 truncate"><Monitor className="w-3 h-3 text-indigo-400 flex-shrink-0" /><span className="text-[7px] sm:text-[8px]">{resolution.toUpperCase()}</span></div>
                       <ChevronDown className={`w-2.5 h-2.5 text-gray-500 transition-transform flex-shrink-0 ${isQualityMenuOpen ? 'rotate-180' : ''}`} />
                     </button>
-                    {isQualityMenuOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-1 z-[100] bg-dark-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl animate-scale-in">
-                        {QUALITIES.map(opt => (
-                          <button key={opt.id} onClick={() => { setResolution(opt.id); setIsQualityMenuOpen(false); }} className={`w-full text-left px-2 py-2 transition-all ${resolution === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
-                            <span className="text-[8px] font-black uppercase tracking-widest">{opt.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                    {qualityMenuPortal}
                  </div>
 
                      <div className="space-y-1.5 sm:space-y-2 relative" ref={durationMenuRef}>
                         <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Duration</label>
-                        <button onClick={() => !isGenerating && setIsDurationMenuOpen(!isDurationMenuOpen)} className="w-full flex items-center justify-between px-2 sm:px-3 py-2 sm:py-3 bg-black/40 border border-white/10 rounded-lg text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
+                        <button ref={durationButtonRef} onClick={() => !isGenerating && setIsDurationMenuOpen(!isDurationMenuOpen)} className="w-full flex items-center justify-between px-2 sm:px-3 py-2 sm:py-3 bg-black/40 border border-white/10 rounded-lg text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
                           <div className="flex items-center gap-1 truncate"><Clock className="w-3 h-3 text-indigo-400 flex-shrink-0" /><span className="text-[7px] sm:text-[8px]">{duration.toUpperCase()}</span></div>
                           <ChevronDown className={`w-2.5 h-2.5 text-gray-500 transition-transform flex-shrink-0 ${isDurationMenuOpen ? 'rotate-180' : ''}`} />
                         </button>
-                        {isDurationMenuOpen && (
-                          <div className="absolute top-full left-0 right-0 mt-1 z-[100] bg-dark-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl animate-scale-in">
-                            {DURATION_OPTIONS.map(opt => (
-                              <button key={opt.id} onClick={() => { setDuration(opt.id); setIsDurationMenuOpen(false); }} className={`w-full text-left px-2 py-2 transition-all ${duration === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
-                                <span className="text-[8px] font-black uppercase tracking-widest">{opt.label}</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                        {durationMenuPortal}
                      </div>
               </div>
 
@@ -540,7 +714,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                         <ChevronDown className={`w-2.5 h-2.5 text-gray-500 transition-transform flex-shrink-0 ${isFpsMenuOpen ? 'rotate-180' : ''}`} />
                       </button>
                       {isFpsMenuOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-1 z-[100] bg-dark-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl animate-scale-in">
+                        <div className="sm:absolute fixed sm:left-0 sm:right-0 left-0 right-0 sm:bottom-auto sm:top-full bottom-full sm:mt-1 mb-1 sm:mb-0 z-[1050] bg-dark-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl animate-scale-in">
                           {FPS_OPTIONS.map(opt => (
                             <button key={opt.id} onClick={() => { setFps(opt.id); setIsFpsMenuOpen(false); }} className={`w-full text-left px-2 py-2 transition-all ${fps === opt.id ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
                               <span className="text-[8px] font-black uppercase tracking-widest">{opt.label}</span>
@@ -561,7 +735,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                         <ChevronDown className={`w-2.5 h-2.5 text-gray-500 transition-transform flex-shrink-0 ${isQualityLevelMenuOpen ? 'rotate-180' : ''}`} />
                       </button>
                       {isQualityLevelMenuOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-1 z-[100] bg-dark-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl animate-scale-in">
+                        <div className="sm:absolute fixed sm:left-0 sm:right-0 left-0 right-0 sm:bottom-auto sm:top-full bottom-full sm:mt-1 mb-1 sm:mb-0 z-[1050] bg-dark-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl animate-scale-in">
                           {QUALITY_LEVELS.map(opt => (
                             <button key={opt.id} onClick={() => { setQualityLevel(opt.id); setIsQualityLevelMenuOpen(false); }} className={`w-full text-left px-2 py-2 transition-all ${qualityLevel === opt.id ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
                               <div className="flex flex-col">

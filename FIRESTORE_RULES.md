@@ -28,6 +28,13 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
     
+    // Helper function to check if account is active
+    function isAccountActive() {
+      return request.auth != null && 
+             (!exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status != 'suspended');
+    }
+    
     // Users collection
     match /users/{userId} {
       // Anyone can read their own profile
@@ -38,9 +45,10 @@ service cloud.firestore {
       
       // Users can create and update their own profile
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
+      allow update: if isOwner(userId) && 
+                       (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'status', 'credits']));
       
-      // Only admins can update other users
+      // Only admins can update other users or modify protected fields
       allow update: if isAdmin();
       
       // Only admins can delete users
@@ -102,6 +110,74 @@ service cloud.firestore {
       allow create: if isAuthenticated();
       allow update: if isAuthenticated() || isAdmin();
       allow delete: if isAdmin();
+    }
+    
+    // ============================================
+    // CREDIT SYSTEM COLLECTIONS
+    // ============================================
+    
+    // System configuration - only admins can modify
+    match /system_config/{configId} {
+      allow read: if isAuthenticated(); // All users can read config
+      allow write: if isAdmin(); // Only admins can update config
+    }
+    
+    // Credit logs - strict access control
+    match /credit_logs/{logId} {
+      allow read: if isAdmin(); // Only admins can view all credit logs
+      allow create: if isAuthenticated(); // System can create logs
+      allow update, delete: if false; // Never allow modification or deletion
+    }
+    
+    // Usage logs - for analytics and monitoring
+    match /usage_logs/{logId} {
+      allow read: if isAdmin(); // Only admins can view usage logs
+      allow create: if isAuthenticated(); // System can log usage
+      allow update, delete: if false; // Never allow modification
+    }
+    
+    // AI Activity - real-time monitoring
+    match /ai_activity/{activityId} {
+      allow read: if isAdmin(); // Only admins can view activity
+      allow create: if isAuthenticated(); // System creates activities
+      allow update: if isAuthenticated(); // System updates status/progress
+      allow delete: if isAdmin(); // Only admins can clean up old activities
+    }
+    
+    // Rate limits - prevent abuse
+    match /rate_limits/{limitId} {
+      allow read: if isAuthenticated() && (
+        limitId.matches('.*_' + request.auth.uid + '_.*') || isAdmin()
+      ); // Users can check their own rate limits
+      allow write: if isAuthenticated(); // System manages rate limits
+    }
+    
+    // IP rate limits - global protection
+    match /ip_rate_limits/{ipAddress} {
+      allow read: if isAuthenticated(); // Users can check IP limits
+      allow write: if isAuthenticated(); // System manages IP rate limits
+    }
+    
+    // Abuse detection - security monitoring
+    match /abuse_detection/{abuseId} {
+      allow read: if isAdmin(); // Only admins can view abuse logs
+      allow create: if isAuthenticated(); // System logs abuse
+      allow update: if isAdmin(); // Only admins can mark as resolved
+      allow delete: if false; // Never delete abuse logs
+    }
+    
+    // Admin audit logs - comprehensive tracking
+    match /admin_audit_logs/{logId} {
+      allow read: if isAdmin(); // Only admins can view audit logs
+      allow create: if isAdmin(); // System logs admin actions
+      allow update, delete: if false; // Never modify audit logs
+    }
+    
+    // Live generations - monitoring
+    match /live_generations/{genId} {
+      allow read: if isAdmin(); // Only admins can view
+      allow create, update: if isAuthenticated(); // System manages
+      allow delete: if isAdmin(); // Only admins can clean up
     }
   }
 }

@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Mic2, Volume2, Sparkles, Wand2, RefreshCw, AlertCircle, 
   Trash2, Download, Play, Pause, Headphones, Star, 
@@ -172,6 +173,15 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
   const voiceMenuRef = useRef<HTMLDivElement>(null);
   const engineMenuRef = useRef<HTMLDivElement>(null);
   const negativeMenuRef = useRef<HTMLDivElement>(null);
+  const engineButtonRef = useRef<HTMLButtonElement>(null);
+  const langButtonRef = useRef<HTMLButtonElement>(null);
+  const voiceButtonRef = useRef<HTMLButtonElement>(null);
+  const enginePortalRef = useRef<HTMLDivElement>(null);
+  const langPortalRef = useRef<HTMLDivElement>(null);
+  const voicePortalRef = useRef<HTMLDivElement>(null);
+  const [engineMenuPosition, setEngineMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [langMenuPosition, setLangMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [voiceMenuPosition, setVoiceMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
 
   const isOutOfCredits = user && user.plan !== 'premium' && user.credits <= 0;
   const MAX_CHARS = 1000;
@@ -232,11 +242,80 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
   }, [user, mode, text, negativePrompt, engine, selectedVoice, selectedLanguage, selectedElevenlabsVoice, selectedElevenlabsLanguage, songGenre, songBpm, songMood, songKey, songStyle, songStability, songSimilarityBoost, songUseSpeakerBoost, songModel]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isEngineMenuOpen) return;
+
+    const updatePosition = () => {
+      if (!engineButtonRef.current) return;
+      const rect = engineButtonRef.current.getBoundingClientRect();
+      const margin = 8;
+      const width = rect.width;
+      const maxLeft = window.innerWidth - width - margin;
+      const left = Math.max(margin, Math.min(rect.left, maxLeft));
+      setEngineMenuPosition({ top: rect.bottom + margin, left, width });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isEngineMenuOpen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isLangMenuOpen) return;
+
+    const updatePosition = () => {
+      if (!langButtonRef.current) return;
+      const rect = langButtonRef.current.getBoundingClientRect();
+      const margin = 8;
+      const width = rect.width;
+      const maxLeft = window.innerWidth - width - margin;
+      const left = Math.max(margin, Math.min(rect.left, maxLeft));
+      setLangMenuPosition({ top: rect.bottom + margin, left, width });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isLangMenuOpen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isVoiceMenuOpen) return;
+
+    const updatePosition = () => {
+      if (!voiceButtonRef.current) return;
+      const rect = voiceButtonRef.current.getBoundingClientRect();
+      const margin = 8;
+      const width = rect.width;
+      const maxLeft = window.innerWidth - width - margin;
+      const left = Math.max(margin, Math.min(rect.left, maxLeft));
+      setVoiceMenuPosition({ top: rect.bottom + margin, left, width });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isVoiceMenuOpen]);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (langMenuRef.current && !langMenuRef.current.contains(target)) setIsLangMenuOpen(false);
-      if (voiceMenuRef.current && !voiceMenuRef.current.contains(target)) setIsVoiceMenuOpen(false);
-      if (engineMenuRef.current && !engineMenuRef.current.contains(target)) setIsEngineMenuOpen(false);
+      if (langMenuRef.current && !langMenuRef.current.contains(target) && (!langPortalRef.current || !langPortalRef.current.contains(target))) setIsLangMenuOpen(false);
+      if (voiceMenuRef.current && !voiceMenuRef.current.contains(target) && (!voicePortalRef.current || !voicePortalRef.current.contains(target))) setIsVoiceMenuOpen(false);
+      if (engineMenuRef.current && !engineMenuRef.current.contains(target) && (!enginePortalRef.current || !enginePortalRef.current.contains(target))) setIsEngineMenuOpen(false);
       if (negativeMenuRef.current && !negativeMenuRef.current.contains(target)) setIsNegativeMenuOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -444,13 +523,103 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
   const currentVoiceList = engine === 'elevenlabs' ? ELEVENLABS_VOICES : VOICES;
   const currentLanguageList = engine === 'elevenlabs' ? ELEVENLABS_LANGUAGES : LANGUAGES;
 
+  const engineMenuPortal = (isEngineMenuOpen && engineMenuPosition && typeof document !== 'undefined') ? createPortal(
+    <div
+      ref={enginePortalRef}
+      className="fixed z-[12000] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.55)] max-h-[70vh] overflow-y-auto animate-scale-in"
+      style={{
+        top: engineMenuPosition.top,
+        left: engineMenuPosition.left,
+        width: engineMenuPosition.width,
+        maxWidth: 'calc(100vw - 16px)',
+      }}
+    >
+      <button 
+        onClick={() => { setEngine('gemini'); setIsEngineMenuOpen(false); }}
+        className={`w-full text-left flex items-center justify-between px-4 py-3 text-[10px] font-bold border-b border-white/5 transition-all ${engine === 'gemini' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+      >
+        <div className="flex items-center gap-2"><Zap className="w-3.5 h-3.5" /><span>GEMINI ENGINE</span></div>
+        {engine === 'gemini' && <Check className="w-3 h-3 flex-shrink-0" />}
+      </button>
+      <button 
+        onClick={() => { setEngine('elevenlabs'); setIsEngineMenuOpen(false); }}
+        className={`w-full text-left flex items-center justify-between px-4 py-3 text-[10px] font-bold transition-all ${engine === 'elevenlabs' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+      >
+        <div className="flex items-center gap-2"><Zap className="w-3.5 h-3.5" /><span>ELEVENLABS ENGINE</span></div>
+        {engine === 'elevenlabs' && <Check className="w-3 h-3 flex-shrink-0" />}
+      </button>
+    </div>,
+    document.body
+  ) : null;
+
+  const langMenuPortal = (isLangMenuOpen && langMenuPosition && typeof document !== 'undefined') ? createPortal(
+    <div
+      ref={langPortalRef}
+      className="fixed z-[12000] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.55)] max-h-[70vh] overflow-y-auto animate-scale-in"
+      style={{
+        top: langMenuPosition.top,
+        left: langMenuPosition.left,
+        width: langMenuPosition.width,
+        maxWidth: 'calc(100vw - 16px)',
+      }}
+    >
+      {currentLanguageList.map(l => (
+        <button key={l.id} onClick={() => { 
+          if (engine === 'elevenlabs') {
+            setSelectedElevenlabsLanguage(l.id); 
+          } else {
+            setSelectedLanguage(l.id); 
+          }
+          setIsLangMenuOpen(false); 
+        }} className={`w-full flex items-center justify-between px-4 py-3 text-[10px] font-bold transition-all ${(engine === 'elevenlabs' ? selectedElevenlabsLanguage : selectedLanguage) === l.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
+          <div className="flex items-center gap-2"><span>{l.flag}</span><span>{l.label}</span></div>
+          {(engine === 'elevenlabs' ? selectedElevenlabsLanguage : selectedLanguage) === l.id && <Check className="w-3 h-3" />}
+        </button>
+      ))}
+    </div>,
+    document.body
+  ) : null;
+
+  const voiceMenuPortal = (isVoiceMenuOpen && voiceMenuPosition && typeof document !== 'undefined') ? createPortal(
+    <div
+      ref={voicePortalRef}
+      className="fixed z-[12000] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.55)] max-h-[70vh] overflow-y-auto animate-scale-in"
+      style={{
+        top: voiceMenuPosition.top,
+        left: voiceMenuPosition.left,
+        width: voiceMenuPosition.width,
+        maxWidth: 'calc(100vw - 16px)',
+      }}
+    >
+      {currentVoiceList.map(v => (
+        <div key={v.id} className="relative group/voice-item border-b border-white/5 last:border-none">
+          <button onClick={() => { 
+            if (engine === 'elevenlabs') {
+              setSelectedElevenlabsVoice(v.id); 
+            } else {
+              setSelectedVoice(v.id); 
+            }
+            setIsVoiceMenuOpen(false); 
+          }} className={`w-full flex flex-col items-start px-4 py-3 text-[10px] transition-all ${(engine === 'elevenlabs' ? selectedElevenlabsVoice : selectedVoice) === v.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5'}`}>
+            <div className="flex justify-between w-full mb-0.5"><span className="font-black uppercase">{v.label}</span><span className="text-[8px] opacity-50">{v.gender}</span></div>
+            <p className={`text-[8px] italic truncate w-full ${(engine === 'elevenlabs' ? selectedElevenlabsVoice : selectedVoice) === v.id ? 'text-indigo-200' : 'text-gray-600'}`}>{v.desc}</p>
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); playVoicePreview(v.id); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-black/40 text-white opacity-0 group-hover/voice-item:opacity-100 transition-opacity hover:bg-indigo-500">
+            {playingVoiceId === v.id ? <Pause className="w-3 h-3" /> : (loadingVoiceId === v.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 fill-current" />)}
+          </button>
+        </div>
+      ))}
+    </div>,
+    document.body
+  ) : null;
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in space-y-12 flex flex-col items-center">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in space-y-12 flex flex-col items-center pt-20 md:pt-8">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 w-full justify-center">
         
         {/* CONTROL SIDEBAR */}
-        <div className="lg:col-span-5 space-y-6 w-full max-w-4xl mx-auto">
-          <div className="bg-dark-900 border border-white/10 rounded-[2.5rem] p-8 shadow-2xl relative">
+        <div className="lg:col-span-5 space-y-6 w-full max-w-4xl mx-auto relative md:z-20">
+          <div className="bg-dark-900 border border-white/10 rounded-[2.5rem] p-8 shadow-2xl relative overflow-visible">
             <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-600/5 blur-[80px] rounded-full -mr-20 -mt-20 pointer-events-none" />
             
             <div className="flex justify-between items-start mb-8 relative z-10">
@@ -467,7 +636,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
               )}
             </div>
 
-              <div className="flex bg-black p-1.5 rounded-[1.2rem] mb-8 border border-white/5 relative z-10 w-full overflow-hidden">
+              <div className="flex bg-black p-1.5 rounded-[1.2rem] mb-8 border border-white/5 relative z-[1000] w-full overflow-hidden">
               <button onClick={() => setMode('narrator')} className={`flex-1 py-3.5 px-2 rounded-[0.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${mode === 'narrator' ? 'bg-[#4f46e5] text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}>TEXT TO SPEECH</button>
               <button onClick={() => setMode('clone')} className={`flex-1 py-3.5 px-2 rounded-[0.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${mode === 'clone' ? 'bg-pink-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}><Scissors className="w-3.5 h-3.5" /> CLONE VOICE</button>
               <button onClick={() => setMode('stt')} className={`flex-1 py-3.5 px-2 rounded-[0.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${mode === 'stt' ? 'bg-emerald-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}><FileText className="w-3.5 h-3.5" /> SPEECH TO TEXT</button>
@@ -543,9 +712,10 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
 
             {/* Engine Selector */}
             {mode === 'narrator' && (
-              <div className="mb-6 relative" ref={engineMenuRef}>
+              <div className="mb-6 relative z-[1000]" ref={engineMenuRef}>
                 <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-2 block">Select Engine</label>
                 <button 
+                  ref={engineButtonRef}
                   type="button"
                   onClick={() => setIsEngineMenuOpen(!isEngineMenuOpen)} 
                   className="w-full flex items-center justify-between px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-[10px] font-bold text-white hover:border-white/20 transition-all"
@@ -556,32 +726,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                   </div>
                   <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform flex-shrink-0 ${isEngineMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
-                {isEngineMenuOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl">
-                    <button 
-                      type="button"
-                      onClick={() => { setEngine('gemini'); setIsEngineMenuOpen(false); }} 
-                      className={`w-full text-left flex items-center justify-between px-4 py-3 text-[10px] font-bold border-b border-white/5 ${engine === 'gemini' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-white/5'}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Zap className="w-3.5 h-3.5" />
-                        <span>GEMINI ENGINE</span>
-                      </div>
-                      {engine === 'gemini' && <Check className="w-3 h-3 flex-shrink-0" />}
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => { setEngine('elevenlabs'); setIsEngineMenuOpen(false); }} 
-                      className={`w-full text-left flex items-center justify-between px-4 py-3 text-[10px] font-bold ${engine === 'elevenlabs' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-white/5'}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Zap className="w-3.5 h-3.5" />
-                        <span>ELEVENLABS ENGINE</span>
-                      </div>
-                      {engine === 'elevenlabs' && <Check className="w-3 h-3 flex-shrink-0" />}
-                    </button>
-                  </div>
-                )}
+                {engineMenuPortal}
               </div>
             )}
 
@@ -589,59 +734,30 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
               {mode === 'narrator' && (
                 <div className="grid grid-cols-2 gap-4 animate-fade-in">
                   {/* Language Selector */}
-                  <div className="space-y-2 relative" ref={langMenuRef}>
+                  <div className="space-y-2 relative z-[1000]" ref={langMenuRef}>
                     <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Language</label>
-                    <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="w-full flex items-center justify-between px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-[10px] font-bold text-white hover:border-white/20 transition-all">
+                    <button 
+                      ref={langButtonRef}
+                      onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} 
+                      className="w-full flex items-center justify-between px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-[10px] font-bold text-white hover:border-white/20 transition-all"
+                    >
                       <div className="flex items-center gap-2 truncate"><Globe className="w-3.5 h-3.5 text-indigo-400" /><span className="truncate">{currentLang?.label}</span></div>
                       <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform ${isLangMenuOpen ? 'rotate-180' : ''}`} />
                     </button>
-                    {isLangMenuOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-2 z-[100] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl animate-scale-in max-h-64 overflow-y-auto no-scrollbar">
-                        {currentLanguageList.map(l => (
-                          <button key={l.id} onClick={() => { 
-                            if (engine === 'elevenlabs') {
-                              setSelectedElevenlabsLanguage(l.id); 
-                            } else {
-                              setSelectedLanguage(l.id); 
-                            }
-                            setIsLangMenuOpen(false); 
-                          }} className={`w-full flex items-center justify-between px-4 py-3 text-[10px] font-bold ${(engine === 'elevenlabs' ? selectedElevenlabsLanguage : selectedLanguage) === l.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
-                            <div className="flex items-center gap-2"><span>{l.flag}</span><span>{l.label}</span></div>
-                            {(engine === 'elevenlabs' ? selectedElevenlabsLanguage : selectedLanguage) === l.id && <Check className="w-3 h-3" />}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                    {langMenuPortal}
                   </div>
                   {/* Voice Selector */}
-                  <div className="space-y-2 relative" ref={voiceMenuRef}>
+                  <div className="space-y-2 relative z-[1000]" ref={voiceMenuRef}>
                     <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Narrator</label>
-                    <button onClick={() => setIsVoiceMenuOpen(!isVoiceMenuOpen)} className="w-full flex items-center justify-between px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-[10px] font-bold text-white hover:border-white/20 transition-all">
+                    <button 
+                      ref={voiceButtonRef}
+                      onClick={() => setIsVoiceMenuOpen(!isVoiceMenuOpen)} 
+                      className="w-full flex items-center justify-between px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-[10px] font-bold text-white hover:border-white/20 transition-all"
+                    >
                       <div className="flex items-center gap-2 truncate"><UserIcon className={`w-3.5 h-3.5 text-${currentVoice?.color}-400`} /><span className="truncate">{currentVoice?.label}</span></div>
                       <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform ${isVoiceMenuOpen ? 'rotate-180' : ''}`} />
                     </button>
-                    {isVoiceMenuOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-2 z-[100] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl animate-scale-in max-h-64 overflow-y-auto no-scrollbar">
-                        {currentVoiceList.map(v => (
-                          <div key={v.id} className="relative group/voice-item border-b border-white/5 last:border-none">
-                            <button onClick={() => { 
-                              if (engine === 'elevenlabs') {
-                                setSelectedElevenlabsVoice(v.id); 
-                              } else {
-                                setSelectedVoice(v.id); 
-                              }
-                              setIsVoiceMenuOpen(false); 
-                            }} className={`w-full flex flex-col items-start px-4 py-3 text-[10px] transition-all ${(engine === 'elevenlabs' ? selectedElevenlabsVoice : selectedVoice) === v.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5'}`}>
-                              <div className="flex justify-between w-full mb-0.5"><span className="font-black uppercase">{v.label}</span><span className="text-[8px] opacity-50">{v.gender}</span></div>
-                              <p className={`text-[8px] italic truncate w-full ${(engine === 'elevenlabs' ? selectedElevenlabsVoice : selectedVoice) === v.id ? 'text-indigo-200' : 'text-gray-600'}`}>{v.desc}</p>
-                            </button>
-                            <button onClick={(e) => { e.stopPropagation(); playVoicePreview(v.id); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-black/40 text-white opacity-0 group-hover/voice-item:opacity-100 transition-opacity hover:bg-indigo-500">
-                              {playingVoiceId === v.id ? <Pause className="w-3 h-3" /> : (loadingVoiceId === v.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 fill-current" />)}
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    {voiceMenuPortal}
                   </div>
                 </div>
               )}

@@ -1,4 +1,77 @@
-# ImaginAI Deployment Guide
+# ImaginAI - Enterprise AI SaaS Platform
+
+## 🚀 Features
+
+### Core Features
+- ✨ AI Image Generation (DALL-E 3, Runware, etc.)
+- 🎥 AI Video Generation (Kling AI, Sora, etc.)
+- 🎤 AI Voice/TTS (ElevenLabs)
+- 💬 AI Chat (Gemini)
+- 🖼️ Image Editor & Gallery
+- 📱 Responsive Design
+
+### **NEW: Dynamic AI Engine Pricing** 🎯
+- 🔧 **No-Code Price Control**: Change engine costs without redeployment
+- ⚙️ **Per-Engine Pricing**: DALL-E, Gemini, Kling AI each have custom costs
+- 📊 **Multiple Cost Units**: Per image, per second, per minute, per token
+- ⚡ **Real-Time Updates**: Price changes apply instantly to all users
+- 🔄 **Enable/Disable Engines**: Turn engines on/off dynamically
+- 📈 **Usage Analytics**: Track which engines are most popular
+- 🔐 **Admin Controls**: Secure, admin-only management interface
+
+### **Enterprise Credit System** 💳
+- 💰 Configurable credit costs per AI feature
+- 🔄 Automatic credit deduction based on selected engine
+- 📊 Global usage analytics per engine
+- 👥 Admin credit management
+- 📝 Complete transaction logging
+- 📈 Real-time credit balance tracking
+
+### **Live AI Activity Monitoring** ⚡
+- 🔴 Real-time activity stream (Firestore onSnapshot)
+- 📡 Live generation tracking per engine
+- 📊 Processing time analytics
+- 👤 User activity monitoring
+- 🎯 Status tracking (pending → processing → completed/failed)
+- 📈 Engine success rate metrics
+
+### **Security & Abuse Prevention** 🔒
+- 🚦 Rate limiting (per user & IP)
+- 🛡️ Prompt moderation & content filtering
+- 🚨 Abuse detection & logging
+- 🔐 Admin audit logging
+- 🌍 IP tracking & blocking
+- ⚠️ Automatic account suspension
+
+### **Admin Dashboard** 🎛️
+- 💳 **Credits Tab**: Configure costs, manage engines, view statistics
+- 🎯 **Engine Pricing**: Add/edit engines, set costs, enable/disable
+- ⚡ **Live AI Tab**: Real-time monitoring, abuse detection, audit logs
+- 👥 User management & analytics
+- 📊 Traffic & revenue analytics
+- 📧 Email broadcasting
+- ⚙️ CMS controls
+
+---
+
+## 📚 Documentation
+
+### Quick Start
+- 🚀 **[QUICK_START.md](QUICK_START.md)** - Get running in 10 minutes
+- ⚡ **[ENGINE_PRICING_QUICK_START.md](ENGINE_PRICING_QUICK_START.md)** - Engine pricing setup
+
+### Complete Guides
+- 📖 **[ENGINE_PRICING_SYSTEM.md](ENGINE_PRICING_SYSTEM.md)** - Complete engine pricing documentation (900+ lines)
+- 🔐 **[FIRESTORE_ENGINE_RULES.md](FIRESTORE_ENGINE_RULES.md)** - Security rules for engines
+- 📋 **[ENGINE_PRICING_IMPLEMENTATION_SUMMARY.md](ENGINE_PRICING_IMPLEMENTATION_SUMMARY.md)** - What was built
+### Complete Guides
+- 📖 **[CREDIT_SYSTEM_GUIDE.md](CREDIT_SYSTEM_GUIDE.md)** - Comprehensive credit system documentation (400+ lines)
+- 💻 **[INTEGRATION_EXAMPLES.ts](INTEGRATION_EXAMPLES.ts)** - Code integration examples (500+ lines)
+- ✅ **[DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)** - Production deployment guide
+- 🔒 **[FIRESTORE_RULES.md](FIRESTORE_RULES.md)** - Security rules & setup
+- 📋 **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Executive summary
+
+---
 
 ## 1. Setup API Keys
 This app uses Google Gemini API and Sora API for video generation.

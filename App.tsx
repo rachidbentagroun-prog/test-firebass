@@ -165,6 +165,9 @@ const DEFAULT_CONFIG: SiteConfig = {
   }
 };
 
+// Helper to normalize admin roles across both slug and underscore styles
+const isAdminRole = (role?: string | null) => role === 'admin' || role === 'super_admin' || role === 'super-admin';
+
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -181,11 +184,11 @@ const App: React.FC = () => {
     } catch (e) { return DEFAULT_CONFIG; }
   });
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    if (typeof window === 'undefined') return 'dark';
+    if (typeof window === 'undefined') return 'light';
     try {
-      return (localStorage.getItem('site_theme') as 'dark' | 'light') || 'dark';
+      return (localStorage.getItem('site_theme') as 'dark' | 'light') || 'light';
     } catch {
-      return 'dark';
+      return 'light';
     }
   });
 
@@ -313,7 +316,7 @@ const App: React.FC = () => {
             id: fbUser.uid,
             name: (fbUser.displayName || fbUser.email?.split('@')[0] || 'Creator') as string,
             email: fbUser.email || '',
-            role: isQuickSuperAdmin ? 'admin' : 'user',
+            role: isQuickSuperAdmin ? 'super_admin' : 'user',
             plan: isQuickSuperAdmin ? 'premium' : 'free',
             credits: isQuickSuperAdmin ? 99999 : 3,
             isRegistered: true,
@@ -345,7 +348,7 @@ const App: React.FC = () => {
                 id: fbUser.uid,
                 name: (fbUser.displayName || profile?.name || fbUser.email?.split('@')[0] || 'Creator') as string,
                 email: fbUser.email || '',
-                role: isSuperAdmin ? 'admin' : (profile?.role || 'user'),
+                role: isSuperAdmin ? 'super_admin' : (profile?.role || 'user'),
                 plan: isSuperAdmin ? 'premium' : (profile?.plan || 'free'),
                 credits: isSuperAdmin ? 99999 : (profile?.credits ?? 3),
                 isRegistered: true,
@@ -391,7 +394,7 @@ const App: React.FC = () => {
               }
 
               // Admins: fetch all users but don't block UI
-              if (updatedUser.role === 'admin') {
+              if (isAdminRole(updatedUser.role)) {
                 try {
                   const users = await getAllUsersFromFirestore();
                   setAllUsers(users);
@@ -456,15 +459,16 @@ const App: React.FC = () => {
   };
 
   const handleUpdateUser = async (u: User) => {
+    // Optimistically update local state so UI reflects changes immediately
+    setAllUsers(prev => prev.map(p => p.id === u.id ? u : p));
+
     try {
       const { updateUserProfile, updateUserCredits } = await import('./services/dbService');
       await updateUserProfile(u.id, { name: u.name, email: u.email, plan: u.plan, status: u.status });
       await updateUserCredits(u.id, u.credits);
-      setAllUsers(prev => prev.map(p => p.id === u.id ? u : p));
-      alert('User updated.');
     } catch (e) {
-      console.warn('Failed to update user:', e);
-      alert('Failed to update user.');
+      // Keep UI state; just log to avoid confusing double alerts
+      console.warn('Failed to persist user update:', e);
     }
   };
 
@@ -825,15 +829,29 @@ const App: React.FC = () => {
       case 'video-lab-landing':
         return <VideoLabLanding user={user} config={siteConfig.videoLab} onStartCreating={() => setCurrentPage('video-generator')} onLoginClick={() => setIsAuthModalOpen(true)} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
       case 'video-generator':
-        if (!user) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
-        return <VideoGenerator user={user} onCreditUsed={handleCreditUsed} onUpgradeRequired={() => setIsUpgradeModalOpen(true)} onVideoGenerated={(video) => { setVideoGallery(p => [video, ...p]); saveVideoToDB(video, user!.id); }} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
+        return <VideoGenerator 
+          user={user} 
+          onCreditUsed={() => { if (!user) { setIsAuthModalOpen(true); return; } handleCreditUsed(); }} 
+          onUpgradeRequired={() => { if (!user) { setIsAuthModalOpen(true); return; } setIsUpgradeModalOpen(true); }} 
+          onVideoGenerated={(video) => { setVideoGallery(p => [video, ...p]); if (user?.id) saveVideoToDB(video, user.id); }} 
+          hasApiKey={hasApiKey} 
+          onSelectKey={() => {}} 
+          onResetKey={() => {}} 
+        />;
       case 'chat-landing':
         return <ChatLanding user={user} onStartChat={() => { if (!user) { setIsAuthModalOpen(true); return; } setIsChatOpen(true); }} onLoginClick={() => setIsAuthModalOpen(true)} />;
       case 'tts-lab-landing':
         return <TTSLanding user={user} config={siteConfig.ttsLab} onStartCreating={() => setCurrentPage('tts-generator')} onCreditUsed={handleCreditUsed} onUpgradeRequired={() => setIsUpgradeModalOpen(true)} onLoginClick={() => setIsAuthModalOpen(true)} onAudioGenerated={(aud) => { setAudioGallery(p => [aud, ...p]); if (user?.id) saveAudioToDB(aud, user.id); }} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
       case 'tts-generator':
-        if (!user) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
-        return <TTSGenerator user={user} onCreditUsed={handleCreditUsed} onUpgradeRequired={() => setIsUpgradeModalOpen(true)} onAudioGenerated={(aud) => { setAudioGallery(p => [aud, ...p]); saveAudioToDB(aud, user!.id); }} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
+        return <TTSGenerator 
+          user={user} 
+          onCreditUsed={() => { if (!user) { setIsAuthModalOpen(true); return; } handleCreditUsed(); }} 
+          onUpgradeRequired={() => { if (!user) { setIsAuthModalOpen(true); return; } setIsUpgradeModalOpen(true); }} 
+          onAudioGenerated={(aud) => { setAudioGallery(p => [aud, ...p]); if (user?.id) saveAudioToDB(aud, user.id); }} 
+          hasApiKey={hasApiKey} 
+          onSelectKey={() => {}} 
+          onResetKey={() => {}} 
+        />;
       case 'gallery':
         if (!user) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
         return <Gallery images={gallery} videos={videoGallery} audioGallery={audioGallery} onDelete={() => {}} />;
@@ -842,7 +860,46 @@ const App: React.FC = () => {
       case 'pricing':
         return <PricingLanding plans={siteConfig.plans} onSelectPlan={handleSelectPlan} />;
       case 'admin':
-        return user?.role === 'admin' ? <AdminDashboard users={allUsers} siteConfig={siteConfig} onUpdateConfig={setSiteConfig} onDeleteUser={handleDeleteUser} onUpdateUser={handleUpdateUser} onSendMessageToUser={handleSendMessageToUser} onBroadcastMessage={handleBroadcastMessage} onSupportReply={() => {}} hasApiKey={hasApiKey} onSelectKey={() => {}} onSyncFirebase={handleSyncFirebaseUsers} /> : null;
+        console.group('👤 ADMIN PAGE ACCESS ATTEMPT');
+        console.log('User object:', user ? { 
+          id: user.id.substring(0, 8), 
+          email: user.email, 
+          role: user.role,
+          isRegistered: user.isRegistered,
+          isVerified: user.isVerified
+        } : '❌ NULL');
+        console.log('isAdminRole check:', user ? isAdminRole(user.role) : 'N/A');
+        console.log('allUsers loaded:', allUsers.length, 'users');
+        console.groupEnd();
+        
+        if (!user || !isAdminRole(user.role)) {
+          console.warn('❌ ADMIN ACCESS DENIED - Rendering access denied screen');
+          return (
+            <div className="min-h-screen flex items-center justify-center p-6 text-center animate-fade-in" style={{ background: '#111827' }}>
+              <div className="max-w-md w-full p-12 rounded-3xl border border-red-500/20 shadow-2xl relative overflow-hidden" style={{ background: '#1f2937' }}>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 blur-3xl rounded-full -mr-16 -mt-16" />
+                <div className="w-20 h-20 bg-red-600/10 rounded-2xl flex items-center justify-center mx-auto mb-8 border border-red-500/20">
+                   <ShieldAlert className="w-10 h-10 text-red-400" />
+                </div>
+                <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter mb-4 leading-none">Access Denied</h2>
+                <p className="text-gray-400 font-medium leading-relaxed mb-8">
+                  You do not have permission to access the Control Center. <br />
+                  <strong>Admin privileges required.</strong>
+                  {user && <span className="block mt-4 text-sm text-red-400">Your role: {user.role || 'none'}</span>}
+                </p>
+                <button 
+                  onClick={() => setCurrentPage('home')}
+                  className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] shadow-xl shadow-indigo-600/20 transition-all flex items-center justify-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Return Home
+                </button>
+              </div>
+            </div>
+          );
+        }
+        
+        console.log('✅ ADMIN ACCESS GRANTED - Rendering AdminDashboard');
+        return <AdminDashboard users={allUsers} siteConfig={siteConfig} onUpdateConfig={setSiteConfig} onDeleteUser={handleDeleteUser} onUpdateUser={handleUpdateUser} onSendMessageToUser={handleSendMessageToUser} onBroadcastMessage={handleBroadcastMessage} onSupportReply={() => {}} hasApiKey={hasApiKey} onSelectKey={() => {}} onSyncFirebase={handleSyncFirebaseUsers} />;
       case 'profile':
         return user ? <UserProfile user={user} gallery={gallery} videoGallery={videoGallery} audioGallery={audioGallery} onLogout={handleLogout} onBack={() => setCurrentPage('home')} onUpdateUser={() => {}} onGalleryImport={() => {}} onNavigate={setCurrentPage} initialContactOpen={openContactFromUpgrade} initialInboxOpen={openInboxFromDropdown} theme={theme} onToggleTheme={handleToggleTheme} /> : null;
       case 'upgrade':
@@ -878,7 +935,9 @@ const App: React.FC = () => {
   return (
       <LanguageProvider>
         <div className={`min-h-screen transition-colors duration-300 ${
-          theme === 'dark'
+          currentPage === 'admin'
+            ? '' /* No theme class for admin - uses inline styles */
+            : theme === 'dark'
             ? 'landing-theme bg-gradient-to-b from-dark-950 via-dark-900 to-dark-950 text-white'
             : 'landing-theme bg-gradient-to-b from-white via-gray-50 to-white text-gray-900'
         }`}>
@@ -894,7 +953,7 @@ const App: React.FC = () => {
         onToggleTheme={handleToggleTheme}
         onOpenInbox={() => setOpenInboxFromDropdown(true)}
       />
-      <main className="pt-16">
+      <main className={`pt-16 ${currentPage === 'admin' ? 'bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 min-h-screen' : ''}`}>
         {renderPage()}
       </main>
 

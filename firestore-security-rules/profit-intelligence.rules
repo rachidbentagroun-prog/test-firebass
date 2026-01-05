@@ -1,0 +1,169 @@
+/**
+ * Firestore Security Rules - Profit Intelligence System
+ * 
+ * Enterprise-grade security for financial data
+ * Super Admin only access to all profit/cost collections
+ */
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ==========================================
+    // HELPER FUNCTIONS
+    // ==========================================
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user is super admin
+    function isSuperAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
+    }
+    
+    // Check if user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // ==========================================
+    // AI ENGINE COSTS
+    // ==========================================
+    
+    match /ai_engine_costs/{engineId} {
+      // Super Admin can read/write
+      allow read: if isSuperAdmin();
+      allow write: if isSuperAdmin();
+      
+      // Cloud Functions can read (via Admin SDK)
+      // No client-side writes allowed
+    }
+    
+    // ==========================================
+    // USAGE LOGS (EXTENDED WITH FINANCIALS)
+    // ==========================================
+    
+    match /usage_logs/{logId} {
+      // Super Admin can read all logs
+      allow read: if isSuperAdmin();
+      
+      // Users can read their own logs (but NOT financial fields)
+      allow read: if isAuthenticated() && 
+        resource.data.user_id == request.auth.uid;
+      
+      // NO CLIENT-SIDE WRITES - Cloud Functions only
+      allow write: if false;
+    }
+    
+    // ==========================================
+    // PROFIT AGGREGATES
+    // ==========================================
+    
+    match /profit_aggregates/{periodId} {
+      // Super Admin can read aggregates
+      allow read: if isSuperAdmin();
+      
+      // NO CLIENT-SIDE WRITES - Cloud Functions only
+      allow write: if false;
+    }
+    
+    // ==========================================
+    // LOSS USERS
+    // ==========================================
+    
+    match /loss_users/{userId} {
+      // Super Admin can read loss users
+      allow read: if isSuperAdmin();
+      
+      // NO CLIENT-SIDE WRITES - Cloud Functions only
+      allow write: if false;
+    }
+    
+    // ==========================================
+    // PROFIT AUDIT LOG
+    // ==========================================
+    
+    match /profit_audit_log/{logId} {
+      // Super Admin can read audit logs
+      allow read: if isSuperAdmin();
+      
+      // NO CLIENT-SIDE WRITES - Cloud Functions only
+      allow write: if false;
+    }
+    
+    // ==========================================
+    // ADMIN ALERTS
+    // ==========================================
+    
+    match /admin_alerts/{alertId} {
+      // Super Admin can read alerts
+      allow read: if isSuperAdmin();
+      
+      // Cloud Functions can write
+      allow write: if false;
+    }
+    
+    // ==========================================
+    // SUBSCRIPTION PLANS (PRICING CONFIG)
+    // ==========================================
+    
+    match /subscription_plans/{planId} {
+      // Everyone can read plan info (for signup)
+      allow read: if true;
+      
+      // Only Super Admin can modify pricing
+      allow write: if isSuperAdmin();
+    }
+    
+    // ==========================================
+    // USERS COLLECTION
+    // ==========================================
+    
+    match /users/{userId} {
+      // Users can read their own data
+      allow read: if isOwner(userId);
+      
+      // Super Admin can read all users
+      allow read: if isSuperAdmin();
+      
+      // Users can update their own profile (but NOT role/financial fields)
+      allow update: if isOwner(userId) && 
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'total_spent', 'lifetime_value']);
+      
+      // Super Admin can update any user
+      allow write: if isSuperAdmin();
+    }
+    
+    // ==========================================
+    // GENERATIONS COLLECTION
+    // ==========================================
+    
+    match /generations/{generationId} {
+      // Users can read their own generations
+      allow read: if isAuthenticated() && 
+        resource.data.user_id == request.auth.uid;
+      
+      // Super Admin can read all generations
+      allow read: if isSuperAdmin();
+      
+      // Users can create generations (authenticated)
+      allow create: if isAuthenticated() && 
+        request.resource.data.user_id == request.auth.uid;
+      
+      // NO UPDATES OR DELETES (immutable financial records)
+      allow update, delete: if false;
+    }
+    
+    // ==========================================
+    // DEFAULT DENY
+    // ==========================================
+    
+    // Block all other collections by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

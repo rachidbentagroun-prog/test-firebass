@@ -16,6 +16,8 @@ interface NavbarProps {
   onOpenInbox?: () => void;
 }
 
+const isAdminRole = (role?: User['role']) => role === 'admin' || role === 'super_admin' || role === 'super-admin';
+
 export const Navbar: React.FC<NavbarProps> = ({
   user,
   onLogout,
@@ -60,6 +62,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const isActive = (page: string) => currentPage === page;
+  const canAccessAdmin = isAdminRole(user?.role);
 
   const NavLink: React.FC<{ label: string; page: string; icon?: React.ReactNode; disabled?: boolean }> = ({
     label,
@@ -113,15 +116,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           <NavLink label="AI Chat" page="chat-landing" icon={<MessageSquare size={16} />} />
           <NavLink label="AI Image" page="dashboard" icon={<Sparkles size={16} />} />
 
-          {user?.isRegistered && (
-            <>
-              <NavLink label="AI Video" page="video-generator" icon={<Video size={16} />} />
-              <NavLink label="AI Voice" page="tts-generator" icon={<Mic2 size={16} />} />
-              <NavLink label="Gallery" page="gallery" icon={<ImageIcon size={16} />} />
-            </>
-          )}
+          <NavLink label="AI Video" page="video-generator" icon={<Video size={16} />} />
+          <NavLink label="AI Voice" page="tts-generator" icon={<Mic2 size={16} />} />
+          {user?.isRegistered && <NavLink label="Gallery" page="gallery" icon={<ImageIcon size={16} />} />}
 
-          {user?.role === 'admin' && <NavLink label="Admin" page="admin" icon={<Shield size={16} />} />}
+          {canAccessAdmin && <NavLink label="Admin" page="admin" icon={<Shield size={16} />} />}
 
           {customMenu.map(item => (
             <NavLink
@@ -329,15 +328,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button onClick={() => handleNavClick('chat-landing')} className="mobile-link">AI Chat</button>
           <button onClick={() => handleNavClick('dashboard')} className="mobile-link">AI Image</button>
 
-          {user?.isRegistered && (
-            <>
-              <button onClick={() => handleNavClick('video-generator')} className="mobile-link">AI Video</button>
-              <button onClick={() => handleNavClick('tts-generator')} className="mobile-link">AI Voice</button>
-              <button onClick={() => handleNavClick('gallery')} className="mobile-link">Gallery</button>
-            </>
-          )}
+          <button onClick={() => handleNavClick('video-generator')} className="mobile-link">AI Video</button>
+          <button onClick={() => handleNavClick('tts-generator')} className="mobile-link">AI Voice</button>
+          {user?.isRegistered && <button onClick={() => handleNavClick('gallery')} className="mobile-link">Gallery</button>}
 
-          {user?.role === 'admin' && <button onClick={() => handleNavClick('admin')} className="mobile-link">Admin</button>}
+          {canAccessAdmin && <button onClick={() => handleNavClick('admin')} className="mobile-link">Admin</button>}
 
           <button onClick={() => handleNavClick('pricing')} className="mobile-link">Pricing</button>
 

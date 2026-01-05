@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Image as ImageIcon, Sparkles, Upload, X, Download, RefreshCw, AlertCircle, 
   Edit, Save, Trash2, Wand2, RectangleHorizontal, RectangleVertical, Square,
@@ -112,13 +113,36 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
       setShowIdentityCheck((user && !user.isVerified) || !!pv);
     } catch (e) { /* ignore */ }
   }, [user]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window === 'undefined') return;
+      setIsMobileViewport(window.innerWidth < 640);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   const [isAspectRatioMenuOpen, setIsAspectRatioMenuOpen] = useState(false);
   const [isStyleMenuOpen, setIsStyleMenuOpen] = useState(false);
   const [isNegativeMenuOpen, setIsNegativeMenuOpen] = useState(false);
   const [isImageEngineMenuOpen, setIsImageEngineMenuOpen] = useState(false);
+  const [isDalleResolutionMenuOpen, setIsDalleResolutionMenuOpen] = useState(false);
+  const [isDalleQualityMenuOpen, setIsDalleQualityMenuOpen] = useState(false);
   const [showPromptHistory, setShowPromptHistory] = useState(false);
   const [isCreditDropdownOpen, setIsCreditDropdownOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 640;
+  });
+  const [engineMenuPosition, setEngineMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [aspectMenuPosition, setAspectMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [styleMenuPosition, setStyleMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [negativeMenuPosition, setNegativeMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [dalleResolutionMenuPosition, setDalleResolutionMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [dalleQualityMenuPosition, setDalleQualityMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   
   const [promptHistory, setPromptHistory] = useState<string[]>(() => {
     try {
@@ -135,6 +159,18 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
   const styleMenuRef = useRef<HTMLDivElement>(null);
   const negativeMenuRef = useRef<HTMLDivElement>(null);
   const imageEngineMenuRef = useRef<HTMLDivElement>(null);
+  const imageEngineButtonRef = useRef<HTMLButtonElement>(null);
+  const engineMenuPortalRef = useRef<HTMLDivElement>(null);
+  const aspectRatioButtonRef = useRef<HTMLButtonElement>(null);
+  const styleButtonRef = useRef<HTMLButtonElement>(null);
+  const aspectMenuPortalRef = useRef<HTMLDivElement>(null);
+  const styleMenuPortalRef = useRef<HTMLDivElement>(null);
+  const negativeButtonRef = useRef<HTMLButtonElement>(null);
+  const negativeMenuPortalRef = useRef<HTMLDivElement>(null);
+  const dalleResolutionButtonRef = useRef<HTMLButtonElement>(null);
+  const dalleQualityButtonRef = useRef<HTMLButtonElement>(null);
+  const dalleResolutionMenuPortalRef = useRef<HTMLDivElement>(null);
+  const dalleQualityMenuPortalRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
   const zoomContainerRef = useRef<HTMLDivElement>(null);
   const creditDropdownRef = useRef<HTMLDivElement>(null);
@@ -225,11 +261,23 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
       if (styleMenuRef.current && !styleMenuRef.current.contains(target)) {
         setIsStyleMenuOpen(false);
       }
-      if (negativeMenuRef.current && !negativeMenuRef.current.contains(target)) {
+      if (negativeMenuRef.current && !negativeMenuRef.current.contains(target) && (!negativeMenuPortalRef.current || !negativeMenuPortalRef.current.contains(target))) {
         setIsNegativeMenuOpen(false);
       }
-      if (imageEngineMenuRef.current && !imageEngineMenuRef.current.contains(target)) {
+      if (dalleResolutionButtonRef.current && !dalleResolutionButtonRef.current.contains(target) && (!dalleResolutionMenuPortalRef.current || !dalleResolutionMenuPortalRef.current.contains(target))) {
+        setIsDalleResolutionMenuOpen(false);
+      }
+      if (dalleQualityButtonRef.current && !dalleQualityButtonRef.current.contains(target) && (!dalleQualityMenuPortalRef.current || !dalleQualityMenuPortalRef.current.contains(target))) {
+        setIsDalleQualityMenuOpen(false);
+      }
+      if (imageEngineMenuRef.current && !imageEngineMenuRef.current.contains(target) && (!engineMenuPortalRef.current || !engineMenuPortalRef.current.contains(target))) {
         setIsImageEngineMenuOpen(false);
+      }
+      if (aspectRatioMenuRef.current && !aspectRatioMenuRef.current.contains(target) && (!aspectMenuPortalRef.current || !aspectMenuPortalRef.current.contains(target))) {
+        setIsAspectRatioMenuOpen(false);
+      }
+      if (styleMenuRef.current && !styleMenuRef.current.contains(target) && (!styleMenuPortalRef.current || !styleMenuPortalRef.current.contains(target))) {
+        setIsStyleMenuOpen(false);
       }
       if (historyRef.current && !historyRef.current.contains(target)) {
         setShowPromptHistory(false);
@@ -241,6 +289,150 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isImageEngineMenuOpen) return;
+
+    const updatePosition = () => {
+      if (!imageEngineButtonRef.current) return;
+      const rect = imageEngineButtonRef.current.getBoundingClientRect();
+      const margin = 8;
+      const width = rect.width;
+      const maxLeft = window.innerWidth - width - margin;
+      const left = Math.max(margin, Math.min(rect.left, maxLeft));
+
+      setEngineMenuPosition({
+        top: rect.bottom + margin,
+        left,
+        width,
+      });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isImageEngineMenuOpen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isAspectRatioMenuOpen) return;
+
+    const updatePosition = () => {
+      if (!aspectRatioButtonRef.current) return;
+      const rect = aspectRatioButtonRef.current.getBoundingClientRect();
+      const margin = 8;
+      const width = rect.width;
+      const maxLeft = window.innerWidth - width - margin;
+      const left = Math.max(margin, Math.min(rect.left, maxLeft));
+      setAspectMenuPosition({ top: rect.bottom + margin, left, width });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isAspectRatioMenuOpen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isStyleMenuOpen) return;
+
+    const updatePosition = () => {
+      if (!styleButtonRef.current) return;
+      const rect = styleButtonRef.current.getBoundingClientRect();
+      const margin = 8;
+      const width = rect.width;
+      const maxLeft = window.innerWidth - width - margin;
+      const left = Math.max(margin, Math.min(rect.left, maxLeft));
+      setStyleMenuPosition({ top: rect.bottom + margin, left, width });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isStyleMenuOpen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isNegativeMenuOpen) return;
+
+    const updatePosition = () => {
+      if (!negativeButtonRef.current) return;
+      const rect = negativeButtonRef.current.getBoundingClientRect();
+      const margin = 8;
+      const width = rect.width;
+      const maxLeft = window.innerWidth - width - margin;
+      const left = Math.max(margin, Math.min(rect.left, maxLeft));
+      setNegativeMenuPosition({ top: rect.bottom + margin, left, width });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isNegativeMenuOpen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isDalleResolutionMenuOpen) return;
+
+    const updatePosition = () => {
+      if (!dalleResolutionButtonRef.current) return;
+      const rect = dalleResolutionButtonRef.current.getBoundingClientRect();
+      const margin = 8;
+      const width = rect.width;
+      const maxLeft = window.innerWidth - width - margin;
+      const left = Math.max(margin, Math.min(rect.left, maxLeft));
+      setDalleResolutionMenuPosition({ top: rect.bottom + margin, left, width });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isDalleResolutionMenuOpen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isDalleQualityMenuOpen) return;
+
+    const updatePosition = () => {
+      if (!dalleQualityButtonRef.current) return;
+      const rect = dalleQualityButtonRef.current.getBoundingClientRect();
+      const margin = 8;
+      const width = rect.width;
+      const maxLeft = window.innerWidth - width - margin;
+      const left = Math.max(margin, Math.min(rect.left, maxLeft));
+      setDalleQualityMenuPosition({ top: rect.bottom + margin, left, width });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isDalleQualityMenuOpen]);
 
   useEffect(() => {
     const container = zoomContainerRef.current;
@@ -557,6 +749,184 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
   const currentRatioOption = ASPECT_RATIOS.find(r => r.id === aspectRatio);
   const currentStyleOption = STYLES.find(s => s.id === selectedStyle);
 
+  const engineMenu = (isImageEngineMenuOpen && engineMenuPosition && typeof document !== 'undefined') ? createPortal(
+    <div
+      ref={engineMenuPortalRef}
+      className="fixed z-[12000] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.55)] max-h-[70vh] overflow-y-auto"
+      style={{
+        top: engineMenuPosition.top,
+        left: engineMenuPosition.left,
+        width: engineMenuPosition.width,
+        maxWidth: 'calc(100vw - 16px)',
+      }}
+    >
+      <button 
+        onClick={() => { setImageEngine('klingai'); setIsImageEngineMenuOpen(false); }}
+        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'klingai' ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5'}`}
+      >
+        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">KlingAI</span>
+      </button>
+      <button 
+        onClick={() => { setImageEngine('gemini'); setIsImageEngineMenuOpen(false); }}
+        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'gemini' ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5'}`}
+      >
+        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Gemini 2.5</span>
+      </button>
+      <button 
+        onClick={() => { setImageEngine('deapi'); setIsImageEngineMenuOpen(false); }}
+        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'deapi' ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5'}`}
+      >
+        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">DeAPI.ai</span>
+      </button>
+      <button 
+        onClick={() => { setImageEngine('runware'); setIsImageEngineMenuOpen(false); }}
+        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'runware' ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5'}`}
+      >
+        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Runware.ai</span>
+      </button>
+      <button 
+        onClick={() => { setImageEngine('seedream'); setIsImageEngineMenuOpen(false); }}
+        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'seedream' ? 'bg-gradient-to-r from-fuchsia-600 to-rose-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5'}`}
+      >
+        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Seedream 4.5</span>
+      </button>
+      <button 
+        onClick={() => { setImageEngine('seedream40'); setIsImageEngineMenuOpen(false); }}
+        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'seedream40' ? 'bg-gradient-to-r from-purple-600 to-pink-500 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5'}`}
+      >
+        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Seedream 4.0</span>
+      </button>
+      <button 
+        onClick={() => { setImageEngine('dalle3'); setIsImageEngineMenuOpen(false); }}
+        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'dalle3' ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+      >
+        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">DALL·E 3</span>
+      </button>
+    </div>,
+    document.body
+  ) : null;
+
+  const aspectMenu = (isAspectRatioMenuOpen && aspectMenuPosition && typeof document !== 'undefined') ? createPortal(
+    <div
+      ref={aspectMenuPortalRef}
+      className="fixed z-[12000] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.55)] max-h-[70vh] overflow-y-auto animate-scale-in"
+      style={{
+        top: aspectMenuPosition.top,
+        left: aspectMenuPosition.left,
+        width: aspectMenuPosition.width,
+        maxWidth: 'calc(100vw - 16px)',
+      }}
+    >
+      {ASPECT_RATIOS.map(opt => (
+        <button
+          key={opt.id}
+          onClick={() => { setAspectRatio(opt.id); setIsAspectRatioMenuOpen(false); }}
+          className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 text-[9px] font-black transition-all ${aspectRatio === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}
+        >
+          <div className="flex items-center gap-2 truncate"><opt.icon className="w-3.5 h-3.5" /><span className="truncate">{opt.label}</span></div>
+          {aspectRatio === opt.id && <Check className="w-2.5 h-2.5 shrink-0" />}
+        </button>
+      ))}
+    </div>,
+    document.body
+  ) : null;
+
+  const styleMenu = (isStyleMenuOpen && styleMenuPosition && typeof document !== 'undefined') ? createPortal(
+    <div
+      ref={styleMenuPortalRef}
+      className="fixed z-[12000] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.55)] max-h-[70vh] overflow-y-auto animate-scale-in"
+      style={{
+        top: styleMenuPosition.top,
+        left: styleMenuPosition.left,
+        width: styleMenuPosition.width,
+        maxWidth: 'calc(100vw - 16px)',
+      }}
+    >
+      {STYLES.map(opt => (
+        <button
+          key={opt.id}
+          onClick={() => { setSelectedStyle(opt.id); setIsStyleMenuOpen(false); }}
+          className={`w-full text-left px-3 py-2.5 transition-all ${selectedStyle === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}
+        >
+          <span className="text-[9px] font-black uppercase tracking-widest">{opt.label}</span>
+        </button>
+      ))}
+    </div>,
+    document.body
+  ) : null;
+
+  const negativeMenuPortal = (isNegativeMenuOpen && negativeMenuPosition && typeof document !== 'undefined') ? createPortal(
+    <div
+      ref={negativeMenuPortalRef}
+      className="fixed z-[12000] bg-dark-900 border border-white/10 rounded-2xl shadow-[0_24px_60px_rgba(0,0,0,0.55)] max-h-[70vh] overflow-y-auto animate-scale-in"
+      style={{
+        top: negativeMenuPosition.top,
+        left: negativeMenuPosition.left,
+        width: negativeMenuPosition.width,
+        maxWidth: 'calc(100vw - 16px)',
+      }}
+    >
+      {NEGATIVE_PRESETS.map((opt) => (
+        <button
+          key={opt.id}
+          onClick={() => { setNegativePrompt(opt.value); setIsNegativeMenuOpen(false); }}
+          className="w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:bg-white/5 border-b border-white/5 last:border-none"
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>,
+    document.body
+  ) : null;
+
+  const dalleResolutionMenuPortal = (isDalleResolutionMenuOpen && dalleResolutionMenuPosition && typeof document !== 'undefined') ? createPortal(
+    <div
+      ref={dalleResolutionMenuPortalRef}
+      className="fixed z-[12000] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.55)] max-h-[60vh] overflow-y-auto animate-scale-in"
+      style={{
+        top: dalleResolutionMenuPosition.top,
+        left: dalleResolutionMenuPosition.left,
+        width: dalleResolutionMenuPosition.width,
+        maxWidth: 'calc(100vw - 16px)',
+      }}
+    >
+      {['1024x1024'].map(size => (
+        <button
+          key={size}
+          onClick={() => { setDalleSize(size as any); setIsDalleResolutionMenuOpen(false); }}
+          className={`w-full text-left px-3 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all ${dalleSize === size ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}
+        >
+          {size}
+        </button>
+      ))}
+    </div>,
+    document.body
+  ) : null;
+
+  const dalleQualityMenuPortal = (isDalleQualityMenuOpen && dalleQualityMenuPosition && typeof document !== 'undefined') ? createPortal(
+    <div
+      ref={dalleQualityMenuPortalRef}
+      className="fixed z-[12000] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.55)] max-h-[60vh] overflow-y-auto animate-scale-in"
+      style={{
+        top: dalleQualityMenuPosition.top,
+        left: dalleQualityMenuPosition.left,
+        width: dalleQualityMenuPosition.width,
+        maxWidth: 'calc(100vw - 16px)',
+      }}
+    >
+      {['standard','hd'].map(q => (
+        <button
+          key={q}
+          onClick={() => { setDalleQuality(q as any); setIsDalleQualityMenuOpen(false); }}
+          className={`w-full text-left px-3 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all ${dalleQuality === q ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}
+        >
+          {q.toUpperCase()}
+        </button>
+      ))}
+    </div>,
+    document.body
+  ) : null;
+
   return (
     <div className="min-h-screen bg-dark-950 py-6 sm:py-8">
       {/* Header Section */}
@@ -593,6 +963,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                 <div className="mb-3 sm:mb-4 relative z-[50]" ref={imageEngineMenuRef}>
                   <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-1.5 sm:mb-2 block">AI Engine</label>
                   <button 
+                    ref={imageEngineButtonRef}
                     onClick={() => !isGenerating && setIsImageEngineMenuOpen(!isImageEngineMenuOpen)}
                     disabled={isGenerating}
                     className="w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 bg-black/50 border border-white/10 rounded-lg sm:rounded-xl text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -611,52 +982,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                     </div>
                     <ChevronDown className={`w-2.5 h-2.5 text-gray-500 transition-transform flex-shrink-0 ${isImageEngineMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
-                  {isImageEngineMenuOpen && (
-                    <div className="absolute top-full left-0 right-0 mt-2 z-[200] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-                      <button 
-                        onClick={() => { setImageEngine('klingai'); setIsImageEngineMenuOpen(false); }}
-                        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'klingai' ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5'}`}
-                      >
-                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">KlingAI</span>
-                      </button>
-                      <button 
-                        onClick={() => { setImageEngine('gemini'); setIsImageEngineMenuOpen(false); }}
-                        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'gemini' ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5'}`}
-                      >
-                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Gemini 2.5</span>
-                      </button>
-                      <button 
-                        onClick={() => { setImageEngine('deapi'); setIsImageEngineMenuOpen(false); }}
-                        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'deapi' ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5'}`}
-                      >
-                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">DeAPI.ai</span>
-                      </button>
-                      <button 
-                        onClick={() => { setImageEngine('runware'); setIsImageEngineMenuOpen(false); }}
-                        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'runware' ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5'}`}
-                      >
-                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Runware.ai</span>
-                      </button>
-                      <button 
-                        onClick={() => { setImageEngine('seedream'); setIsImageEngineMenuOpen(false); }}
-                        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'seedream' ? 'bg-gradient-to-r from-fuchsia-600 to-rose-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5'}`}
-                      >
-                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Seedream 4.5</span>
-                      </button>
-                      <button 
-                        onClick={() => { setImageEngine('seedream40'); setIsImageEngineMenuOpen(false); }}
-                        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'seedream40' ? 'bg-gradient-to-r from-purple-600 to-pink-500 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5'}`}
-                      >
-                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Seedream 4.0</span>
-                      </button>
-                      <button 
-                        onClick={() => { setImageEngine('dalle3'); setIsImageEngineMenuOpen(false); }}
-                        className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 transition-all ${imageEngine === 'dalle3' ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white' : 'text-gray-400 hover:bg-white/5'}`}
-                      >
-                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">DALL·E 3</span>
-                      </button>
-                    </div>
-                  )}
+                  {engineMenu}
                 </div>
 
                 {/* Mode Selector */}
@@ -817,25 +1143,28 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-fade-in">
                       <div className="space-y-2">
                         <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Resolution</label>
-                        <select
-                          value={dalleSize}
-                          onChange={(e) => setDalleSize(e.target.value as any)}
-                          className="w-full px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest"
+                        <button
+                          ref={dalleResolutionButtonRef}
+                          onClick={() => setIsDalleResolutionMenuOpen(!isDalleResolutionMenuOpen)}
+                          className="w-full flex items-center justify-between px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all"
                         >
-                          <option value="1024x1024">1024 × 1024</option>
-                        </select>
+                          <span>{dalleSize}</span>
+                          <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform ${isDalleResolutionMenuOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        {dalleResolutionMenuPortal}
                         <p className="text-[9px] text-gray-500 ml-1">Fixed square output from DALL·E 3.</p>
                       </div>
                       <div className="space-y-2">
                         <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Quality</label>
-                        <select
-                          value={dalleQuality}
-                          onChange={(e) => setDalleQuality(e.target.value as any)}
-                          className="w-full px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest"
+                        <button
+                          ref={dalleQualityButtonRef}
+                          onClick={() => setIsDalleQualityMenuOpen(!isDalleQualityMenuOpen)}
+                          className="w-full flex items-center justify-between px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all"
                         >
-                          <option value="standard">Standard</option>
-                          <option value="hd">HD</option>
-                        </select>
+                          <span>{dalleQuality.toUpperCase()}</span>
+                          <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform ${isDalleQualityMenuOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        {dalleQualityMenuPortal}
                       </div>
                       <div className="space-y-2 sm:col-span-2">
                         <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Style</label>
@@ -880,6 +1209,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                           </button>
                         )}
                         <button 
+                          ref={negativeButtonRef}
                           onClick={() => setIsNegativeMenuOpen(!isNegativeMenuOpen)}
                           className="px-3 py-1.5 text-[9px] font-bold text-pink-300 uppercase tracking-widest bg-black/50 border border-white/10 rounded-lg hover:border-white/25"
                         >
@@ -887,19 +1217,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                         </button>
                       </div>
                     </div>
-                    {isNegativeMenuOpen && (
-                      <div className="absolute right-0 top-full mt-2 w-72 bg-dark-900 border border-white/10 rounded-2xl shadow-2xl z-[80] overflow-hidden animate-scale-in">
-                        {NEGATIVE_PRESETS.map((opt) => (
-                          <button
-                            key={opt.id}
-                            onClick={() => { setNegativePrompt(opt.value); setIsNegativeMenuOpen(false); }}
-                            className="w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:bg-white/5 border-b border-white/5 last:border-none"
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                    {negativeMenuPortal}
                     <textarea 
                       placeholder="Things you want to avoid (e.g., blurry, watermarks, distorted hands)"
                       className="w-full h-16 bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm outline-none focus:ring-2 focus:ring-pink-500/40 resize-none"
@@ -913,41 +1231,24 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                     {/* Aspect Ratio */}
                     <div className="space-y-2 relative" ref={aspectRatioMenuRef}>
                       <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Dimension</label>
-                      <button onClick={() => setIsAspectRatioMenuOpen(!isAspectRatioMenuOpen)} className="w-full flex items-center justify-between px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all group">
+                      <button ref={aspectRatioButtonRef} onClick={() => setIsAspectRatioMenuOpen(!isAspectRatioMenuOpen)} className="w-full flex items-center justify-between px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all group">
                         <div className="flex items-center gap-1.5 truncate">
                           {currentRatioOption && <currentRatioOption.icon className="w-3.5 h-3.5 text-indigo-400 shrink-0 group-hover:scale-110 transition-transform" />}
                           <span className="truncate">{aspectRatio}</span>
                         </div>
                         <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform shrink-0 ${isAspectRatioMenuOpen ? 'rotate-180' : ''}`} />
                       </button>
-                      {isAspectRatioMenuOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-2 z-[200] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-scale-in">
-                          {ASPECT_RATIOS.map(opt => (
-                            <button key={opt.id} onClick={() => { setAspectRatio(opt.id); setIsAspectRatioMenuOpen(false); }} className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 text-[9px] font-black transition-all ${aspectRatio === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
-                              <div className="flex items-center gap-2 truncate"><opt.icon className="w-3.5 h-3.5" /><span className="truncate">{opt.label}</span></div>
-                              {aspectRatio === opt.id && <Check className="w-2.5 h-2.5 shrink-0" />}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                      {aspectMenu}
                     </div>
 
                     {/* Style */}
                     <div className="space-y-2 relative" ref={styleMenuRef}>
                       <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Style</label>
-                      <button onClick={() => setIsStyleMenuOpen(!isStyleMenuOpen)} className="w-full flex items-center justify-between px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
+                      <button ref={styleButtonRef} onClick={() => setIsStyleMenuOpen(!isStyleMenuOpen)} className="w-full flex items-center justify-between px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
                         <span className="truncate">{currentStyleOption?.label || 'None'}</span>
                         <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform shrink-0 ${isStyleMenuOpen ? 'rotate-180' : ''}`} />
                       </button>
-                      {isStyleMenuOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-2 z-[200] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-scale-in max-h-60 overflow-y-auto">
-                          {STYLES.map(opt => (
-                            <button key={opt.id} onClick={() => { setSelectedStyle(opt.id); setIsStyleMenuOpen(false); }} className={`w-full text-left px-3 py-2.5 transition-all ${selectedStyle === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
-                              <span className="text-[9px] font-black uppercase tracking-widest">{opt.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                      {styleMenu}
                     </div>
                   </div>
 

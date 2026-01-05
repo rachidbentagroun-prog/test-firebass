@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   User, Mail, LogOut, ArrowLeft, Shield, 
   Calendar, Edit2, Save, X, Check, Lock, Camera, 
@@ -15,9 +16,7 @@ import { deleteAssetFromDB } from '../services/dbService';
 import {
   getImagesFromFirebase as fetchImagesFromFirebase,
   getVideosFromFirebase as fetchVideosFromFirebase,
-  getAudioFromFirebase as fetchAudioFromFirebase,
-  getLiveGenerations,
-  getGenerationAnalytics
+  getAudioFromFirebase as fetchAudioFromFirebase
 } from '../services/firebase';
 import { useLanguage } from '../utils/i18n';
 
@@ -44,7 +43,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({
 }) => {
   const { language, setLanguage, t } = useLanguage();
   const [isLangOpen, setIsLangOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'messages' | 'history' | 'live'>(initialInboxOpen ? 'messages' : 'profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'messages' | 'history'>(initialInboxOpen ? 'messages' : 'profile');
+  const [isTabDropdownOpen, setIsTabDropdownOpen] = useState(false);
+  const [tabDropdownPosition, setTabDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const tabButtonRef = useRef<HTMLButtonElement>(null);
+  const tabDropdownRef = useRef<HTMLDivElement>(null);
+  const tabPortalRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: user.name,
@@ -58,6 +62,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const langDropdownRef = useRef<HTMLDivElement>(null);
+  const contactButtonRef = useRef<HTMLDivElement>(null);
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [contactSubject, setContactSubject] = useState('');
   const [contactMessage, setContactMessage] = useState('');
@@ -69,12 +75,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const [images, setImages] = useState<GeneratedImage[]>(gallery || []);
   const [videos, setVideos] = useState<GeneratedVideo[]>(videoGallery || []);
   const [audios, setAudios] = useState<GeneratedAudio[]>(audioGallery || []);
-
-  // Live Generations state
-  const [liveGenerations, setLiveGenerations] = useState<any[]>([]);
-  const [generationAnalytics, setGenerationAnalytics] = useState<any>(null);
-  const [loadingLive, setLoadingLive] = useState(false);
-  const [liveRefreshInterval, setLiveRefreshInterval] = useState<NodeJS.Timeout | null>(null);
 
   const unreadCount = user.messages?.filter(m => !m.isRead).length || 0;
   const isLight = theme === 'light';
@@ -117,41 +117,48 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     fetchGallery();
   }, [user?.id]);
 
-  // Fetch live generations
-  const fetchLiveGenerations = async () => {
-    setLoadingLive(true);
-    try {
-      const [generations, analytics] = await Promise.all([
-        getLiveGenerations(),
-        getGenerationAnalytics(7)
-      ]);
-      setLiveGenerations(generations);
-      setGenerationAnalytics(analytics);
-    } catch (e) {
-      console.warn('Failed to load live generations', e);
-    } finally {
-      setLoadingLive(false);
-    }
-  };
-
-  // Auto-refresh live generations when on live tab
+  // Close dropdowns on outside click
   useEffect(() => {
-    if (activeTab === 'live') {
-      fetchLiveGenerations();
-      // Refresh every 5 seconds
-      const interval = setInterval(fetchLiveGenerations, 5000);
-      setLiveRefreshInterval(interval);
-      return () => {
-        clearInterval(interval);
-        setLiveRefreshInterval(null);
-      };
-    } else {
-      if (liveRefreshInterval) {
-        clearInterval(liveRefreshInterval);
-        setLiveRefreshInterval(null);
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (langDropdownRef.current && !langDropdownRef.current.contains(target)) {
+        setIsLangOpen(false);
       }
-    }
-  }, [activeTab]);
+      if (contactButtonRef.current && !contactButtonRef.current.contains(target)) {
+        setIsContactOpen(false);
+      }
+      if (tabDropdownRef.current && !tabDropdownRef.current.contains(target) && (!tabPortalRef.current || !tabPortalRef.current.contains(target))) {
+        setIsTabDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Position tab dropdown portal
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isTabDropdownOpen) return;
+
+    const updatePosition = () => {
+      if (!tabButtonRef.current) return;
+      const rect = tabButtonRef.current.getBoundingClientRect();
+      const margin = 8;
+      const width = 280;
+      const maxLeft = window.innerWidth - width - margin;
+      const left = Math.max(margin, Math.min(rect.left, maxLeft));
+      setTabDropdownPosition({ top: rect.bottom + margin, left, width });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isTabDropdownOpen]);
 
   // UI derived values
   const planGradient = user.plan === 'premium' 
@@ -299,27 +306,77 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             {isLight ? 'Dark Mode' : 'Light Mode'}
           </button>
 
-          <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10 overflow-x-auto no-scrollbar">
-             {[
-               { id: 'profile', icon: User, label: t('tabs.profile') },
-               { id: 'live', icon: Activity, label: 'Generations Live' },
-               { id: 'history', icon: Database, label: t('tabs.history') },
-               { id: 'messages', icon: Mail, label: t('tabs.inbox'), badge: unreadCount },
-             ].map(tab => (
-               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-3 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all relative whitespace-nowrap ${activeTab === tab.id ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20' : 'text-gray-500 hover:text-white'}`}
-               >
-                 <tab.icon className="w-4 h-4" />
-                 {tab.label}
-                 {tab.badge && tab.badge > 0 ? (
-                   <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] flex items-center justify-center rounded-full border-2 border-dark-950">
-                     {tab.badge}
-                   </span>
-                 ) : null}
-               </button>
-             ))}
+          <div ref={tabDropdownRef} className="relative">
+            <button
+              ref={tabButtonRef}
+              onClick={() => setIsTabDropdownOpen(!isTabDropdownOpen)}
+              className="flex items-center gap-3 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all bg-indigo-600 text-white shadow-xl shadow-indigo-600/20"
+            >
+              {activeTab === 'profile' ? (
+                <>
+                  <User className="w-4 h-4" />
+                  Creator Profile
+                </>
+              ) : activeTab === 'history' ? (
+                <>
+                  <Database className="w-4 h-4" />
+                  Generation History
+                </>
+              ) : (
+                <>
+                  <Mail className="w-4 h-4" />
+                  Inbox
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] flex items-center justify-center rounded-full border-2 border-dark-950">
+                      {unreadCount}
+                    </span>
+                  )}
+                </>
+              )}
+              <ChevronDown className={`w-3 h-3 transition-transform ${isTabDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Tab Dropdown Portal */}
+            {isTabDropdownOpen && tabDropdownPosition && typeof document !== 'undefined' && createPortal(
+              <div
+                ref={tabPortalRef}
+                className="fixed z-[12000] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.55)] animate-scale-in"
+                style={{
+                  top: tabDropdownPosition.top,
+                  left: tabDropdownPosition.left,
+                  width: tabDropdownPosition.width,
+                  maxWidth: 'calc(100vw - 16px)',
+                }}
+              >
+                <button
+                  onClick={() => { setActiveTab('profile'); setIsTabDropdownOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-[10px] font-bold transition-all border-b border-white/5 last:border-none ${activeTab === 'profile' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+                >
+                  <User className="w-3.5 h-3.5" />
+                  Creator Profile
+                </button>
+                <button
+                  onClick={() => { setActiveTab('history'); setIsTabDropdownOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-[10px] font-bold transition-all border-b border-white/5 last:border-none ${activeTab === 'history' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+                >
+                  <Database className="w-3.5 h-3.5" />
+                  Generation History
+                </button>
+                <button
+                  onClick={() => { setActiveTab('messages'); setIsTabDropdownOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-[10px] font-bold transition-all ${activeTab === 'messages' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  Inbox
+                  {unreadCount > 0 && (
+                    <span className="ml-auto w-4 h-4 bg-red-500 text-white text-[8px] flex items-center justify-center rounded-full border border-red-400">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+              </div>,
+              document.body
+            )}
           </div>
         </div>
       </div>
@@ -418,34 +475,36 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                           </div>
 
                           <div className="mt-5 relative flex flex-wrap gap-3">
-                            <button onClick={() => setIsLangOpen(p => !p)} className="px-5 py-3 rounded-2xl border border-white/10 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 text-white shadow-lg hover:from-indigo-600/30 hover:to-purple-600/30 transition-all flex items-center gap-2 font-black text-[10px] uppercase tracking-widest">
-                              <Languages className="w-4 h-4" /> {t('profile.language')}: {language.toUpperCase()}
-                            </button>
+                            <div ref={langDropdownRef}>
+                              <button onClick={() => setIsLangOpen(p => !p)} className="px-5 py-3 rounded-2xl border border-white/10 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 text-white shadow-lg hover:from-indigo-600/30 hover:to-purple-600/30 transition-all flex items-center gap-2 font-black text-[10px] uppercase tracking-widest">
+                                <Languages className="w-4 h-4" /> {t('profile.language')}: {language.toUpperCase()}
+                              </button>
+                              {isLangOpen && (
+                                <div className="absolute z-50 mt-2 w-56 bg-dark-900 border border-white/10 rounded-2xl shadow-2xl">
+                                  {[
+                                    { id: 'en', label: 'English' },
+                                    { id: 'ar', label: 'Arabic' },
+                                    { id: 'fr', label: 'French' },
+                                    { id: 'de', label: 'German' },
+                                    { id: 'es', label: 'Spanish' },
+                                  ].map(opt => (
+                                    <button
+                                      key={opt.id}
+                                      onClick={() => { setLanguage(opt.id as any); setIsLangOpen(false); }}
+                                      className={`w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest ${language === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+                                    >
+                                      {opt.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                             <button onClick={() => setIsContactOpen(true)} className="px-5 py-3 rounded-2xl border border-white/10 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 text-white shadow-lg hover:from-emerald-600/30 hover:to-teal-600/30 transition-all flex items-center gap-2 font-black text-[10px] uppercase tracking-widest">
                               <Mail className="w-4 h-4" /> {t('profile.contactUs')}
                             </button>
-                             <button onClick={() => onNavigate?.('upgrade')} className="px-5 py-3 rounded-2xl border border-white/10 bg-gradient-to-r from-purple-600/20 to-pink-600/20 text-white shadow-lg hover:from-purple-600/30 hover:to-pink-600/30 transition-all flex items-center gap-2 font-black text-[10px] uppercase tracking-widest">
+                             <button onClick={() => onNavigate?.('pricing')} className="px-5 py-3 rounded-2xl border border-white/10 bg-gradient-to-r from-purple-600/20 to-pink-600/20 text-white shadow-lg hover:from-purple-600/30 hover:to-pink-600/30 transition-all flex items-center gap-2 font-black text-[10px] uppercase tracking-widest">
                               <Zap className="w-4 h-4" /> SUBSCRIBE NOW
                             </button>
-                            {isLangOpen && (
-                              <div className="absolute z-50 mt-2 w-56 bg-dark-900 border border-white/10 rounded-2xl shadow-2xl">
-                                {[
-                                  { id: 'en', label: 'English' },
-                                  { id: 'ar', label: 'Arabic' },
-                                  { id: 'fr', label: 'French' },
-                                  { id: 'de', label: 'German' },
-                                  { id: 'es', label: 'Spanish' },
-                                ].map(opt => (
-                                  <button
-                                    key={opt.id}
-                                    onClick={() => { setLanguage(opt.id as any); setIsLangOpen(false); }}
-                                    className={`w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest ${language === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5'}`}
-                                  >
-                                    {opt.label}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
                           </div>
                         </>
                       )}
@@ -510,15 +569,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 blur-[40px] rounded-full -mr-12 -mt-12" />
                   <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
-                     <Activity className="w-4 h-4" /> Node Telemetry
+                     <Activity className="w-4 h-4" /> Information
                   </h4>
                   <div className="space-y-4">
                      <div className="flex justify-between items-center py-2 border-b border-white/5">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase">Joined Protocol</span>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase">Joined Date</span>
                         <span className="text-[10px] font-black text-white">{new Date(user.joinedAt || Date.now()).toLocaleDateString()}</span>
                      </div>
                      <div className="flex justify-between items-center py-2 border-b border-white/5">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase">{t('profile.archiveSize')}</span>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase">Gallery</span>
                         <span className="text-[10px] font-black text-white">{historyStream.length} {t('profile.assets')}</span>
                      </div>
                      <div className="flex justify-between items-center py-2">
@@ -534,220 +593,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                <button onClick={onLogout} className="w-full py-5 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white border border-red-500/20 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 shadow-lg group">
                   <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Logout
                </button>
-            </div>
-          </div>
-        )}
-
-        {/* GENERATIONS LIVE TAB */}
-        {activeTab === 'live' && (
-          <div className="space-y-10 animate-fade-in">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div>
-                <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter flex items-center gap-3">
-                  <Activity className="w-8 h-8 text-indigo-400" /> Generations Live
-                </h3>
-                <p className="text-sm text-gray-400 mt-2">Real-time multimodal AI activity across the platform</p>
-              </div>
-              <button 
-                onClick={fetchLiveGenerations}
-                disabled={loadingLive}
-                className="px-6 py-3 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-600/20 rounded-2xl text-xs font-bold text-indigo-400 transition-all flex items-center gap-2"
-              >
-                <RefreshCw className={`w-4 h-4 ${loadingLive ? 'animate-spin' : ''}`} />
-                {loadingLive ? 'Refreshing...' : 'Refresh'}
-              </button>
-            </div>
-
-            {/* Analytics Cards */}
-            {generationAnalytics && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-dark-900 border border-white/5 p-6 rounded-[2rem] shadow-xl">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-3 bg-indigo-600/20 rounded-xl">
-                      <ImageIcon className="w-6 h-6 text-indigo-400" />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">AI Images</div>
-                      <div className="text-2xl font-black text-white">{generationAnalytics.imageCount}</div>
-                    </div>
-                  </div>
-                  <div className="text-[9px] text-gray-600 uppercase tracking-widest">Last 7 days</div>
-                </div>
-
-                <div className="bg-dark-900 border border-white/5 p-6 rounded-[2rem] shadow-xl">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-3 bg-purple-600/20 rounded-xl">
-                      <VideoIcon className="w-6 h-6 text-purple-400" />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">AI Videos</div>
-                      <div className="text-2xl font-black text-white">{generationAnalytics.videoCount}</div>
-                    </div>
-                  </div>
-                  <div className="text-[9px] text-gray-600 uppercase tracking-widest">Last 7 days</div>
-                </div>
-
-                <div className="bg-dark-900 border border-white/5 p-6 rounded-[2rem] shadow-xl">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-3 bg-pink-600/20 rounded-xl">
-                      <Mic2 className="w-6 h-6 text-pink-400" />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">AI Audio</div>
-                      <div className="text-2xl font-black text-white">{generationAnalytics.audioCount}</div>
-                    </div>
-                  </div>
-                  <div className="text-[9px] text-gray-600 uppercase tracking-widest">Last 7 days</div>
-                </div>
-
-                <div className="bg-dark-900 border border-white/5 p-6 rounded-[2rem] shadow-xl">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-3 bg-green-600/20 rounded-xl">
-                      <Activity className="w-6 h-6 text-green-400" />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Success Rate</div>
-                      <div className="text-2xl font-black text-white">{generationAnalytics.successRate.toFixed(1)}%</div>
-                    </div>
-                  </div>
-                  <div className="text-[9px] text-gray-600 uppercase tracking-widest">Completion rate</div>
-                </div>
-              </div>
-            )}
-
-            {/* Additional Stats */}
-            {generationAnalytics && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-dark-900 border border-white/10 rounded-[2rem] p-8">
-                  <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Total Generations</h4>
-                  <div className="text-4xl font-black text-white mb-2">{generationAnalytics.totalGenerations}</div>
-                  <div className="flex items-center gap-2 text-[9px] text-gray-600 uppercase tracking-widest">
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-green-500" />
-                      <span>{generationAnalytics.completedCount} Completed</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-amber-500" />
-                      <span>{generationAnalytics.processingCount} Processing</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-dark-900 border border-white/10 rounded-[2rem] p-8">
-                  <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Active Users</h4>
-                  <div className="text-4xl font-black text-white mb-2">{generationAnalytics.uniqueUsers}</div>
-                  <div className="text-[9px] text-gray-600 uppercase tracking-widest">Unique creators this week</div>
-                </div>
-
-                <div className="bg-dark-900 border border-white/10 rounded-[2rem] p-8">
-                  <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Top Users</h4>
-                  <div className="space-y-2">
-                    {generationAnalytics.topUsers.slice(0, 3).map((user: any, i: number) => (
-                      <div key={i} className="flex items-center justify-between text-xs">
-                        <span className="text-white font-bold truncate">{user.userName}</span>
-                        <span className="text-gray-600 font-black">{user.count}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Live Generations List */}
-            <div className="bg-dark-900 border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl">
-              <div className="p-8 border-b border-white/5 bg-black/20 flex items-center justify-between">
-                <div>
-                  <h4 className="text-xl font-black text-white uppercase italic tracking-tighter">Live Activity Feed</h4>
-                  <p className="text-[10px] text-gray-600 uppercase tracking-widest mt-1">Real-time generation events • Auto-refresh every 5s</p>
-                </div>
-                <div className="flex items-center gap-2 bg-green-600/10 px-4 py-2 rounded-xl border border-green-600/20">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-[10px] font-black text-green-400 uppercase tracking-widest">Live</span>
-                </div>
-              </div>
-
-              <div className="p-8">
-                {loadingLive && liveGenerations.length === 0 ? (
-                  <div className="py-20 flex flex-col items-center justify-center">
-                    <RefreshCw className="w-12 h-12 text-indigo-500 animate-spin mb-4" />
-                    <p className="text-sm text-gray-500">Loading live generations...</p>
-                  </div>
-                ) : liveGenerations.length > 0 ? (
-                  <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar">
-                    {liveGenerations.map((gen: any) => {
-                      const isImage = gen.type === 'image';
-                      const isVideo = gen.type === 'video';
-                      const isAudio = gen.type === 'audio';
-                      
-                      let iconColor = 'text-indigo-400';
-                      let bgColor = 'bg-indigo-600/20';
-                      let Icon = ImageIcon;
-                      
-                      if (isVideo) {
-                        iconColor = 'text-purple-400';
-                        bgColor = 'bg-purple-600/20';
-                        Icon = VideoIcon;
-                      } else if (isAudio) {
-                        iconColor = 'text-pink-400';
-                        bgColor = 'bg-pink-600/20';
-                        Icon = Mic2;
-                      }
-
-                      const statusColor = gen.status === 'completed' ? 'text-green-400' : 
-                                         gen.status === 'failed' ? 'text-red-400' : 'text-amber-400';
-                      
-                      return (
-                        <div key={gen.id} className="flex items-start gap-4 p-6 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all">
-                          <div className={`p-3 rounded-xl ${bgColor} shrink-0`}>
-                            <Icon className={`w-6 h-6 ${iconColor}`} />
-                          </div>
-                          
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-4 mb-2">
-                              <div className="flex-1 min-w-0">
-                                <h5 className="text-sm font-black text-white uppercase tracking-tight truncate">{gen.userName}</h5>
-                                <p className="text-[10px] text-gray-600 uppercase tracking-widest">{gen.userEmail}</p>
-                              </div>
-                              <div className="flex flex-col items-end gap-1">
-                                <span className={`text-[9px] font-black uppercase tracking-widest ${statusColor}`}>
-                                  {gen.status}
-                                </span>
-                                <span className="text-[8px] text-gray-600 uppercase tracking-widest whitespace-nowrap">
-                                  {new Date(gen.timestamp).toLocaleTimeString()}
-                                </span>
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
-                                <span className={`px-2 py-1 rounded-lg ${bgColor} ${iconColor}`}>
-                                  AI {gen.type.toUpperCase()}
-                                </span>
-                                {gen.engine && (
-                                  <span className="px-2 py-1 rounded-lg bg-white/5 text-gray-400">
-                                    {gen.engine}
-                                  </span>
-                                )}
-                              </div>
-                              
-                              <p className="text-xs text-gray-400 italic line-clamp-2 leading-relaxed">
-                                "{gen.prompt}"
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="py-32 text-center opacity-30">
-                    <Activity className="w-16 h-16 mx-auto mb-6 text-gray-600" />
-                    <h4 className="text-xl font-black uppercase tracking-[0.3em] text-gray-500">No Live Activity</h4>
-                    <p className="text-[10px] font-bold uppercase mt-3 tracking-widest">Generations will appear here as users create content</p>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         )}
@@ -930,32 +775,34 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       </div>
       
       {/* Contact Modal */}
-      {isContactOpen && (
-        <div className="fixed inset-0 z-[300] bg-dark-950/80 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in">
-          <div className="w-full max-w-lg bg-dark-900 border border-white/10 rounded-[2rem] p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-black text-white uppercase tracking-widest flex items-center gap-2"><Mail className="w-5 h-5 text-emerald-400" /> {t('contact.title')}</h3>
-              <button onClick={() => setIsContactOpen(false)} className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400"><X className="w-4 h-4" /></button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('contact.subject')}</label>
-                <input value={contactSubject} onChange={(e) => setContactSubject(e.target.value)} className="w-full mt-1 px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white outline-none" placeholder={t('contact.subjectPlaceholder')} />
+      <div ref={contactButtonRef}>
+        {isContactOpen && (
+          <div className="fixed inset-0 z-[300] bg-dark-950/80 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in">
+            <div className="w-full max-w-lg bg-dark-900 border border-white/10 rounded-[2rem] p-6 shadow-2xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-black text-white uppercase tracking-widest flex items-center gap-2"><Mail className="w-5 h-5 text-emerald-400" /> {t('contact.title')}</h3>
+                <button onClick={() => setIsContactOpen(false)} className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400"><X className="w-4 h-4" /></button>
               </div>
-              <div>
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('contact.message')}</label>
-                <textarea value={contactMessage} onChange={(e) => setContactMessage(e.target.value)} className="w-full mt-1 h-32 px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white outline-none resize-none" placeholder={t('contact.messagePlaceholder')} />
-              </div>
-              <div className="flex justify-end gap-2">
-                <button onClick={() => setIsContactOpen(false)} className="px-4 py-2 bg-white/5 text-gray-300 rounded-xl border border-white/10">{t('contact.cancel')}</button>
-                <button onClick={handleSendContact} disabled={isContactSending} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl border border-white/10 disabled:opacity-50">
-                  {isContactSending ? t('contact.sending') : t('contact.send')}
-                </button>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('contact.subject')}</label>
+                  <input value={contactSubject} onChange={(e) => setContactSubject(e.target.value)} className="w-full mt-1 px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white outline-none" placeholder={t('contact.subjectPlaceholder')} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('contact.message')}</label>
+                  <textarea value={contactMessage} onChange={(e) => setContactMessage(e.target.value)} className="w-full mt-1 h-32 px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white outline-none resize-none" placeholder={t('contact.messagePlaceholder')} />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setIsContactOpen(false)} className="px-4 py-2 bg-white/5 text-gray-300 rounded-xl border border-white/10">{t('contact.cancel')}</button>
+                  <button onClick={handleSendContact} disabled={isContactSending} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl border border-white/10 disabled:opacity-50">
+                    {isContactSending ? t('contact.sending') : t('contact.send')}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }

@@ -939,3 +939,1712 @@ export async function getGenerationAnalytics(days: number = 7) {
   }
 }
 
+// ============================================
+// CREDIT SYSTEM - AI COST CONTROL
+// ============================================
+
+/**
+ * Get credit configuration
+ */
+export async function getCreditConfig() {
+  try {
+    const { doc: firestoreDoc, getDoc } = await import('firebase/firestore');
+    const configRef = firestoreDoc(db, 'system_config', 'credit_config');
+    const configDoc = await getDoc(configRef);
+    
+    if (configDoc.exists()) {
+      return configDoc.data();
+    }
+    
+    // Return default config if not set
+    return {
+      imageCost: 1,
+      videoCostPerSecond: 5,
+      voiceCostPerMinute: 2,
+      chatCostPerToken: 0.001,
+      imageHDCost: 2,
+      video4KCost: 10,
+      freeSignupCredits: 10,
+      basicPlanCredits: 100,
+      premiumPlanCredits: 500,
+      updatedAt: Date.now()
+    };
+  } catch (err: any) {
+    console.error('❌ Failed to get credit config:', err.message || err);
+    throw err;
+  }
+}
+
+/**
+ * Update credit configuration (admin only)
+ */
+export async function updateCreditConfig(config: any, adminId: string, adminEmail: string) {
+  try {
+    const { doc: firestoreDoc, setDoc, serverTimestamp: firestoreServerTimestamp } = await import('firebase/firestore');
+    const configRef = firestoreDoc(db, 'system_config', 'credit_config');
+    
+    await setDoc(configRef, {
+      ...config,
+      updatedAt: Date.now(),
+      updatedBy: adminEmail
+    });
+    
+    // Log admin action
+    await logAdminAudit(adminId, adminEmail, 'edit_config', 'config', 'credit_config', 
+      'Updated credit configuration', config);
+    
+    console.log('✅ Credit config updated successfully');
+  } catch (err: any) {
+    console.error('❌ Failed to update credit config:', err.message || err);
+    throw err;
+  }
+}
+
+/**
+ * Check if user has enough credits for an action
+ */
+export async function checkUserCredits(userId: string, requiredCredits: number): Promise<{
+  hasEnough: boolean;
+  currentBalance: number;
+  status: string;
+}> {
+  try {
+    const { doc: firestoreDoc, getDoc } = await import('firebase/firestore');
+    const userRef = firestoreDoc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      return { hasEnough: false, currentBalance: 0, status: 'User not found' };
+    }
+    
+    const userData = userDoc.data();
+    const currentBalance = userData.credits || 0;
+    const accountStatus = userData.status || 'active';
+    
+    if (accountStatus === 'suspended') {
+      return { hasEnough: false, currentBalance, status: 'Account suspended' };
+    }
+    
+    if (currentBalance < requiredCredits) {
+      return { hasEnough: false, currentBalance, status: 'Insufficient credits' };
+    }
+    
+    return { hasEnough: true, currentBalance, status: 'OK' };
+  } catch (err: any) {
+    console.error('❌ Failed to check user credits:', err.message || err);
+    throw err;
+  }
+}
+
+/**
+ * Deduct credits from user and log the transaction
+ */
+export async function deductUserCredits(
+  userId: string,
+  amount: number,
+  aiType: 'image' | 'video' | 'voice' | 'chat',
+  reason: string,
+  metadata?: any
+): Promise<{ success: boolean; newBalance: number }> {
+  try {
+    const { doc: firestoreDoc, getDoc, updateDoc, collection: firestoreCollection, addDoc, serverTimestamp: firestoreServerTimestamp } = await import('firebase/firestore');
+    
+    const userRef = firestoreDoc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+    
+    const userData = userDoc.data();
+    const currentBalance = userData.credits || 0;
+    
+    if (currentBalance < amount) {
+      throw new Error('Insufficient credits');
+    }
+    
+    const newBalance = currentBalance - amount;
+    
+    // Update user credits
+    await updateDoc(userRef, {
+      credits: newBalance,
+      lastCreditUpdate: Date.now()
+    });
+    
+    // Log credit transaction
+    const creditLogsRef = firestoreCollection(db, 'credit_logs');
+    await addDoc(creditLogsRef, {
+      userId,
+      userEmail: userData.email || 'unknown',
+      type: 'deduction',
+      amount,
+      balanceBefore: currentBalance,
+      balanceAfter: newBalance,
+      reason,
+      aiType,
+      metadata: metadata || {},
+      timestamp: Date.now(),
+      ipAddress: metadata?.ipAddress || null
+    });
+    
+    console.log(`✅ Deducted ${amount} credits from user ${userId}. New balance: ${newBalance}`);
+    
+    return { success: true, newBalance };
+  } catch (err: any) {
+    console.error('❌ Failed to deduct credits:', err.message || err);
+    throw err;
+  }
+}
+
+/**
+ * Grant credits to user (admin action)
+ */
+export async function grantUserCredits(
+  userId: string,
+  amount: number,
+  reason: string,
+  adminId: string,
+  adminEmail: string,
+  type: 'grant' | 'bonus' | 'refund' = 'grant'
+): Promise<{ success: boolean; newBalance: number }> {
+  try {
+    const { doc: firestoreDoc, getDoc, updateDoc, collection: firestoreCollection, addDoc } = await import('firebase/firestore');
+    
+    const userRef = firestoreDoc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+    
+    const userData = userDoc.data();
+    const currentBalance = userData.credits || 0;
+    const newBalance = currentBalance + amount;
+    
+    // Update user credits
+    await updateDoc(userRef, {
+      credits: newBalance,
+      lastCreditUpdate: Date.now()
+    });
+    
+    // Log credit transaction
+    const creditLogsRef = firestoreCollection(db, 'credit_logs');
+    await addDoc(creditLogsRef, {
+      userId,
+      userEmail: userData.email || 'unknown',
+      type,
+      amount,
+      balanceBefore: currentBalance,
+      balanceAfter: newBalance,
+      reason,
+      metadata: {
+        adminId,
+        adminEmail
+      },
+      timestamp: Date.now()
+    });
+    
+    // Log admin action
+    await logAdminAudit(adminId, adminEmail, 'grant_credits', 'user', userId,
+      `Granted ${amount} credits to ${userData.email}`, { amount, reason });
+    
+    console.log(`✅ Granted ${amount} credits to user ${userId}. New balance: ${newBalance}`);
+    
+    return { success: true, newBalance };
+  } catch (err: any) {
+    console.error('❌ Failed to grant credits:', err.message || err);
+    throw err;
+  }
+}
+
+/**
+ * Log AI usage
+ */
+export async function logAIUsage(
+  userId: string,
+  aiType: 'image' | 'video' | 'voice' | 'chat',
+  service: string,
+  creditsUsed: number,
+  status: 'success' | 'failed' | 'pending',
+  metadata?: {
+    prompt?: string;
+    duration?: number;
+    tokens?: number;
+    outputUrl?: string;
+    errorMessage?: string;
+    ipAddress?: string;
+    deviceInfo?: string;
+  }
+) {
+  try {
+    const { collection: firestoreCollection, addDoc, doc: firestoreDoc, getDoc } = await import('firebase/firestore');
+    const crypto = await import('crypto');
+    
+    // Get user email
+    const userRef = firestoreDoc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    const userEmail = userDoc.exists() ? userDoc.data().email : 'unknown';
+    
+    // Hash prompt for privacy
+    const promptHash = metadata?.prompt 
+      ? crypto.createHash('sha256').update(metadata.prompt).digest('hex').substring(0, 16)
+      : null;
+    
+    const usageLogsRef = firestoreCollection(db, 'usage_logs');
+    await addDoc(usageLogsRef, {
+      userId,
+      userEmail,
+      aiType,
+      service,
+      creditsUsed,
+      status,
+      prompt: metadata?.prompt?.substring(0, 200) || null,
+      promptHash,
+      duration: metadata?.duration || null,
+      tokens: metadata?.tokens || null,
+      outputUrl: metadata?.outputUrl || null,
+      errorMessage: metadata?.errorMessage || null,
+      metadata: metadata || {},
+      timestamp: Date.now(),
+      ipAddress: metadata?.ipAddress || null,
+      deviceInfo: metadata?.deviceInfo || null
+    });
+    
+    console.log(`✅ Logged AI usage for user ${userId}`);
+  } catch (err: any) {
+    console.error('❌ Failed to log AI usage:', err.message || err);
+    // Don't throw - logging failure shouldn't break the main flow
+  }
+}
+
+/**
+ * Get credit logs for a user
+ */
+export async function getCreditLogs(userId: string, limit: number = 50) {
+  try {
+    const { collection, getDocs, query, where, orderBy: firestoreOrderBy, limit: firestoreLimit } = await import('firebase/firestore');
+    
+    const logsRef = collection(db, 'credit_logs');
+    const logsQuery = query(
+      logsRef,
+      where('userId', '==', userId),
+      firestoreOrderBy('timestamp', 'desc'),
+      firestoreLimit(limit)
+    );
+    
+    const snapshot = await getDocs(logsQuery);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (err: any) {
+    console.error('❌ Failed to get credit logs:', err.message || err);
+    return [];
+  }
+}
+
+/**
+ * Get usage logs for a user
+ */
+export async function getUsageLogs(userId: string, limit: number = 50) {
+  try {
+    const { collection, getDocs, query, where, orderBy: firestoreOrderBy, limit: firestoreLimit } = await import('firebase/firestore');
+    
+    const logsRef = collection(db, 'usage_logs');
+    const logsQuery = query(
+      logsRef,
+      where('userId', '==', userId),
+      firestoreOrderBy('timestamp', 'desc'),
+      firestoreLimit(limit)
+    );
+    
+    const snapshot = await getDocs(logsQuery);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (err: any) {
+    console.error('❌ Failed to get usage logs:', err.message || err);
+    return [];
+  }
+}
+
+/**
+ * Get global credit usage statistics
+ */
+export async function getGlobalCreditStats(days: number = 30) {
+  try {
+    const { collection, getDocs, query, where, orderBy: firestoreOrderBy, Timestamp } = await import('firebase/firestore');
+    
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    // Get usage logs
+    const logsRef = collection(db, 'usage_logs');
+    const logsQuery = query(
+      logsRef,
+      where('timestamp', '>=', cutoffDate.getTime()),
+      firestoreOrderBy('timestamp', 'desc')
+    );
+    
+    const snapshot = await getDocs(logsQuery);
+    const logs = snapshot.docs.map(doc => doc.data());
+    
+    // Calculate stats
+    const totalCreditsUsed = logs.reduce((sum, log) => sum + (log.creditsUsed || 0), 0);
+    const totalGenerations = logs.length;
+    
+    const byType = {
+      image: { count: 0, credits: 0 },
+      video: { count: 0, credits: 0 },
+      voice: { count: 0, credits: 0 },
+      chat: { count: 0, credits: 0 }
+    };
+    
+    logs.forEach(log => {
+      if (log.aiType && byType[log.aiType as keyof typeof byType]) {
+        byType[log.aiType as keyof typeof byType].count++;
+        byType[log.aiType as keyof typeof byType].credits += log.creditsUsed || 0;
+      }
+    });
+    
+    // Top users by credits
+    const userCredits: Record<string, { email: string; credits: number; count: number }> = {};
+    logs.forEach(log => {
+      if (!userCredits[log.userId]) {
+        userCredits[log.userId] = {
+          email: log.userEmail || 'unknown',
+          credits: 0,
+          count: 0
+        };
+      }
+      userCredits[log.userId].credits += log.creditsUsed || 0;
+      userCredits[log.userId].count++;
+    });
+    
+    const byUser = Object.entries(userCredits)
+      .map(([userId, data]) => ({
+        userId,
+        userEmail: data.email,
+        totalCredits: data.credits,
+        generationCount: data.count
+      }))
+      .sort((a, b) => b.totalCredits - a.totalCredits)
+      .slice(0, 10);
+    
+    return {
+      totalCreditsUsed,
+      totalGenerations,
+      byType,
+      byUser,
+      timeRange: {
+        start: cutoffDate.getTime(),
+        end: Date.now()
+      }
+    };
+  } catch (err: any) {
+    console.error('❌ Failed to get global credit stats:', err.message || err);
+    
+    // Calculate fallback timeRange
+    const fallbackDays = 30;
+    
+    return {
+      totalCreditsUsed: 0,
+      totalGenerations: 0,
+      byType: {
+        image: { count: 0, credits: 0 },
+        video: { count: 0, credits: 0 },
+        voice: { count: 0, credits: 0 },
+        chat: { count: 0, credits: 0 }
+      },
+      byUser: [],
+      timeRange: {
+        start: Date.now() - (fallbackDays * 24 * 60 * 60 * 1000),
+        end: Date.now()
+      }
+    };
+  }
+}
+
+// ============================================
+// REAL-TIME AI ACTIVITY MONITORING
+// ============================================
+
+/**
+ * Create or update live AI activity
+ */
+export async function createAIActivity(
+  userId: string,
+  aiType: 'image' | 'video' | 'voice' | 'chat',
+  service: string,
+  prompt: string,
+  creditsUsed: number,
+  metadata?: {
+    ipAddress?: string;
+    country?: string;
+    deviceInfo?: string;
+  }
+): Promise<string> {
+  try {
+    const { collection: firestoreCollection, addDoc, doc: firestoreDoc, getDoc } = await import('firebase/firestore');
+    const crypto = await import('crypto');
+    
+    // Get user info
+    const userRef = firestoreDoc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    const userData = userDoc.exists() ? userDoc.data() : {};
+    
+    // Hash full prompt, truncate for display
+    const promptHash = crypto.createHash('sha256').update(prompt).digest('hex').substring(0, 16);
+    const truncatedPrompt = prompt.substring(0, 100) + (prompt.length > 100 ? '...' : '');
+    
+    const activityRef = firestoreCollection(db, 'ai_activity');
+    const docRef = await addDoc(activityRef, {
+      userId,
+      userEmail: userData.email || 'unknown',
+      userName: userData.name || 'Unknown User',
+      aiType,
+      service,
+      prompt: truncatedPrompt,
+      promptHash,
+      creditsUsed,
+      status: 'pending',
+      progress: 0,
+      timestamp: Date.now(),
+      ipAddress: metadata?.ipAddress || null,
+      country: metadata?.country || userData.country || null,
+      deviceInfo: metadata?.deviceInfo || null
+    });
+    
+    console.log(`✅ Created AI activity ${docRef.id}`);
+    return docRef.id;
+  } catch (err: any) {
+    console.error('❌ Failed to create AI activity:', err.message || err);
+    throw err;
+  }
+}
+
+/**
+ * Update AI activity status
+ */
+export async function updateAIActivity(
+  activityId: string,
+  updates: {
+    status?: 'pending' | 'processing' | 'completed' | 'failed';
+    progress?: number;
+    resultUrl?: string;
+    errorMessage?: string;
+  }
+) {
+  try {
+    const { doc: firestoreDoc, updateDoc } = await import('firebase/firestore');
+    
+    const activityRef = firestoreDoc(db, 'ai_activity', activityId);
+    const updateData: any = { ...updates };
+    
+    if (updates.status === 'completed' || updates.status === 'failed') {
+      updateData.completedAt = Date.now();
+    }
+    
+    await updateDoc(activityRef, updateData);
+    console.log(`✅ Updated AI activity ${activityId}`);
+  } catch (err: any) {
+    console.error('❌ Failed to update AI activity:', err.message || err);
+    // Don't throw - update failure shouldn't break main flow
+  }
+}
+
+/**
+ * Subscribe to real-time AI activity (Firestore onSnapshot)
+ */
+export function subscribeToAIActivity(
+  callback: (activities: any[]) => void,
+  limit: number = 50
+): () => void {
+  try {
+    const { collection, query, orderBy: firestoreOrderBy, limit: firestoreLimit, onSnapshot } = require('firebase/firestore');
+    
+    const activityRef = collection(db, 'ai_activity');
+    const activityQuery = query(
+      activityRef,
+      firestoreOrderBy('timestamp', 'desc'),
+      firestoreLimit(limit)
+    );
+    
+    const unsubscribe = onSnapshot(activityQuery, (snapshot: any) => {
+      const activities = snapshot.docs.map((doc: any) => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      callback(activities);
+    });
+    
+    return unsubscribe;
+  } catch (err: any) {
+    console.error('❌ Failed to subscribe to AI activity:', err.message || err);
+    return () => {};
+  }
+}
+
+/**
+ * Get AI activity history
+ */
+export async function getAIActivity(limit: number = 100) {
+  try {
+    const { collection, getDocs, query, orderBy: firestoreOrderBy, limit: firestoreLimit } = await import('firebase/firestore');
+    
+    const activityRef = collection(db, 'ai_activity');
+    const activityQuery = query(
+      activityRef,
+      firestoreOrderBy('timestamp', 'desc'),
+      firestoreLimit(limit)
+    );
+    
+    const snapshot = await getDocs(activityQuery);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (err: any) {
+    console.error('❌ Failed to get AI activity:', err.message || err);
+    return [];
+  }
+}
+
+// ============================================
+// SECURITY & ABUSE PREVENTION
+// ============================================
+
+/**
+ * Check rate limit for user
+ */
+export async function checkRateLimit(
+  userId: string,
+  aiType: 'image' | 'video' | 'voice' | 'chat' | 'all'
+): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
+  try {
+    const { doc: firestoreDoc, getDoc, setDoc, updateDoc } = await import('firebase/firestore');
+    
+    const rateLimitRef = firestoreDoc(db, 'rate_limits', `${userId}_${aiType}`);
+    const rateLimitDoc = await getDoc(rateLimitRef);
+    
+    const now = Date.now();
+    const windowMinutes = 60; // 1 hour window
+    const maxRequests = aiType === 'image' ? 50 : aiType === 'video' ? 10 : 100;
+    
+    if (!rateLimitDoc.exists()) {
+      // Create new rate limit record
+      await setDoc(rateLimitRef, {
+        userId,
+        aiType,
+        maxRequests,
+        windowMinutes,
+        currentCount: 1,
+        windowStart: now
+      });
+      
+      return {
+        allowed: true,
+        remaining: maxRequests - 1,
+        resetAt: now + windowMinutes * 60 * 1000
+      };
+    }
+    
+    const data = rateLimitDoc.data();
+    const windowStart = data.windowStart || now;
+    const windowEnd = windowStart + windowMinutes * 60 * 1000;
+    
+    // Check if window has expired
+    if (now > windowEnd) {
+      // Reset window
+      await updateDoc(rateLimitRef, {
+        currentCount: 1,
+        windowStart: now,
+        blockedUntil: null
+      });
+      
+      return {
+        allowed: true,
+        remaining: maxRequests - 1,
+        resetAt: now + windowMinutes * 60 * 1000
+      };
+    }
+    
+    // Check if blocked
+    if (data.blockedUntil && now < data.blockedUntil) {
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: data.blockedUntil
+      };
+    }
+    
+    // Check if limit exceeded
+    if (data.currentCount >= maxRequests) {
+      await updateDoc(rateLimitRef, {
+        blockedUntil: windowEnd
+      });
+      
+      // Log abuse detection
+      await logAbuseDetection(userId, 'rate_limit', 'medium', 
+        `Rate limit exceeded for ${aiType}: ${data.currentCount}/${maxRequests}`);
+      
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: windowEnd
+      };
+    }
+    
+    // Increment count
+    await updateDoc(rateLimitRef, {
+      currentCount: data.currentCount + 1
+    });
+    
+    return {
+      allowed: true,
+      remaining: maxRequests - data.currentCount - 1,
+      resetAt: windowEnd
+    };
+  } catch (err: any) {
+    console.error('❌ Failed to check rate limit:', err.message || err);
+    // In case of error, allow request
+    return { allowed: true, remaining: 0, resetAt: Date.now() };
+  }
+}
+
+/**
+ * Log abuse detection
+ */
+export async function logAbuseDetection(
+  userId: string,
+  abuseType: 'rate_limit' | 'inappropriate_prompt' | 'suspicious_activity' | 'credit_fraud',
+  severity: 'low' | 'medium' | 'high' | 'critical',
+  description: string,
+  metadata?: any
+) {
+  try {
+    const { collection: firestoreCollection, addDoc, doc: firestoreDoc, getDoc } = await import('firebase/firestore');
+    
+    const userRef = firestoreDoc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    const userEmail = userDoc.exists() ? userDoc.data().email : 'unknown';
+    
+    const abuseRef = firestoreCollection(db, 'abuse_detection');
+    await addDoc(abuseRef, {
+      userId,
+      userEmail,
+      abuseType,
+      severity,
+      description,
+      metadata: metadata || {},
+      timestamp: Date.now()
+    });
+    
+    console.log(`⚠️ Logged abuse detection for user ${userId}: ${abuseType}`);
+    
+    // Auto-suspend for critical abuse
+    if (severity === 'critical') {
+      await updateUserStatus(userId, 'suspended');
+      console.log(`🚫 Auto-suspended user ${userId} due to critical abuse`);
+    }
+  } catch (err: any) {
+    console.error('❌ Failed to log abuse detection:', err.message || err);
+  }
+}
+
+/**
+ * Moderate prompt (basic content filtering)
+ */
+export async function moderatePrompt(prompt: string): Promise<{
+  allowed: boolean;
+  reason?: string;
+  flagged: string[];
+}> {
+  try {
+    // Basic keyword filtering (expand as needed)
+    const bannedKeywords = [
+      'violence', 'gore', 'nsfw', 'nude', 'explicit',
+      'illegal', 'weapon', 'drug', 'hate speech'
+    ];
+    
+    const lowerPrompt = prompt.toLowerCase();
+    const flagged: string[] = [];
+    
+    bannedKeywords.forEach(keyword => {
+      if (lowerPrompt.includes(keyword)) {
+        flagged.push(keyword);
+      }
+    });
+    
+    if (flagged.length > 0) {
+      return {
+        allowed: false,
+        reason: 'Prompt contains inappropriate content',
+        flagged
+      };
+    }
+    
+    return {
+      allowed: true,
+      flagged: []
+    };
+  } catch (err: any) {
+    console.error('❌ Failed to moderate prompt:', err.message || err);
+    // In case of error, allow prompt
+    return { allowed: true, flagged: [] };
+  }
+}
+
+/**
+ * Log admin audit action
+ */
+export async function logAdminAudit(
+  adminId: string,
+  adminEmail: string,
+  action: string,
+  targetType: string,
+  targetId: string,
+  details: string,
+  changesMade?: any
+) {
+  try {
+    const { collection: firestoreCollection, addDoc } = await import('firebase/firestore');
+    
+    const auditRef = firestoreCollection(db, 'admin_audit_logs');
+    await addDoc(auditRef, {
+      adminId,
+      adminEmail,
+      action,
+      targetType,
+      targetId,
+      details,
+      changesMade: changesMade || {},
+      ipAddress: null, // Can be populated from Cloud Functions
+      timestamp: Date.now()
+    });
+    
+    console.log(`📝 Logged admin audit: ${action} by ${adminEmail}`);
+  } catch (err: any) {
+    console.error('❌ Failed to log admin audit:', err.message || err);
+  }
+}
+
+/**
+ * Get admin audit logs
+ */
+export async function getAdminAuditLogs(limit: number = 100) {
+  try {
+    const { collection, getDocs, query, orderBy: firestoreOrderBy, limit: firestoreLimit } = await import('firebase/firestore');
+    
+    const auditRef = collection(db, 'admin_audit_logs');
+    const auditQuery = query(
+      auditRef,
+      firestoreOrderBy('timestamp', 'desc'),
+      firestoreLimit(limit)
+    );
+    
+    const snapshot = await getDocs(auditQuery);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (err: any) {
+    console.error('❌ Failed to get admin audit logs:', err.message || err);
+    return [];
+  }
+}
+
+/**
+ * Get abuse detection logs
+ */
+export async function getAbuseDetectionLogs(limit: number = 100) {
+  try {
+    const { collection, getDocs, query, orderBy: firestoreOrderBy, limit: firestoreLimit } = await import('firebase/firestore');
+    
+    const abuseRef = collection(db, 'abuse_detection');
+    const abuseQuery = query(
+      abuseRef,
+      firestoreOrderBy('timestamp', 'desc'),
+      firestoreLimit(limit)
+    );
+    
+    const snapshot = await getDocs(abuseQuery);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (err: any) {
+    console.error('❌ Failed to get abuse detection logs:', err.message || err);
+    return [];
+  }
+}
+
+// ============================================
+// AI ENGINE & DYNAMIC PRICING FUNCTIONS
+// ============================================
+
+/**
+ * Get all AI engines
+ * @returns Array of all AI engines
+ */
+export async function getAllEngines() {
+  try {
+    const { collection, getDocs } = await import('firebase/firestore');
+    
+    const enginesRef = collection(db, 'ai_engines');
+    const snapshot = await getDocs(enginesRef);
+    
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (err: any) {
+    console.error('❌ Failed to get engines:', err.message || err);
+    return [];
+  }
+}
+
+/**
+ * Get engines by AI type
+ * @param aiType - The AI type to filter by
+ * @returns Array of engines for the specified type
+ */
+export async function getEnginesByType(aiType: string) {
+  try {
+    const { collection, getDocs, query, where } = await import('firebase/firestore');
+    
+    const enginesRef = collection(db, 'ai_engines');
+    const engineQuery = query(enginesRef, where('ai_type', '==', aiType));
+    const snapshot = await getDocs(engineQuery);
+    
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (err: any) {
+    console.error('❌ Failed to get engines by type:', err.message || err);
+    return [];
+  }
+}
+
+/**
+ * Get active engines only
+ * @returns Array of active engines
+ */
+export async function getActiveEngines() {
+  try {
+    const { collection, getDocs, query, where } = await import('firebase/firestore');
+    
+    const enginesRef = collection(db, 'ai_engines');
+    const engineQuery = query(enginesRef, where('is_active', '==', true));
+    const snapshot = await getDocs(engineQuery);
+    
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (err: any) {
+    console.error('❌ Failed to get active engines:', err.message || err);
+    return [];
+  }
+}
+
+/**
+ * Get a specific engine by ID
+ * @param engineId - The engine ID
+ * @returns The engine data or null
+ */
+export async function getEngine(engineId: string) {
+  try {
+    const { doc, getDoc } = await import('firebase/firestore');
+    
+    const engineRef = doc(db, 'ai_engines', engineId);
+    const snapshot = await getDoc(engineRef);
+    
+    if (snapshot.exists()) {
+      return { id: snapshot.id, ...snapshot.data() };
+    }
+    return null;
+  } catch (err: any) {
+    console.error('❌ Failed to get engine:', err.message || err);
+    return null;
+  }
+}
+
+/**
+ * Create or update an AI engine
+ * @param engineId - The engine ID
+ * @param engineData - The engine data
+ */
+export async function setEngine(engineId: string, engineData: any) {
+  try {
+    const { doc, setDoc } = await import('firebase/firestore');
+    
+    const engineRef = doc(db, 'ai_engines', engineId);
+    await setDoc(engineRef, {
+      ...engineData,
+      updated_at: Date.now()
+    }, { merge: true });
+    
+    console.log(`✅ Engine ${engineId} updated successfully`);
+    return true;
+  } catch (err: any) {
+    console.error('❌ Failed to set engine:', err.message || err);
+    throw err;
+  }
+}
+
+/**
+ * Update engine active status
+ * @param engineId - The engine ID
+ * @param isActive - Active status
+ */
+export async function updateEngineStatus(engineId: string, isActive: boolean) {
+  try {
+    const { doc, updateDoc } = await import('firebase/firestore');
+    
+    const engineRef = doc(db, 'ai_engines', engineId);
+    await updateDoc(engineRef, {
+      is_active: isActive,
+      updated_at: Date.now()
+    });
+    
+    console.log(`✅ Engine ${engineId} status updated to ${isActive ? 'active' : 'inactive'}`);
+    return true;
+  } catch (err: any) {
+    console.error('❌ Failed to update engine status:', err.message || err);
+    throw err;
+  }
+}
+
+/**
+ * Update engine cost
+ * @param engineId - The engine ID
+ * @param newCost - The new cost
+ */
+export async function updateEngineCost(engineId: string, newCost: number) {
+  try {
+    const { doc, updateDoc } = await import('firebase/firestore');
+    
+    const engineRef = doc(db, 'ai_engines', engineId);
+    await updateDoc(engineRef, {
+      base_cost: newCost,
+      updated_at: Date.now()
+    });
+    
+    console.log(`✅ Engine ${engineId} cost updated to ${newCost}`);
+    return true;
+  } catch (err: any) {
+    console.error('❌ Failed to update engine cost:', err.message || err);
+    throw err;
+  }
+}
+
+/**
+ * Delete an engine (soft delete by setting is_active to false)
+ * @param engineId - The engine ID
+ */
+export async function deleteEngine(engineId: string) {
+  try {
+    const { doc, updateDoc } = await import('firebase/firestore');
+    
+    const engineRef = doc(db, 'ai_engines', engineId);
+    await updateDoc(engineRef, {
+      is_active: false,
+      updated_at: Date.now()
+    });
+    
+    console.log(`✅ Engine ${engineId} deleted (deactivated)`);
+    return true;
+  } catch (err: any) {
+    console.error('❌ Failed to delete engine:', err.message || err);
+    throw err;
+  }
+}
+
+/**
+ * Get credit pricing for an AI type
+ * @param aiType - The AI type
+ * @returns The pricing configuration
+ */
+export async function getCreditPricing(aiType: string) {
+  try {
+    const { doc, getDoc } = await import('firebase/firestore');
+    
+    const pricingRef = doc(db, 'credit_pricing', aiType);
+    const snapshot = await getDoc(pricingRef);
+    
+    if (snapshot.exists()) {
+      return { ai_type: aiType, ...snapshot.data() };
+    }
+    return null;
+  } catch (err: any) {
+    console.error('❌ Failed to get credit pricing:', err.message || err);
+    return null;
+  }
+}
+
+/**
+ * Get all credit pricing configurations
+ * @returns Array of all pricing configurations
+ */
+export async function getAllCreditPricing() {
+  try {
+    const { collection, getDocs } = await import('firebase/firestore');
+    
+    const pricingRef = collection(db, 'credit_pricing');
+    const snapshot = await getDocs(pricingRef);
+    
+    return snapshot.docs.map(doc => ({
+      ai_type: doc.id,
+      ...doc.data()
+    }));
+  } catch (err: any) {
+    console.error('❌ Failed to get all credit pricing:', err.message || err);
+    return [];
+  }
+}
+
+/**
+ * Set credit pricing for an AI type
+ * @param aiType - The AI type
+ * @param pricingData - The pricing configuration
+ */
+export async function setCreditPricing(aiType: string, pricingData: any) {
+  try {
+    const { doc, setDoc } = await import('firebase/firestore');
+    
+    const pricingRef = doc(db, 'credit_pricing', aiType);
+    await setDoc(pricingRef, {
+      ...pricingData,
+      ai_type: aiType,
+      updated_at: Date.now()
+    }, { merge: true });
+    
+    console.log(`✅ Credit pricing for ${aiType} updated successfully`);
+    return true;
+  } catch (err: any) {
+    console.error('❌ Failed to set credit pricing:', err.message || err);
+    throw err;
+  }
+}
+
+/**
+ * Update default engine for an AI type
+ * @param aiType - The AI type
+ * @param defaultEngine - The default engine ID
+ */
+export async function updateDefaultEngine(aiType: string, defaultEngine: string) {
+  try {
+    const { doc, updateDoc } = await import('firebase/firestore');
+    
+    const pricingRef = doc(db, 'credit_pricing', aiType);
+    await updateDoc(pricingRef, {
+      default_engine: defaultEngine,
+      updated_at: Date.now()
+    });
+    
+    console.log(`✅ Default engine for ${aiType} set to ${defaultEngine}`);
+    return true;
+  } catch (err: any) {
+    console.error('❌ Failed to update default engine:', err.message || err);
+    throw err;
+  }
+}
+
+/**
+ * Calculate credit cost for a specific engine and input
+ * @param engineId - The engine ID
+ * @param inputSize - The input size (tokens, seconds, images, etc.)
+ * @returns The calculated cost
+ */
+export async function calculateEngineCost(engineId: string, inputSize: number) {
+  try {
+    const engine: any = await getEngine(engineId);
+    if (!engine) {
+      throw new Error(`Engine ${engineId} not found`);
+    }
+    
+    if (!engine.is_active) {
+      throw new Error(`Engine ${engineId} is not active`);
+    }
+    
+    const cost = engine.base_cost * inputSize;
+    return {
+      engineId,
+      engineName: engine.engine_name,
+      baseCost: engine.base_cost,
+      inputSize,
+      totalCost: cost,
+      costUnit: engine.cost_unit
+    };
+  } catch (err: any) {
+    console.error('❌ Failed to calculate engine cost:', err.message || err);
+    throw err;
+  }
+}
+
+/**
+ * Log engine usage to usage_logs collection
+ * @param usageData - The usage log data
+ */
+export async function logEngineUsage(usageData: any) {
+  try {
+    const { collection: firestoreCollection, addDoc } = await import('firebase/firestore');
+    
+    const logsRef = firestoreCollection(db, 'usage_logs');
+    await addDoc(logsRef, {
+      ...usageData,
+      timestamp: Date.now()
+    });
+    
+    console.log(`📊 Logged engine usage: ${usageData.engine_id}`);
+    return true;
+  } catch (err: any) {
+    console.error('❌ Failed to log engine usage:', err.message || err);
+    return false;
+  }
+}
+
+/**
+ * Get engine usage statistics
+ * @param engineId - Optional engine ID to filter by
+ * @param days - Number of days to look back
+ * @returns Engine statistics
+ */
+export async function getEngineStats(engineId?: string, days: number = 30) {
+  try {
+    const { collection, getDocs, query, where, orderBy: firestoreOrderBy } = await import('firebase/firestore');
+    
+    const cutoffDate = Date.now() - (days * 24 * 60 * 60 * 1000);
+    const logsRef = collection(db, 'usage_logs');
+    
+    let statsQuery;
+    if (engineId) {
+      statsQuery = query(
+        logsRef,
+        where('engine_id', '==', engineId),
+        where('timestamp', '>=', cutoffDate),
+        firestoreOrderBy('timestamp', 'desc')
+      );
+    } else {
+      statsQuery = query(
+        logsRef,
+        where('timestamp', '>=', cutoffDate),
+        firestoreOrderBy('timestamp', 'desc')
+      );
+    }
+    
+    const snapshot = await getDocs(statsQuery);
+    const logs = snapshot.docs.map(doc => doc.data());
+    
+    // Calculate statistics
+    const totalUsage = logs.length;
+    const totalCredits = logs.reduce((sum, log) => sum + (log.creditsUsed || 0), 0);
+    const successCount = logs.filter(log => log.status === 'success').length;
+    const successRate = totalUsage > 0 ? (successCount / totalUsage) * 100 : 0;
+    
+    // Group by engine
+    const byEngine: any = {};
+    logs.forEach(log => {
+      const engId = log.engine_id || 'unknown';
+      if (!byEngine[engId]) {
+        byEngine[engId] = {
+          engine_id: engId,
+          engine_name: log.engine_name || engId,
+          ai_type: log.aiType,
+          total_usage_count: 0,
+          total_credits_used: 0,
+          success_count: 0
+        };
+      }
+      byEngine[engId].total_usage_count++;
+      byEngine[engId].total_credits_used += log.creditsUsed || 0;
+      if (log.status === 'success') {
+        byEngine[engId].success_count++;
+      }
+    });
+    
+    // Calculate averages and success rates
+    Object.keys(byEngine).forEach(engId => {
+      const stats = byEngine[engId];
+      stats.average_credits_per_use = stats.total_usage_count > 0 
+        ? stats.total_credits_used / stats.total_usage_count 
+        : 0;
+      stats.success_rate = stats.total_usage_count > 0
+        ? (stats.success_count / stats.total_usage_count) * 100
+        : 0;
+    });
+    
+    return {
+      totalUsage,
+      totalCredits,
+      successRate,
+      byEngine: Object.values(byEngine),
+      timeRange: { start: cutoffDate, end: Date.now() }
+    };
+  } catch (err: any) {
+    console.error('❌ Failed to get engine stats:', err.message || err);
+    return {
+      totalUsage: 0,
+      totalCredits: 0,
+      successRate: 0,
+      byEngine: [],
+      timeRange: { start: Date.now() - (days * 24 * 60 * 60 * 1000), end: Date.now() }
+    };
+  }
+}
+
+/**
+ * Subscribe to real-time engine pricing updates
+ * @param aiType - The AI type to subscribe to
+ * @param callback - Callback function for updates
+ * @returns Unsubscribe function
+ */
+export function subscribeToEnginePricing(aiType: string, callback: (pricing: any) => void) {
+  const { doc, onSnapshot } = require('firebase/firestore');
+  
+  const pricingRef = doc(db, 'credit_pricing', aiType);
+  return onSnapshot(pricingRef, (snapshot: any) => {
+    if (snapshot.exists()) {
+      callback({ ai_type: aiType, ...snapshot.data() });
+    }
+  });
+}
+
+/**
+ * Subscribe to all engines real-time updates
+ * @param callback - Callback function for updates
+ * @returns Unsubscribe function
+ */
+export function subscribeToAllEngines(callback: (engines: any[]) => void) {
+  const { collection, onSnapshot } = require('firebase/firestore');
+  
+  const enginesRef = collection(db, 'ai_engines');
+  return onSnapshot(enginesRef, (snapshot: any) => {
+    const engines = snapshot.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    callback(engines);
+  });
+}
+
+// ============================================
+// SUBSCRIPTION PLAN & PRICING OVERRIDE FUNCTIONS
+// ============================================
+
+/**
+ * Get all subscription plans
+ * @returns Array of all subscription plans
+ */
+export async function getAllSubscriptionPlans() {
+  try {
+    const { collection, getDocs } = await import('firebase/firestore');
+    
+    const plansRef = collection(db, 'subscription_plans');
+    const snapshot = await getDocs(plansRef);
+    
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (err: any) {
+    console.error('❌ Failed to get subscription plans:', err.message || err);
+    return [];
+  }
+}
+
+/**
+ * Get a specific subscription plan
+ * @param planId - The plan ID
+ * @returns The plan data or null
+ */
+export async function getSubscriptionPlan(planId: string) {
+  try {
+    const { doc, getDoc } = await import('firebase/firestore');
+    
+    const planRef = doc(db, 'subscription_plans', planId);
+    const snapshot = await getDoc(planRef);
+    
+    if (snapshot.exists()) {
+      return { id: snapshot.id, ...snapshot.data() };
+    }
+    return null;
+  } catch (err: any) {
+    console.error('❌ Failed to get subscription plan:', err.message || err);
+    return null;
+  }
+}
+
+/**
+ * Create or update a subscription plan
+ * @param planId - The plan ID
+ * @param planData - The plan data
+ */
+export async function setSubscriptionPlan(planId: string, planData: any) {
+  try {
+    const { doc, setDoc } = await import('firebase/firestore');
+    
+    const planRef = doc(db, 'subscription_plans', planId);
+    await setDoc(planRef, {
+      ...planData,
+      id: planId,
+      updated_at: Date.now()
+    }, { merge: true });
+    
+    console.log(`✅ Subscription plan ${planId} updated successfully`);
+    return true;
+  } catch (err: any) {
+    console.error('❌ Failed to set subscription plan:', err.message || err);
+    throw err;
+  }
+}
+
+/**
+ * Get plan pricing overrides for a specific plan
+ * @param planId - The plan ID
+ * @returns The pricing overrides or null
+ */
+export async function getPlanPricingOverrides(planId: string) {
+  try {
+    const { doc, getDoc } = await import('firebase/firestore');
+    
+    const overridesRef = doc(db, 'plan_pricing_overrides', planId);
+    const snapshot = await getDoc(overridesRef);
+    
+    if (snapshot.exists()) {
+      return { plan_id: planId, ...snapshot.data() };
+    }
+    return null;
+  } catch (err: any) {
+    console.error('❌ Failed to get plan pricing overrides:', err.message || err);
+    return null;
+  }
+}
+
+/**
+ * Get all plan pricing overrides
+ * @returns Array of all pricing overrides
+ */
+export async function getAllPlanPricingOverrides() {
+  try {
+    const { collection, getDocs } = await import('firebase/firestore');
+    
+    const overridesRef = collection(db, 'plan_pricing_overrides');
+    const snapshot = await getDocs(overridesRef);
+    
+    return snapshot.docs.map(doc => ({
+      plan_id: doc.id,
+      ...doc.data()
+    }));
+  } catch (err: any) {
+    console.error('❌ Failed to get all plan pricing overrides:', err.message || err);
+    return [];
+  }
+}
+
+/**
+ * Set plan pricing overrides
+ * @param planId - The plan ID
+ * @param overrides - The pricing overrides
+ */
+export async function setPlanPricingOverrides(planId: string, overrides: any) {
+  try {
+    const { doc, setDoc } = await import('firebase/firestore');
+    
+    const overridesRef = doc(db, 'plan_pricing_overrides', planId);
+    await setDoc(overridesRef, {
+      ...overrides,
+      plan_id: planId,
+      updated_at: Date.now()
+    }, { merge: true });
+    
+    console.log(`✅ Plan pricing overrides for ${planId} updated successfully`);
+    return true;
+  } catch (err: any) {
+    console.error('❌ Failed to set plan pricing overrides:', err.message || err);
+    throw err;
+  }
+}
+
+/**
+ * Update specific engine override for a plan
+ * @param planId - The plan ID
+ * @param aiType - The AI type
+ * @param engineId - The engine ID
+ * @param cost - The override cost
+ * @param enabled - Whether engine is enabled for this plan
+ */
+export async function updatePlanEngineOverride(
+  planId: string,
+  aiType: string,
+  engineId: string,
+  cost: number,
+  enabled: boolean = true
+) {
+  try {
+    const { doc, getDoc, updateDoc, setDoc } = await import('firebase/firestore');
+    
+    const overridesRef = doc(db, 'plan_pricing_overrides', planId);
+    const snapshot = await getDoc(overridesRef);
+    
+    let overrides: any = { plan_id: planId, ai_types: {} };
+    if (snapshot.exists()) {
+      overrides = snapshot.data();
+    }
+    
+    // Initialize ai_types if it doesn't exist
+    if (!overrides.ai_types) {
+      overrides.ai_types = {};
+    }
+    
+    // Initialize AI type if it doesn't exist
+    if (!overrides.ai_types[aiType]) {
+      overrides.ai_types[aiType] = {};
+    }
+    
+    // Set engine override
+    overrides.ai_types[aiType][engineId] = { cost, enabled };
+    overrides.updated_at = Date.now();
+    
+    await setDoc(overridesRef, overrides, { merge: true });
+    
+    console.log(`✅ Updated ${aiType}/${engineId} override for plan ${planId}`);
+    return true;
+  } catch (err: any) {
+    console.error('❌ Failed to update plan engine override:', err.message || err);
+    throw err;
+  }
+}
+
+/**
+ * Remove engine override for a plan (revert to default)
+ * @param planId - The plan ID
+ * @param aiType - The AI type
+ * @param engineId - The engine ID
+ */
+export async function removePlanEngineOverride(
+  planId: string,
+  aiType: string,
+  engineId: string
+) {
+  try {
+    const { doc, getDoc, setDoc } = await import('firebase/firestore');
+    
+    const overridesRef = doc(db, 'plan_pricing_overrides', planId);
+    const snapshot = await getDoc(overridesRef);
+    
+    if (!snapshot.exists()) {
+      return true; // Nothing to remove
+    }
+    
+    const overrides: any = snapshot.data();
+    
+    if (overrides.ai_types?.[aiType]?.[engineId]) {
+      delete overrides.ai_types[aiType][engineId];
+      overrides.updated_at = Date.now();
+      
+      await setDoc(overridesRef, overrides);
+      console.log(`✅ Removed ${aiType}/${engineId} override for plan ${planId}`);
+    }
+    
+    return true;
+  } catch (err: any) {
+    console.error('❌ Failed to remove plan engine override:', err.message || err);
+    throw err;
+  }
+}
+
+/**
+ * Calculate credit cost for a user with plan-based pricing
+ * 
+ * 3-tier pricing resolution:
+ * 1. Plan-specific engine override
+ * 2. Engine default cost
+ * 3. Global AI type default cost
+ * 
+ * @param userPlan - User's subscription plan
+ * @param aiType - AI type
+ * @param engineId - Engine ID
+ * @param inputSize - Input size (tokens, seconds, images, etc.)
+ * @returns Credit cost result with pricing source
+ */
+export async function calculatePlanCreditCost(
+  userPlan: string,
+  aiType: string,
+  engineId: string,
+  inputSize: number
+) {
+  try {
+    let costPerUnit = 0;
+    let pricingSource: 'plan_override' | 'engine_default' | 'global_default' = 'global_default';
+    let engineName = engineId;
+    let costUnit: string = 'unit';
+    
+    // 1. Check for plan-specific override
+    const planOverrides: any = await getPlanPricingOverrides(userPlan);
+    if (planOverrides?.ai_types?.[aiType]?.[engineId]) {
+      const override = planOverrides.ai_types[aiType][engineId];
+      if (override.enabled !== false) {
+        costPerUnit = override.cost;
+        pricingSource = 'plan_override';
+        console.log(`💰 Using plan override: ${userPlan}/${aiType}/${engineId} = ${costPerUnit}`);
+      }
+    }
+    
+    // 2. If no plan override, check engine default cost
+    if (pricingSource !== 'plan_override') {
+      const engine: any = await getEngine(engineId);
+      if (engine && engine.is_active) {
+        costPerUnit = engine.base_cost;
+        engineName = engine.engine_name || engineId;
+        costUnit = engine.cost_unit || 'unit';
+        pricingSource = 'engine_default';
+        console.log(`💰 Using engine default: ${engineId} = ${costPerUnit}`);
+      }
+    }
+    
+    // 3. If no engine cost, check global AI type default
+    if (pricingSource === 'global_default') {
+      const pricing: any = await getCreditPricing(aiType);
+      if (pricing?.engines?.[engineId]) {
+        costPerUnit = pricing.engines[engineId].cost;
+        pricingSource = 'global_default';
+        console.log(`💰 Using global default: ${aiType}/${engineId} = ${costPerUnit}`);
+      }
+    }
+    
+    // If still no cost found, throw error
+    if (costPerUnit === 0) {
+      throw new Error(`No pricing found for ${userPlan}/${aiType}/${engineId}`);
+    }
+    
+    const totalCost = Math.ceil(costPerUnit * inputSize);
+    
+    return {
+      cost: costPerUnit,
+      cost_per_unit: costPerUnit,
+      total_cost: totalCost,
+      input_size: inputSize,
+      pricing_source: pricingSource,
+      engine_id: engineId,
+      engine_name: engineName,
+      ai_type: aiType as any,
+      user_plan: userPlan as any,
+      cost_unit: costUnit as any
+    };
+  } catch (err: any) {
+    console.error('❌ Failed to calculate plan credit cost:', err.message || err);
+    throw err;
+  }
+}
+
+/**
+ * Get plan usage statistics
+ * @param planId - Optional plan ID to filter by
+ * @param days - Number of days to look back
+ * @returns Plan usage statistics
+ */
+export async function getPlanUsageStats(planId?: string, days: number = 30) {
+  try {
+    const { collection, getDocs, query, where } = await import('firebase/firestore');
+    
+    const cutoffDate = Date.now() - (days * 24 * 60 * 60 * 1000);
+    const logsRef = collection(db, 'usage_logs');
+    
+    let statsQuery;
+    if (planId) {
+      statsQuery = query(
+        logsRef,
+        where('subscription_plan', '==', planId),
+        where('timestamp', '>=', cutoffDate)
+      );
+    } else {
+      statsQuery = query(
+        logsRef,
+        where('timestamp', '>=', cutoffDate)
+      );
+    }
+    
+    const snapshot = await getDocs(statsQuery);
+    const logs = snapshot.docs.map(doc => doc.data());
+    
+    // Aggregate statistics by plan
+    const planStats: any = {};
+    
+    logs.forEach((log: any) => {
+      const plan = log.subscription_plan || 'free';
+      if (!planStats[plan]) {
+        planStats[plan] = {
+          plan_id: plan,
+          total_generations: 0,
+          total_credits_used: 0,
+          users: new Set(),
+          by_ai_type: {}
+        };
+      }
+      
+      planStats[plan].total_generations++;
+      planStats[plan].total_credits_used += log.creditsUsed || 0;
+      planStats[plan].users.add(log.userId);
+      
+      // By AI type
+      const aiType = log.aiType || 'unknown';
+      if (!planStats[plan].by_ai_type[aiType]) {
+        planStats[plan].by_ai_type[aiType] = {
+          count: 0,
+          credits: 0,
+          engines: {}
+        };
+      }
+      planStats[plan].by_ai_type[aiType].count++;
+      planStats[plan].by_ai_type[aiType].credits += log.creditsUsed || 0;
+      
+      // By engine
+      const engineId = log.engine_id || 'unknown';
+      if (!planStats[plan].by_ai_type[aiType].engines[engineId]) {
+        planStats[plan].by_ai_type[aiType].engines[engineId] = {
+          count: 0,
+          credits: 0
+        };
+      }
+      planStats[plan].by_ai_type[aiType].engines[engineId].count++;
+      planStats[plan].by_ai_type[aiType].engines[engineId].credits += log.creditsUsed || 0;
+    });
+    
+    // Convert to array and calculate averages
+    const result = Object.values(planStats).map((stats: any) => ({
+      ...stats,
+      total_users: stats.users.size,
+      average_credits_per_user: stats.total_credits_used / stats.users.size,
+      timeRange: { start: cutoffDate, end: Date.now() }
+    }));
+    
+    return planId ? result[0] || null : result;
+  } catch (err: any) {
+    console.error('❌ Failed to get plan usage stats:', err.message || err);
+    return planId ? null : [];
+  }
+}
+
+/**
+ * Subscribe to plan pricing overrides updates
+ * @param planId - The plan ID to subscribe to
+ * @param callback - Callback function for updates
+ * @returns Unsubscribe function
+ */
+export function subscribeToPlanPricingOverrides(planId: string, callback: (overrides: any) => void) {
+  const { doc, onSnapshot } = require('firebase/firestore');
+  
+  const overridesRef = doc(db, 'plan_pricing_overrides', planId);
+  return onSnapshot(overridesRef, (snapshot: any) => {
+    if (snapshot.exists()) {
+      callback({ plan_id: planId, ...snapshot.data() });
+    } else {
+      callback({ plan_id: planId, ai_types: {} });
+    }
+  });
+}
+

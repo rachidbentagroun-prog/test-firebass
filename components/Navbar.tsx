@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Menu, X, User as UserIcon, LogOut, Settings, Home, Compass, MessageSquare, Sparkles, Video, Mic2, ImageIcon, CreditCard, Zap, Shield } from 'lucide-react';
 import { User, NavItem } from '../types';
 
@@ -15,6 +16,8 @@ interface NavbarProps {
   onToggleTheme?: () => void;
   onOpenInbox?: () => void;
 }
+
+const isAdminRole = (role?: User['role']) => role === 'admin' || role === 'super_admin' || role === 'super-admin';
 
 /**
  * Modern SaaS Navigation Bar
@@ -43,37 +46,35 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isCreditDropdownOpen, setIsCreditDropdownOpen] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
   const [dropdownPosition, setDropdownPosition] = React.useState<'below' | 'above'>('below');
+  const [creditMenuPosition, setCreditMenuPosition] = React.useState<{ top: number; left: number; width: number } | null>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
   const creditRef = React.useRef<HTMLDivElement>(null);
-    const [dropdownAlign, setDropdownAlign] = React.useState<'right' | 'left'>('right');
+  const creditButtonRef = React.useRef<HTMLButtonElement>(null);
+  const creditPortalRef = React.useRef<HTMLDivElement>(null);
+  const [dropdownAlign, setDropdownAlign] = React.useState<'right' | 'left'>('right');
 
-  // Detect dropdown position to avoid viewport overflow
+  // Position credit dropdown portal to match button
   React.useEffect(() => {
-    if (isCreditDropdownOpen && creditRef.current) {
-      const button = creditRef.current.querySelector('button');
-      if (button) {
-        const rect = button.getBoundingClientRect();
-        const spaceBelow = window.innerHeight - rect.bottom;
-        const dropdownHeight = 280; // Estimated height of credit dropdown
-          const dropdownWidth = 280; // Width of credit dropdown
-        
-          // Check vertical positioning
-        if (spaceBelow < dropdownHeight) {
-          setDropdownPosition('above');
-        } else {
-          setDropdownPosition('below');
-        }
-        
-          // Check horizontal positioning - prevent overflow on right edge
-          const spaceOnRight = window.innerWidth - rect.right;
-          if (spaceOnRight < dropdownWidth + 16) {
-            // Not enough space on right, align to left instead
-            setDropdownAlign('left');
-          } else {
-            setDropdownAlign('right');
-          }
-      }
-    }
+    if (typeof window === 'undefined') return;
+    if (!isCreditDropdownOpen) return;
+
+    const updatePosition = () => {
+      if (!creditButtonRef.current) return;
+      const rect = creditButtonRef.current.getBoundingClientRect();
+      const margin = 8;
+      const width = 280; // Credit dropdown width
+      const maxLeft = window.innerWidth - width - margin;
+      const left = Math.max(margin, Math.min(rect.left, maxLeft));
+      setCreditMenuPosition({ top: rect.bottom + margin, left, width });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
   }, [isCreditDropdownOpen]);
 
   // Track scroll position for subtle shadow effect
@@ -88,16 +89,24 @@ export const Navbar: React.FC<NavbarProps> = ({
   // Close user menu on outside click
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Close mobile menu on any click outside navbar
+      if (isMobileMenuOpen) {
+        const navbar = document.querySelector('.navbar-modern');
+        if (navbar && !navbar.contains(event.target as Node)) {
+          setIsMobileMenuOpen(false);
+        }
+      }
+      
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false);
       }
-      if (creditRef.current && !creditRef.current.contains(event.target as Node)) {
+      if (creditRef.current && !creditRef.current.contains(event.target as Node) && (!creditPortalRef.current || !creditPortalRef.current.contains(event.target as Node))) {
         setIsCreditDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [isMobileMenuOpen]);
 
   // Handle navigation
   const handleNavClick = (page: string) => {
@@ -176,7 +185,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </>
           )}
 
-          {user?.role === 'admin' && <NavLink label="Admin" page="admin" icon={<Shield size={16} strokeWidth={2} />} />}
+          {isAdminRole(user?.role) && <NavLink label="Admin" page="admin" icon={<Shield size={16} strokeWidth={2} />} />}
 
           {customMenu.map(item => (
             <NavLink
@@ -228,8 +237,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   Upgrade
                 </button>
               ) : (
-                <div ref={creditRef} style={{ position: 'relative', zIndex: 10000 }}>
+                <div ref={creditRef} style={{ position: 'relative' }}>
                   <button
+                    ref={creditButtonRef}
                     onClick={() => setIsCreditDropdownOpen(!isCreditDropdownOpen)}
                     className="btn-secondary"
                     style={{
@@ -243,16 +253,24 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {user.plan === 'premium' ? '∞' : `${user.credits}`}
                   </button>
 
-                  {/* Credit Dropdown Menu */}
-                  {isCreditDropdownOpen && (
-                    <div className="dropdown-menu" style={{
-                      padding: '1rem',
-                      zIndex: 99999,
-                      top: dropdownPosition === 'above' ? 'auto' : 'calc(100% + 8px)',
-                      bottom: dropdownPosition === 'above' ? 'calc(100% + 8px)' : 'auto',
-                        right: dropdownAlign === 'right' ? '0' : 'auto',
-                        left: dropdownAlign === 'left' ? '0' : 'auto',
-                    }}>
+                  {/* Credit Dropdown Portal */}
+                  {isCreditDropdownOpen && creditMenuPosition && typeof document !== 'undefined' && createPortal(
+                    <div
+                      ref={creditPortalRef}
+                      style={{
+                        position: 'fixed',
+                        top: creditMenuPosition.top,
+                        left: creditMenuPosition.left,
+                        width: creditMenuPosition.width,
+                        maxWidth: 'calc(100vw - 16px)',
+                        zIndex: 99999,
+                        padding: '1rem',
+                        background: '#FFFFFF',
+                        border: '1px solid #E5E5E5',
+                        borderRadius: '0.75rem',
+                        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+                      }}
+                    >
                       <div style={{ marginBottom: '0.75rem' }}>
                         <div style={{
                           fontSize: '0.85rem',
@@ -316,7 +334,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                       >
                         {user.plan === 'premium' ? 'View Plans' : 'Buy Credits'}
                       </button>
-                    </div>
+                    </div>,
+                    document.body
                   )}
                 </div>
               )}
@@ -454,6 +473,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </div>
       </div>
+
+      {/* === MOBILE MENU BACKDROP === */}
+      {isMobileMenuOpen && (
+        <div 
+          className="mobile-menu-backdrop open" 
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
 
       {/* === MOBILE MENU === */}
       {isMobileMenuOpen && (

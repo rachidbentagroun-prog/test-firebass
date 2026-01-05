@@ -15,30 +15,26 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPlan, plans }) => {
   };
 
   return (
-    <div id="pricing-section" className="py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-b from-white via-[#f5f7fb] to-white relative scroll-mt-16">
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[10%] left-[8%] w-[240px] h-[240px] rounded-full bg-[#1f4b99]/10 blur-3xl" />
-        <div className="absolute bottom-[6%] right-[10%] w-[260px] h-[260px] rounded-full bg-[#47526a]/10 blur-3xl" />
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="text-center mb-10 sm:mb-12 md:mb-16">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 mb-3 sm:mb-4">Pricing Plans</h2>
-          <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto">Choose the perfect plan for your creative needs. All plans include access to Dall-E 3, Sora2, and ChatGPT.</p>
+    <div id="pricing-section" className="bg-white scroll-mt-16">
+      <div className="page-shell" style={{ paddingTop: '3rem', paddingBottom: '3.5rem' }}>
+        <div className="text-center mb-10 sm:mb-12 md:mb-14">
+          <span className="pill-badge" style={{ marginBottom: '0.75rem' }}>Transparent pricing</span>
+          <h2 className="headline-xl" style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>Plans built for teams</h2>
+          <p className="lead-text" style={{ maxWidth: '720px', margin: '0 auto' }}>Predictable credits, enterprise-grade controls, and support that scales with you.</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           {plans.map((plan) => (
             <div 
               key={plan.id}
-              className={`relative rounded-2xl p-8 border transition-all duration-300 hover:-translate-y-2 bg-white shadow-[0_22px_70px_rgba(16,45,85,0.10)] hover:shadow-[0_26px_90px_rgba(16,45,85,0.14)] ${
+              className={`relative rounded-2xl p-8 border transition-all duration-300 hover:-translate-y-2 bg-white shadow-sm hover:shadow-lg ${
                 plan.recommended 
-                  ? 'border-[#1f4b99]/50 ring-4 ring-[#1f4b99]/8'
+                  ? 'border-[#3B5CCC]/50 ring-4 ring-[#3B5CCC]/10'
                   : 'border-slate-200'
               }`}
             >
               {plan.recommended && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#1f4b99] to-[#153a7a] text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg uppercase tracking-wide">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#3B5CCC] to-[#2F4FB5] text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg uppercase tracking-wide">
                   Popular
                 </div>
               )}
@@ -49,9 +45,9 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPlan, plans }) => {
                 <span className="text-sm sm:text-base text-slate-500">/month</span>
               </div>
 
-              <div className="mb-6 sm:mb-8 p-3 sm:p-4 rounded-xl bg-[#eef1f6] border border-slate-200">
+              <div className="mb-6 sm:mb-8 p-3 sm:p-4 rounded-xl bg-[#F3F6FB] border border-slate-200">
                 <span className="block text-xs sm:text-sm text-slate-600 mb-1">Monthly Credits</span>
-                <span className="text-xl sm:text-2xl font-black text-[#1f4b99]">{plan.credits}</span>
+                <span className="text-xl sm:text-2xl font-black text-[#2F4FB5]">{plan.credits}</span>
               </div>
 
               <ul className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
@@ -69,8 +65,8 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPlan, plans }) => {
                 onClick={() => handlePlanClick(plan)}
                 className={`w-full py-2 sm:py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 text-sm sm:text-base min-h-[44px] ${
                   plan.recommended
-                    ? 'btn-steel'
-                    : 'btn-steel btn-steel--ghost'
+                    ? 'primary-btn'
+                    : 'ghost-btn'
                 }`}
               >
                 {plan.price === '$0' ? 'Start Free Trial' : plan.price === '$1' ? 'Try for $1' : 'Upgrade Plan'}

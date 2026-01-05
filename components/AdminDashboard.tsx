@@ -9,7 +9,7 @@ import {
   RefreshCw, Key, Shield, ShieldCheck,
   CreditCard, ChevronDown, Monitor, Clock, Terminal,
   Plus, Layers, Video as VideoIcon, Image as ImageIcon,
-  Mic2, AlertTriangle, Info, Bell, MessageSquare, User as UserIcon,
+  Mic2, AlertTriangle, AlertCircle, Info, Bell, MessageSquare, User as UserIcon,
   Filter, UserCheck, UserMinus, ShieldAlert, Ban, Eye, MapPin
 } from 'lucide-react';
 import { 
@@ -27,7 +27,17 @@ import {
   getUserIPLogs,
   blockIPAddress,
   unblockIPAddress,
-  getBlockedIPs
+  getBlockedIPs,
+  getCreditConfig,
+  updateCreditConfig,
+  grantUserCredits,
+  getGlobalCreditStats,
+  getCreditLogs,
+  getUsageLogs,
+  getAIActivity,
+  subscribeToAIActivity,
+  getAdminAuditLogs,
+  getAbuseDetectionLogs
 } from '../services/firebase';
 
 interface AdminDashboardProps {
@@ -55,7 +65,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   users, siteConfig, onUpdateConfig, onDeleteUser, onUpdateUser, 
   onSendMessageToUser, onBroadcastMessage, onSupportReply, hasApiKey, onSelectKey, onSyncFirebase
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'users' | 'support' | 'broadcast' | 'api' | 'cms'>('overview');
+  console.log('🔵 [AdminDashboard] MOUNTED - users:', users?.length || 0);
+  
+  try {
+    const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'users' | 'credits' | 'live-ai' | 'support' | 'broadcast' | 'api' | 'cms'>('overview');
   const [cmsTab, setCmsTab] = useState<'general' | 'plans' | 'landing'>('general');
   const [localConfig, setLocalConfig] = useState<SiteConfig>(siteConfig);
   const [searchQuery, setSearchQuery] = useState('');
@@ -97,6 +110,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [replyText, setReplyText] = useState('');
   const [isReplying, setIsReplying] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement>(null);
+
+  // Credit System state
+  const [creditConfig, setCreditConfig] = useState<any>({
+    imageCost: 1,
+    videoCostPerSecond: 5,
+    voiceCostPerMinute: 2,
+    chatCostPerToken: 0.001,
+    imageHDCost: 2,
+    video4KCost: 10,
+    freeSignupCredits: 10,
+    basicPlanCredits: 100,
+    premiumPlanCredits: 500
+  });
+  const [creditStats, setCreditStats] = useState<any>(null);
+  const [creditLoading, setCreditLoading] = useState(false);
+  const [savingConfig, setSavingConfig] = useState(false);
+
+  // Live AI Activity state
+  const [aiActivities, setAiActivities] = useState<any[]>([]);
+  const [aiActivityLoading, setAiActivityLoading] = useState(false);
+  const [abuseDetections, setAbuseDetections] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const aiActivityUnsubscribeRef = useRef<(() => void) | null>(null);
+
+  // AI Engine Pricing state
+  const [engines, setEngines] = useState<any[]>([]);
+  const [engineLoading, setEngineLoading] = useState(false);
+  const [editingEngine, setEditingEngine] = useState<any | null>(null);
+  const [engineStats, setEngineStats] = useState<any>(null);
+
+  // Plan Pricing Overrides state
+  const [subscriptionPlans, setSubscriptionPlans] = useState<any[]>([]);
+  const [selectedPlan, setSelectedPlan] = useState<string>('free');
+  const [planOverrides, setPlanOverrides] = useState<any>({});
+  const [planOverrideFilter, setPlanOverrideFilter] = useState<string>('image');
+  const [savingPlanOverrides, setSavingPlanOverrides] = useState(false);
 
   useEffect(() => { setLocalConfig(siteConfig); }, [siteConfig]);
 
@@ -143,6 +192,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [countries, setCountries] = useState<Array<{country: string, count: number, percentage: number}>>([]);
   const [referrers, setReferrers] = useState<Array<{referrer: string, count: number, percentage: number}>>([]);
   const [trafficLoading, setTrafficLoading] = useState(false);
+  const [gaRealtime, setGaRealtime] = useState<{ activeUsers: number; eventCount: number; events: { name: string; active: number; count: number; }[] } | null>(null);
+  const [gaLoading, setGaLoading] = useState(false);
+  const [gaError, setGaError] = useState<string | null>(null);
 
   const fetchTraffic = async () => {
     setTrafficLoading(true);
@@ -205,6 +257,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   useEffect(() => {
     if (activeTab === 'analytics') {
       fetchTraffic();
+      fetchGoogleAnalyticsRealtime();
       fetchFirebaseAnalytics();
       fetchLiveGenerationData();
 
@@ -222,6 +275,87 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   }, [activeTab]);
 
+  // Load credit system data
+  useEffect(() => {
+    if (activeTab === 'credits') {
+      (async () => {
+        try {
+          const config = await getCreditConfig();
+          setCreditConfig(config);
+          const stats = await getGlobalCreditStats(30);
+          setCreditStats(stats);
+
+          // Load engines
+          setEngineLoading(true);
+          const { getAllEngines, getEngineStats } = await import('../services/firebase');
+          const allEngines = await getAllEngines();
+          setEngines(allEngines);
+          
+                    // Load subscription plans and overrides
+                    const { getAllSubscriptionPlans, getPlanPricingOverrides } = await import('../services/firebase');
+                    const plans = await getAllSubscriptionPlans();
+                    setSubscriptionPlans(plans);
+          
+                    // Load overrides for selected plan
+                    const overrides = await getPlanPricingOverrides(selectedPlan);
+                    setPlanOverrides(overrides || { plan_id: selectedPlan, ai_types: {} });
+          
+          // Load engine stats
+          const engStats = await getEngineStats(undefined, 30);
+          setEngineStats(engStats);
+          setEngineLoading(false);
+        } catch (err) {
+          console.error('Failed to load credit data:', err);
+          setEngineLoading(false);
+        }
+      })();
+    }
+  }, [activeTab]);
+
+  // Setup real-time AI activity listener
+  useEffect(() => {
+    if (activeTab === 'live-ai') {
+      // Load initial data
+      (async () => {
+        setAiActivityLoading(true);
+        try {
+          const [activities, abuseLogs, auditLogsList] = await Promise.all([
+            getAIActivity(100),
+            getAbuseDetectionLogs(50),
+            getAdminAuditLogs(50)
+          ]);
+          setAiActivities(activities);
+          setAbuseDetections(abuseLogs);
+          setAuditLogs(auditLogsList);
+        } catch (err) {
+          console.error('Failed to load AI activity data:', err);
+        } finally {
+          setAiActivityLoading(false);
+        }
+      })();
+
+      // Setup real-time listener
+      const unsubscribe = subscribeToAIActivity((activities) => {
+        setAiActivities(activities);
+      }, 100);
+      
+      aiActivityUnsubscribeRef.current = unsubscribe;
+
+      return () => {
+        if (aiActivityUnsubscribeRef.current) {
+          aiActivityUnsubscribeRef.current();
+          aiActivityUnsubscribeRef.current = null;
+        }
+      };
+    }
+
+    // Cleanup listener when leaving tab
+    if (aiActivityUnsubscribeRef.current) {
+      aiActivityUnsubscribeRef.current();
+      aiActivityUnsubscribeRef.current = null;
+    }
+  }, [activeTab]);
+
   // Fetch Firebase Analytics
   const fetchFirebaseAnalytics = async () => {
     setAnalyticsLoading(true);
@@ -232,6 +366,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       console.warn('Failed to fetch Firebase analytics:', e);
     } finally {
       setAnalyticsLoading(false);
+    }
+  };
+
+  // Fetch Google Analytics Realtime (requires GA env vars & serverless handler)
+  const fetchGoogleAnalyticsRealtime = async () => {
+    setGaLoading(true);
+    setGaError(null);
+    try {
+      const resp = await fetch('/api/ga-realtime');
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(text || 'Failed to fetch GA realtime metrics');
+      }
+      const json = await resp.json();
+      setGaRealtime(json);
+    } catch (e: any) {
+      setGaError(e?.message || 'GA realtime unavailable');
+      setGaRealtime(null);
+    } finally {
+      setGaLoading(false);
     }
   };
 
@@ -282,13 +436,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  // Handle suspend/activate user
+  // Handle suspend/activate user with optional free-form reason
   const handleToggleUserStatus = async (user: User) => {
     const newStatus = user.status === 'suspended' ? 'active' : 'suspended';
-    const reason = newStatus === 'suspended' ? prompt('Reason for suspension:') : undefined;
+    const rawReason = newStatus === 'suspended' 
+      ? prompt('Enter suspension reason (optional):', 'Admin decision') 
+      : null;
+    const suspensionReason = newStatus === 'suspended' ? (rawReason?.trim() || 'Admin decision') : undefined;
     
     try {
-      await updateUserStatus(user.id, newStatus, reason || undefined);
+      await updateUserStatus(user.id, newStatus, suspensionReason);
       onUpdateUser({ ...user, status: newStatus });
       alert(`User ${newStatus === 'suspended' ? 'suspended' : 'activated'} successfully!`);
     } catch (e) {
@@ -419,6 +576,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         { id: 'overview', label: 'Dashboard', icon: Layout },
         { id: 'analytics', label: 'Analytics', icon: BarChart3 },
         { id: 'users', label: 'Users', icon: Users },
+        { id: 'credits', label: 'Credits', icon: CreditCard },
+        { id: 'live-ai', label: 'Live AI', icon: Activity },
         { id: 'support', label: 'Support', icon: MessageSquare },
         { id: 'broadcast', label: 'Broadcast', icon: Bell },
         { id: 'api', label: 'TTV Link', icon: Key },
@@ -434,19 +593,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     </div>
   );
 
+  console.log('[AdminDashboard] Rendering with users:', users.length, 'activeTab:', activeTab);
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12 pb-40">
-      
-      <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-8 animate-fade-in">
-        <div className="flex items-center gap-4">
-          <div className="p-4 bg-indigo-600 rounded-3xl shadow-2xl shadow-indigo-600/20"><Shield className="w-8 h-8 text-white" /></div>
-          <div>
-            <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">Control Center</h1>
-            <p className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Secure Admin Protocol v5.0</p>
+    <div 
+      className="w-full" 
+      style={{ 
+        minHeight: '100vh', 
+        background: 'linear-gradient(to bottom, #1f2937 0%, #111827 50%, #1f2937 100%)',
+        color: '#ffffff'
+      }}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12 pb-40">
+        
+        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-8 animate-fade-in">
+          <div className="flex items-center gap-4">
+            <div className="p-4 bg-indigo-600 rounded-3xl shadow-2xl shadow-indigo-600/20"><Shield className="w-8 h-8 text-white" /></div>
+            <div>
+              <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">Control Center</h1>
+              <p className="text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Secure Admin Protocol v5.0</p>
+            </div>
           </div>
+          {renderTabs()}
         </div>
-        {renderTabs()}
-      </div>
 
       {activeTab === 'overview' && (
         <div className="space-y-12">
@@ -503,11 +672,287 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                )}
             </div>
           </div>
-        </div>
+
+          {/* PLAN PRICING OVERRIDES */}
+          <div className="bg-dark-900 border border-white/10 rounded-[3rem] p-10 shadow-2xl">
+                        <div className="flex items-center justify-between mb-8">
+                          <div className="flex items-center gap-4">
+                            <div className="p-4 bg-purple-600 rounded-2xl">
+                              <TrendingUp className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="text-2xl font-black text-white uppercase italic">Plan Pricing Overrides</h3>
+                              <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">
+                                Set custom pricing per subscription plan
+                              </p>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={async () => {
+                              setSavingPlanOverrides(true);
+                              try {
+                                const { setPlanPricingOverrides } = await import('../services/firebase');
+                                await setPlanPricingOverrides(selectedPlan, planOverrides);
+                                alert('✅ Plan pricing overrides saved successfully!');
+                              } catch (err: any) {
+                                alert('❌ Failed to save overrides: ' + err.message);
+                              } finally {
+                                setSavingPlanOverrides(false);
+                              }
+                            }}
+                            disabled={savingPlanOverrides}
+                            className="px-6 py-3 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2"
+                          >
+                            <Save className="w-4 h-4" />
+                            {savingPlanOverrides ? 'Saving...' : 'Save Overrides'}
+                          </button>
+                        </div>
+
+                        {/* Plan Selector */}
+                        <div className="mb-6 flex items-center gap-4">
+                          <label className="text-sm font-black text-gray-400 uppercase tracking-widest">Select Plan:</label>
+                          <select
+                            value={selectedPlan}
+                            onChange={async (e) => {
+                              const newPlan = e.target.value;
+                              setSelectedPlan(newPlan);
+                  
+                              // Load overrides for this plan
+                              const { getPlanPricingOverrides } = await import('../services/firebase');
+                              const overrides = await getPlanPricingOverrides(newPlan);
+                              setPlanOverrides(overrides || { plan_id: newPlan, ai_types: {} });
+                            }}
+                            className="bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white text-sm font-bold outline-none focus:border-purple-500"
+                          >
+                            {subscriptionPlans.map(plan => (
+                              <option key={plan.id} value={plan.id}>
+                                {plan.name} - ${plan.monthly_price}/mo
+                              </option>
+                            ))}
+                          </select>
+
+                          {/* AI Type Filter */}
+                          <label className="text-sm font-black text-gray-400 uppercase tracking-widest ml-8">AI Type:</label>
+                          <div className="flex gap-2">
+                            {['image', 'video', 'voice', 'chat'].map(type => (
+                              <button
+                                key={type}
+                                onClick={() => setPlanOverrideFilter(type)}
+                                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                                  planOverrideFilter === type 
+                                    ? 'bg-purple-600 text-white' 
+                                    : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                                }`}
+                              >
+                                {type}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Engine Override List */}
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-12 gap-4 px-4 pb-2 border-b border-white/10">
+                            <div className="col-span-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Engine</div>
+                            <div className="col-span-2 text-[10px] font-black text-gray-500 uppercase tracking-widest">Default Cost</div>
+                            <div className="col-span-2 text-[10px] font-black text-gray-500 uppercase tracking-widest">Override Cost</div>
+                            <div className="col-span-2 text-[10px] font-black text-gray-500 uppercase tracking-widest">Enabled</div>
+                            <div className="col-span-2 text-[10px] font-black text-gray-500 uppercase tracking-widest">Status</div>
+                          </div>
+
+                          {engines
+                            .filter(engine => engine.ai_type === planOverrideFilter)
+                            .map(engine => {
+                              const override = planOverrides?.ai_types?.[planOverrideFilter]?.[engine.id];
+                              const hasOverride = !!override;
+                              const overrideCost = override?.cost || engine.base_cost;
+                              const isEnabled = override?.enabled !== false;
+
+                              return (
+                                <div key={engine.id} className="grid grid-cols-12 gap-4 p-4 bg-black/20 border border-white/5 rounded-xl hover:border-purple-500/30 transition-all">
+                                  <div className="col-span-4 flex items-center gap-3">
+                                    <div className={`w-3 h-3 rounded-full ${engine.is_active ? 'bg-green-500' : 'bg-gray-600'}`} />
+                                    <div>
+                                      <p className="text-sm font-bold text-white">{engine.engine_name}</p>
+                                      <p className="text-[10px] text-gray-500 uppercase">{engine.id}</p>
+                                    </div>
+                                  </div>
+
+                                  <div className="col-span-2 flex items-center">
+                                    <span className="text-sm font-bold text-gray-400">{engine.base_cost} credits</span>
+                                  </div>
+
+                                  <div className="col-span-2 flex items-center">
+                                    <input 
+                                      type="number"
+                                      step="0.01"
+                                      value={overrideCost}
+                                      onChange={(e) => {
+                                        const newCost = parseFloat(e.target.value) || 0;
+                                        setPlanOverrides({
+                                          ...planOverrides,
+                                          ai_types: {
+                                            ...planOverrides.ai_types,
+                                            [planOverrideFilter]: {
+                                              ...planOverrides.ai_types?.[planOverrideFilter],
+                                              [engine.id]: {
+                                                cost: newCost,
+                                                enabled: isEnabled
+                                              }
+                                            }
+                                          }
+                                        });
+                                      }}
+                                      className="w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-bold outline-none focus:border-purple-500"
+                                    />
+                                  </div>
+
+                                  <div className="col-span-2 flex items-center">
+                                    <button
+                                      onClick={() => {
+                                        setPlanOverrides({
+                                          ...planOverrides,
+                                          ai_types: {
+                                            ...planOverrides.ai_types,
+                                            [planOverrideFilter]: {
+                                              ...planOverrides.ai_types?.[planOverrideFilter],
+                                              [engine.id]: {
+                                                cost: overrideCost,
+                                                enabled: !isEnabled
+                                              }
+                                            }
+                                          }
+                                        });
+                                      }}
+                                      className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all ${
+                                        isEnabled 
+                                          ? 'bg-green-600/20 text-green-400 border border-green-600/30' 
+                                          : 'bg-red-600/20 text-red-400 border border-red-600/30'
+                                      }`}
+                                    >
+                                      {isEnabled ? 'Enabled' : 'Disabled'}
+                                    </button>
+                                  </div>
+
+                                  <div className="col-span-2 flex items-center">
+                                    {hasOverride ? (
+                                      <div className="flex items-center gap-2">
+                                        <span className="px-3 py-1 bg-purple-600/20 text-purple-400 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-purple-600/30">
+                                          Override Active
+                                        </span>
+                                        <button
+                                          onClick={async () => {
+                                            const newOverrides = { ...planOverrides };
+                                            if (newOverrides.ai_types?.[planOverrideFilter]?.[engine.id]) {
+                                              delete newOverrides.ai_types[planOverrideFilter][engine.id];
+                                            }
+                                            setPlanOverrides(newOverrides);
+                                
+                                            // Save immediately
+                                            try {
+                                              const { removePlanEngineOverride } = await import('../services/firebase');
+                                              await removePlanEngineOverride(selectedPlan, planOverrideFilter, engine.id);
+                                              alert('✅ Override removed');
+                                            } catch (err: any) {
+                                              alert('❌ Failed: ' + err.message);
+                                            }
+                                          }}
+                                          className="p-1 hover:bg-red-600/10 rounded text-red-400"
+                                          title="Remove override"
+                                        >
+                                          <X className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <span className="text-[10px] text-gray-500 uppercase tracking-widest">Using Default</span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+
+                        {/* Info Banner */}
+                        <div className="mt-6 p-4 bg-purple-600/10 border border-purple-600/20 rounded-xl">
+                          <div className="flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-purple-400 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-bold text-purple-300 mb-1">
+                                💡 Pricing Resolution Priority
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                1. Plan-specific override (highest priority)<br />
+                                2. Engine default cost<br />
+                                3. Global AI type default cost (lowest priority)
+                              </p>
+                              <p className="text-xs text-purple-400 mt-2">
+                                Leave override fields empty to use engine default costs.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
       )}
 
       {activeTab === 'analytics' && (
         <div className="space-y-8 animate-fade-in">
+           {/* Google Analytics Realtime */}
+           <div className="bg-dark-900 border border-white/10 rounded-[3rem] p-10 shadow-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-black text-white uppercase italic flex items-center gap-3">
+                    <Globe className="w-6 h-6 text-indigo-400" /> Google Analytics Realtime
+                  </h3>
+                  <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest mt-1">Live active users and events</p>
+                </div>
+                <button 
+                  onClick={fetchGoogleAnalyticsRealtime}
+                  className="px-4 py-2 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-600/20 rounded-xl text-xs font-bold text-indigo-400 transition-all flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${gaLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              </div>
+
+              {gaLoading ? (
+                <div className="h-32 flex items-center justify-center">
+                  <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" />
+                </div>
+              ) : gaError ? (
+                <div className="h-32 flex items-center justify-center text-sm text-red-400 font-bold uppercase tracking-[0.15em] text-center">
+                  {gaError}
+                </div>
+              ) : gaRealtime ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Active Users</p>
+                    <h4 className="text-3xl font-black text-white mt-2">{gaRealtime.activeUsers}</h4>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Event Count</p>
+                    <h4 className="text-3xl font-black text-white mt-2">{gaRealtime.eventCount}</h4>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">Top Events</p>
+                    <div className="space-y-2 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
+                      {gaRealtime.events.slice(0,5).map((ev, idx) => (
+                        <div key={ev.name + idx} className="flex items-center justify-between text-sm text-gray-200">
+                          <span className="font-bold truncate pr-2">{ev.name}</span>
+                          <span className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">{ev.count}</span>
+                        </div>
+                      ))}
+                      {gaRealtime.events.length === 0 && <p className="text-xs text-gray-500">No events yet.</p>}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-32 flex items-center justify-center text-sm text-gray-500 font-bold uppercase tracking-[0.15em] text-center">
+                  Waiting for Google Analytics data...
+                </div>
+              )}
+           </div>
+
            {/* Daily Traffic Volume Chart */}
            <div className="bg-dark-900 border border-white/10 rounded-[3rem] p-10 shadow-2xl">
               <div className="flex items-center justify-between mb-10">
@@ -929,6 +1374,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <thead>
                       <tr className="bg-white/5 border-b border-white/5">
                         <th className="px-10 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">User Profile</th>
+                        <th className="px-10 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Email</th>
                         <th className="px-10 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Plan</th>
                         <th className="px-10 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Credits</th>
                         <th className="px-10 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Status</th>
@@ -946,10 +1392,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   <div>
                                      <p className="text-sm font-black text-white uppercase tracking-tight">{u.name}</p>
                                      <p className="text-[10px] font-bold text-gray-600 uppercase flex items-center gap-2">
-                                       {u.email}
                                        <span className="text-[8px] font-normal text-indigo-500/50">#{u.id.substring(0, 8)}</span>
                                      </p>
                                   </div>
+                                </div>
+                             </td>
+                             <td className="px-10 py-6">
+                                <div className="flex items-center gap-3">
+                                  <Mail className="w-4 h-4 text-indigo-400" />
+                                    <p className="text-sm font-bold text-gray-300 break-all">{u.email || 'No email provided'}</p>
                                 </div>
                              </td>
                              <td className="px-10 py-6">
@@ -989,7 +1440,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                        ))}
                        {filteredUsers.length === 0 && (
                          <tr>
-                           <td colSpan={5} className="px-10 py-40 text-center">
+                           <td colSpan={6} className="px-10 py-40 text-center">
                               <div className="flex flex-col items-center justify-center opacity-30 italic">
                                  <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6">
                                     <Search className="w-10 h-10 text-gray-700" />
@@ -1194,6 +1645,778 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                  </div>
               </div>
            </div>
+        </div>
+      )}
+
+      {/* CREDIT SYSTEM TAB */}
+      {activeTab === 'credits' && (
+        <div className="space-y-8 animate-fade-in">
+          
+          {/* Credit Configuration */}
+          <div className="bg-dark-900 border border-white/10 rounded-[3rem] p-10 shadow-2xl">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <div className="p-4 bg-indigo-600 rounded-2xl">
+                  <CreditCard className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-white uppercase italic">Credit Configuration</h3>
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Set cost per AI feature</p>
+                </div>
+              </div>
+              <button 
+                onClick={async () => {
+                  setSavingConfig(true);
+                  try {
+                    const { updateCreditConfig: updateConfigFn } = await import('../services/firebase');
+                    const user = await import('../services/firebase').then(m => m.auth.currentUser);
+                    if (user) {
+                      await updateConfigFn(creditConfig, user.uid, user.email || 'admin');
+                      alert('✅ Credit configuration saved successfully!');
+                    }
+                  } catch (err: any) {
+                    alert('❌ Failed to save config: ' + err.message);
+                  } finally {
+                    setSavingConfig(false);
+                  }
+                }}
+                disabled={savingConfig}
+                className="px-6 py-3 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                {savingConfig ? 'Saving...' : 'Save Config'}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="p-6 bg-black/40 border border-white/10 rounded-2xl">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3 block">Image Generation Cost</label>
+                <input 
+                  type="number" 
+                  value={creditConfig.imageCost}
+                  onChange={e => setCreditConfig({...creditConfig, imageCost: parseFloat(e.target.value) || 0})}
+                  className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-indigo-500"
+                />
+                <p className="text-[10px] text-gray-600 mt-2">Credits per image</p>
+              </div>
+
+              <div className="p-6 bg-black/40 border border-white/10 rounded-2xl">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3 block">Video Cost (per second)</label>
+                <input 
+                  type="number" 
+                  value={creditConfig.videoCostPerSecond}
+                  onChange={e => setCreditConfig({...creditConfig, videoCostPerSecond: parseFloat(e.target.value) || 0})}
+                  className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-indigo-500"
+                />
+                <p className="text-[10px] text-gray-600 mt-2">Credits per second</p>
+              </div>
+
+              <div className="p-6 bg-black/40 border border-white/10 rounded-2xl">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3 block">Voice Cost (per minute)</label>
+                <input 
+                  type="number" 
+                  value={creditConfig.voiceCostPerMinute}
+                  onChange={e => setCreditConfig({...creditConfig, voiceCostPerMinute: parseFloat(e.target.value) || 0})}
+                  className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-indigo-500"
+                />
+                <p className="text-[10px] text-gray-600 mt-2">Credits per minute</p>
+              </div>
+
+              <div className="p-6 bg-black/40 border border-white/10 rounded-2xl">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3 block">Chat Cost (per token)</label>
+                <input 
+                  type="number" 
+                  step="0.001"
+                  value={creditConfig.chatCostPerToken}
+                  onChange={e => setCreditConfig({...creditConfig, chatCostPerToken: parseFloat(e.target.value) || 0})}
+                  className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-indigo-500"
+                />
+                <p className="text-[10px] text-gray-600 mt-2">Credits per token</p>
+              </div>
+
+              <div className="p-6 bg-black/40 border border-white/10 rounded-2xl">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3 block">Free Signup Credits</label>
+                <input 
+                  type="number" 
+                  value={creditConfig.freeSignupCredits}
+                  onChange={e => setCreditConfig({...creditConfig, freeSignupCredits: parseInt(e.target.value) || 0})}
+                  className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-indigo-500"
+                />
+                <p className="text-[10px] text-gray-600 mt-2">Initial credit grant</p>
+              </div>
+
+              <div className="p-6 bg-black/40 border border-white/10 rounded-2xl">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3 block">Premium Plan Credits</label>
+                <input 
+                  type="number" 
+                  value={creditConfig.premiumPlanCredits}
+                  onChange={e => setCreditConfig({...creditConfig, premiumPlanCredits: parseInt(e.target.value) || 0})}
+                  className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-indigo-500"
+                />
+                <p className="text-[10px] text-gray-600 mt-2">Monthly allocation</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Global Credit Stats */}
+          <div className="bg-dark-900 border border-white/10 rounded-[3rem] p-10 shadow-2xl">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <div className="p-4 bg-pink-600 rounded-2xl">
+                  <BarChart3 className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-white uppercase italic">Global Usage Stats</h3>
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Last 30 days</p>
+                </div>
+              </div>
+              <button 
+                onClick={async () => {
+                  setCreditLoading(true);
+                  try {
+                    const stats = await getGlobalCreditStats(30);
+                    setCreditStats(stats);
+                  } catch (err) {
+                    console.error('Failed to load credit stats:', err);
+                  } finally {
+                    setCreditLoading(false);
+                  }
+                }}
+                className="px-4 py-2 bg-pink-600/10 hover:bg-pink-600/20 border border-pink-600/20 rounded-xl text-xs font-bold text-pink-400 transition-all flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${creditLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
+
+            {creditLoading ? (
+              <div className="py-20 flex items-center justify-center">
+                <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" />
+              </div>
+            ) : creditStats ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                  <div className="p-6 bg-indigo-600/10 border border-indigo-600/20 rounded-2xl">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Total Credits Used</p>
+                    <h4 className="text-3xl font-black text-white">{creditStats.totalCreditsUsed.toLocaleString()}</h4>
+                  </div>
+                  <div className="p-6 bg-green-600/10 border border-green-600/20 rounded-2xl">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Total Generations</p>
+                    <h4 className="text-3xl font-black text-white">{creditStats.totalGenerations.toLocaleString()}</h4>
+                  </div>
+                  <div className="p-6 bg-pink-600/10 border border-pink-600/20 rounded-2xl">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Avg Cost Per Gen</p>
+                    <h4 className="text-3xl font-black text-white">
+                      {creditStats.totalGenerations > 0 ? (creditStats.totalCreditsUsed / creditStats.totalGenerations).toFixed(1) : '0'}
+                    </h4>
+                  </div>
+                  <div className="p-6 bg-purple-600/10 border border-purple-600/20 rounded-2xl">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Active Users</p>
+                    <h4 className="text-3xl font-black text-white">{creditStats.byUser.length}</h4>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="p-6 bg-black/40 border border-white/10 rounded-2xl">
+                    <h4 className="text-sm font-black text-white uppercase mb-4">Usage By Type</h4>
+                    <div className="space-y-3">
+                      {Object.entries(creditStats.byType).map(([type, data]: [string, any]) => (
+                        <div key={type} className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                          <div className="flex items-center gap-3">
+                            {type === 'image' && <ImageIcon className="w-4 h-4 text-green-400" />}
+                            {type === 'video' && <VideoIcon className="w-4 h-4 text-indigo-400" />}
+                            {type === 'voice' && <Mic2 className="w-4 h-4 text-pink-400" />}
+                            {type === 'chat' && <MessageSquare className="w-4 h-4 text-purple-400" />}
+                            <span className="text-xs font-bold text-white capitalize">{type}</span>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-black text-white">{data.credits.toLocaleString()}</p>
+                            <p className="text-[10px] text-gray-500">{data.count} generations</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="p-6 bg-black/40 border border-white/10 rounded-2xl">
+                    <h4 className="text-sm font-black text-white uppercase mb-4">Top Users</h4>
+                    <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                      {creditStats.byUser.slice(0, 10).map((user: any, idx: number) => (
+                        <div key={user.userId} className="flex items-center justify-between p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-all">
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-black text-gray-600">#{idx + 1}</span>
+                            <span className="text-xs text-white font-medium truncate max-w-[150px]">{user.userEmail}</span>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-black text-indigo-400">{user.totalCredits.toLocaleString()}</p>
+                            <p className="text-[10px] text-gray-600">{user.generationCount} gens</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="py-20 text-center">
+                <BarChart3 className="w-16 h-16 text-gray-700 mx-auto mb-4" />
+                <p className="text-gray-500 text-sm">Click Refresh to load statistics</p>
+              </div>
+            )}
+          </div>
+
+          {/* AI ENGINE PRICING MANAGEMENT */}
+          <div className="bg-dark-900 border border-white/10 rounded-[3rem] p-10 shadow-2xl">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <div className="p-4 bg-purple-600 rounded-2xl">
+                  <Layers className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-white uppercase italic">AI Engine Pricing</h3>
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Manage cost per engine dynamically</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={async () => {
+                    setEngineLoading(true);
+                    try {
+                      const { getAllEngines, getEngineStats } = await import('../services/firebase');
+                      const allEngines = await getAllEngines();
+                      setEngines(allEngines);
+                      const engStats = await getEngineStats(undefined, 30);
+                      setEngineStats(engStats);
+                    } catch (err) {
+                      console.error('Failed to load engines:', err);
+                    } finally {
+                      setEngineLoading(false);
+                    }
+                  }}
+                  className="px-4 py-2 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-600/20 rounded-xl text-xs font-bold text-purple-400 transition-all flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${engineLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+                <button 
+                  onClick={() => {
+                    setEditingEngine({
+                      id: '',
+                      engine_name: '',
+                      ai_type: 'image',
+                      is_active: true,
+                      base_cost: 1,
+                      cost_unit: 'image',
+                      description: '',
+                      created_at: Date.now(),
+                      updated_at: Date.now()
+                    });
+                  }}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Engine
+                </button>
+              </div>
+            </div>
+
+            {engineLoading ? (
+              <div className="py-20 flex items-center justify-center">
+                <RefreshCw className="w-8 h-8 text-purple-500 animate-spin" />
+              </div>
+            ) : engines.length > 0 ? (
+              <>
+                {/* Engine Stats Summary */}
+                {engineStats && (
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div className="p-6 bg-purple-600/10 border border-purple-600/20 rounded-2xl">
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Total Engines</p>
+                      <h4 className="text-3xl font-black text-white">{engines.length}</h4>
+                    </div>
+                    <div className="p-6 bg-green-600/10 border border-green-600/20 rounded-2xl">
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Active Engines</p>
+                      <h4 className="text-3xl font-black text-white">{engines.filter(e => e.is_active).length}</h4>
+                    </div>
+                    <div className="p-6 bg-indigo-600/10 border border-indigo-600/20 rounded-2xl">
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Total Usage (30d)</p>
+                      <h4 className="text-3xl font-black text-white">{engineStats.totalUsage.toLocaleString()}</h4>
+                    </div>
+                    <div className="p-6 bg-pink-600/10 border border-pink-600/20 rounded-2xl">
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Success Rate</p>
+                      <h4 className="text-3xl font-black text-white">{engineStats.successRate.toFixed(1)}%</h4>
+                    </div>
+                  </div>
+                )}
+
+                {/* Engines Table Grouped by AI Type */}
+                {['image', 'video', 'voice', 'chat'].map(aiType => {
+                  const typeEngines = engines.filter(e => e.ai_type === aiType);
+                  if (typeEngines.length === 0) return null;
+
+                  return (
+                    <div key={aiType} className="mb-8">
+                      <div className="flex items-center gap-3 mb-4">
+                        {aiType === 'image' && <ImageIcon className="w-5 h-5 text-green-400" />}
+                        {aiType === 'video' && <VideoIcon className="w-5 h-5 text-indigo-400" />}
+                        {aiType === 'voice' && <Mic2 className="w-5 h-5 text-pink-400" />}
+                        {aiType === 'chat' && <MessageSquare className="w-5 h-5 text-purple-400" />}
+                        <h4 className="text-lg font-black text-white uppercase">{aiType} Engines</h4>
+                      </div>
+
+                      <div className="space-y-3">
+                        {typeEngines.map(engine => {
+                          const engStat = engineStats?.byEngine?.find((s: any) => s.engine_id === engine.id);
+                          
+                          return (
+                            <div key={engine.id} className="p-5 bg-black/40 border border-white/10 rounded-xl hover:bg-black/60 transition-all">
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-4 flex-1">
+                                  <div className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase ${
+                                    engine.is_active ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
+                                  }`}>
+                                    {engine.is_active ? 'Active' : 'Disabled'}
+                                  </div>
+                                  <div className="flex-1">
+                                    <h5 className="text-sm font-bold text-white mb-1">{engine.engine_name}</h5>
+                                    <p className="text-[10px] text-gray-500">{engine.description}</p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-6">
+                                  {/* Cost */}
+                                  <div className="text-center">
+                                    <p className="text-[10px] text-gray-500 uppercase mb-1">Cost</p>
+                                    <p className="text-lg font-black text-indigo-400">{engine.base_cost}</p>
+                                    <p className="text-[10px] text-gray-600">per {engine.cost_unit}</p>
+                                  </div>
+
+                                  {/* Stats */}
+                                  {engStat && (
+                                    <div className="text-center">
+                                      <p className="text-[10px] text-gray-500 uppercase mb-1">Usage (30d)</p>
+                                      <p className="text-lg font-black text-green-400">{engStat.total_usage_count}</p>
+                                      <p className="text-[10px] text-gray-600">{engStat.success_rate.toFixed(0)}% success</p>
+                                    </div>
+                                  )}
+
+                                  {/* Actions */}
+                                  <div className="flex items-center gap-2">
+                                    <button 
+                                      onClick={() => setEditingEngine(engine)}
+                                      className="p-2 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 rounded-lg transition-all"
+                                      title="Edit Engine"
+                                    >
+                                      <Edit3 className="w-4 h-4" />
+                                    </button>
+                                    <button 
+                                      onClick={async () => {
+                                        if (confirm(`${engine.is_active ? 'Disable' : 'Enable'} ${engine.engine_name}?`)) {
+                                          try {
+                                            const { updateEngineStatus } = await import('../services/firebase');
+                                            await updateEngineStatus(engine.id, !engine.is_active);
+                                            // Reload engines
+                                            const { getAllEngines } = await import('../services/firebase');
+                                            const allEngines = await getAllEngines();
+                                            setEngines(allEngines);
+                                          } catch (err: any) {
+                                            alert('❌ Failed to update engine: ' + err.message);
+                                          }
+                                        }
+                                      }}
+                                      className={`p-2 ${engine.is_active ? 'bg-red-600/20 hover:bg-red-600/40 text-red-400' : 'bg-green-600/20 hover:bg-green-600/40 text-green-400'} rounded-lg transition-all`}
+                                      title={engine.is_active ? 'Disable' : 'Enable'}
+                                    >
+                                      {engine.is_active ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            ) : (
+              <div className="py-20 text-center">
+                <Layers className="w-16 h-16 text-gray-700 mx-auto mb-4" />
+                <p className="text-gray-500 text-sm mb-4">No engines configured yet</p>
+                <button 
+                  onClick={() => {
+                    setEditingEngine({
+                      id: '',
+                      engine_name: '',
+                      ai_type: 'image',
+                      is_active: true,
+                      base_cost: 1,
+                      cost_unit: 'image',
+                      description: '',
+                      created_at: Date.now(),
+                      updated_at: Date.now()
+                    });
+                  }}
+                  className="px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl text-sm font-bold transition-all inline-flex items-center gap-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  Add First Engine
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Engine Editor Modal */}
+          {editingEngine && (
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-dark-900 border border-white/10 rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-2xl font-black text-white uppercase">{editingEngine.id ? 'Edit' : 'Add'} Engine</h3>
+                  <button onClick={() => setEditingEngine(null)} className="p-2 hover:bg-white/10 rounded-lg transition-all">
+                    <X className="w-6 h-6 text-gray-400" />
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">Engine ID</label>
+                    <input 
+                      type="text" 
+                      value={editingEngine.id}
+                      onChange={e => setEditingEngine({...editingEngine, id: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '')})}
+                      disabled={!!editingEngine.created_at && editingEngine.id}
+                      placeholder="e.g., dalle, gemini, seddream"
+                      className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-indigo-500 disabled:opacity-50"
+                    />
+                    <p className="text-[10px] text-gray-600 mt-1">Unique identifier (lowercase, no spaces)</p>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">Engine Name</label>
+                    <input 
+                      type="text" 
+                      value={editingEngine.engine_name}
+                      onChange={e => setEditingEngine({...editingEngine, engine_name: e.target.value})}
+                      placeholder="e.g., DALL-E 3, Gemini Pro"
+                      className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">AI Type</label>
+                      <select 
+                        value={editingEngine.ai_type}
+                        onChange={e => setEditingEngine({...editingEngine, ai_type: e.target.value})}
+                        className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-indigo-500"
+                      >
+                        <option value="image">Image</option>
+                        <option value="video">Video</option>
+                        <option value="voice">Voice</option>
+                        <option value="chat">Chat</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">Status</label>
+                      <select 
+                        value={editingEngine.is_active ? 'active' : 'inactive'}
+                        onChange={e => setEditingEngine({...editingEngine, is_active: e.target.value === 'active'})}
+                        className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-indigo-500"
+                      >
+                        <option value="active">Active</option>
+                        <option value="inactive">Disabled</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">Base Cost</label>
+                      <input 
+                        type="number" 
+                        step="0.1"
+                        value={editingEngine.base_cost}
+                        onChange={e => setEditingEngine({...editingEngine, base_cost: parseFloat(e.target.value) || 0})}
+                        className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">Cost Unit</label>
+                      <select 
+                        value={editingEngine.cost_unit}
+                        onChange={e => setEditingEngine({...editingEngine, cost_unit: e.target.value})}
+                        className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-indigo-500"
+                      >
+                        <option value="image">Per Image</option>
+                        <option value="second">Per Second</option>
+                        <option value="minute">Per Minute</option>
+                        <option value="token">Per Token</option>
+                        <option value="message">Per Message</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">Description</label>
+                    <textarea 
+                      value={editingEngine.description}
+                      onChange={e => setEditingEngine({...editingEngine, description: e.target.value})}
+                      rows={3}
+                      placeholder="Describe this engine..."
+                      className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-indigo-500 resize-none"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-4">
+                    <button 
+                      onClick={async () => {
+                        try {
+                          if (!editingEngine.id || !editingEngine.engine_name) {
+                            alert('❌ Please fill in required fields');
+                            return;
+                          }
+
+                          const { setEngine, getAllEngines } = await import('../services/firebase');
+                          await setEngine(editingEngine.id, {
+                            engine_name: editingEngine.engine_name,
+                            ai_type: editingEngine.ai_type,
+                            is_active: editingEngine.is_active,
+                            base_cost: editingEngine.base_cost,
+                            cost_unit: editingEngine.cost_unit,
+                            description: editingEngine.description,
+                            created_at: editingEngine.created_at || Date.now()
+                          });
+
+                          // Reload engines
+                          const allEngines = await getAllEngines();
+                          setEngines(allEngines);
+                          setEditingEngine(null);
+                          alert('✅ Engine saved successfully!');
+                        } catch (err: any) {
+                          alert('❌ Failed to save engine: ' + err.message);
+                        }
+                      }}
+                      className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                    >
+                      <Save className="w-5 h-5" />
+                      Save Engine
+                    </button>
+                    <button 
+                      onClick={() => setEditingEngine(null)}
+                      className="px-6 py-3 bg-white/5 hover:bg-white/10 text-gray-400 rounded-xl font-black text-sm uppercase tracking-widest transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* LIVE AI ACTIVITY TAB */}
+      {activeTab === 'live-ai' && (
+        <div className="space-y-8 animate-fade-in">
+          
+          {/* Real-time Activity Stream */}
+          <div className="bg-dark-900 border border-white/10 rounded-[3rem] p-10 shadow-2xl">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <div className="p-4 bg-green-600 rounded-2xl">
+                  <Activity className="w-6 h-6 text-white animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-white uppercase italic">Live AI Activity</h3>
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Real-time monitoring via Firestore</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-4 py-2 bg-green-600/10 border border-green-600/20 rounded-xl">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-[10px] font-black text-green-400 uppercase tracking-widest">Live</span>
+                </div>
+                <button 
+                  onClick={async () => {
+                    setAiActivityLoading(true);
+                    try {
+                      const activities = await getAIActivity(100);
+                      setAiActivities(activities);
+                    } catch (err) {
+                      console.error('Failed to load AI activities:', err);
+                    } finally {
+                      setAiActivityLoading(false);
+                    }
+                  }}
+                  className="px-4 py-2 bg-green-600/10 hover:bg-green-600/20 border border-green-600/20 rounded-xl text-xs font-bold text-green-400 transition-all flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${aiActivityLoading ? 'animate-spin' : ''}`} />
+                  Manual Refresh
+                </button>
+              </div>
+            </div>
+
+            {aiActivityLoading ? (
+              <div className="py-20 flex items-center justify-center">
+                <RefreshCw className="w-8 h-8 text-green-500 animate-spin" />
+              </div>
+            ) : aiActivities.length > 0 ? (
+              <div className="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar">
+                {aiActivities.map((activity: any) => (
+                  <div key={activity.id} className="p-5 bg-black/40 border border-white/10 rounded-xl hover:bg-black/60 transition-all">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-4 flex-1">
+                        <div className={`p-3 rounded-lg ${
+                          activity.aiType === 'image' ? 'bg-green-600/20 text-green-400' :
+                          activity.aiType === 'video' ? 'bg-indigo-600/20 text-indigo-400' :
+                          activity.aiType === 'voice' ? 'bg-pink-600/20 text-pink-400' :
+                          'bg-purple-600/20 text-purple-400'
+                        }`}>
+                          {activity.aiType === 'image' && <ImageIcon className="w-5 h-5" />}
+                          {activity.aiType === 'video' && <VideoIcon className="w-5 h-5" />}
+                          {activity.aiType === 'voice' && <Mic2 className="w-5 h-5" />}
+                          {activity.aiType === 'chat' && <MessageSquare className="w-5 h-5" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="text-sm font-bold text-white">{activity.userName || 'Unknown User'}</span>
+                            <span className="text-[10px] text-gray-600">{activity.userEmail}</span>
+                          </div>
+                          <p className="text-xs text-gray-400 mb-2 truncate">{activity.prompt}</p>
+                          <div className="flex items-center gap-4 text-[10px] text-gray-600">
+                            <span className="flex items-center gap-1">
+                              <CreditCard className="w-3 h-3" />
+                              {activity.creditsUsed} credits
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {new Date(activity.timestamp).toLocaleString()}
+                            </span>
+                            {activity.country && (
+                              <span className="flex items-center gap-1">
+                                <Globe className="w-3 h-3" />
+                                {activity.country}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase ${
+                          activity.status === 'completed' ? 'bg-green-600/20 text-green-400' :
+                          activity.status === 'failed' ? 'bg-red-600/20 text-red-400' :
+                          activity.status === 'processing' ? 'bg-indigo-600/20 text-indigo-400 animate-pulse' :
+                          'bg-gray-600/20 text-gray-400'
+                        }`}>
+                          {activity.status}
+                        </div>
+                        {activity.processingTime && (
+                          <p className="text-[10px] text-gray-600 mt-2">{(activity.processingTime / 1000).toFixed(1)}s</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-20 text-center">
+                <Activity className="w-16 h-16 text-gray-700 mx-auto mb-4" />
+                <p className="text-gray-500 text-sm">No AI activity recorded yet</p>
+              </div>
+            )}
+          </div>
+
+          {/* Abuse Detection */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-dark-900 border border-white/10 rounded-[3rem] p-8 shadow-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-6 h-6 text-red-400" />
+                  <h3 className="text-xl font-black text-white uppercase italic">Abuse Detection</h3>
+                </div>
+                <button 
+                  onClick={async () => {
+                    try {
+                      const logs = await getAbuseDetectionLogs(50);
+                      setAbuseDetections(logs);
+                    } catch (err) {
+                      console.error('Failed to load abuse logs:', err);
+                    }
+                  }}
+                  className="px-3 py-2 bg-red-600/10 hover:bg-red-600/20 border border-red-600/20 rounded-lg text-[10px] font-bold text-red-400 transition-all"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+                {abuseDetections.length > 0 ? abuseDetections.map((abuse: any) => (
+                  <div key={abuse.id} className="p-4 bg-red-600/5 border border-red-600/20 rounded-xl">
+                    <div className="flex items-start justify-between mb-2">
+                      <span className="text-xs font-bold text-white">{abuse.userEmail}</span>
+                      <span className={`text-[10px] font-black uppercase px-2 py-1 rounded ${
+                        abuse.severity === 'critical' ? 'bg-red-600/20 text-red-400' :
+                        abuse.severity === 'high' ? 'bg-orange-600/20 text-orange-400' :
+                        abuse.severity === 'medium' ? 'bg-yellow-600/20 text-yellow-400' :
+                        'bg-gray-600/20 text-gray-400'
+                      }`}>
+                        {abuse.severity}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mb-2">{abuse.description}</p>
+                    <p className="text-[10px] text-gray-600">{new Date(abuse.timestamp).toLocaleString()}</p>
+                  </div>
+                )) : (
+                  <div className="py-12 text-center">
+                    <ShieldCheck className="w-12 h-12 text-gray-700 mx-auto mb-3" />
+                    <p className="text-xs text-gray-500">No abuse detected</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-dark-900 border border-white/10 rounded-[3rem] p-8 shadow-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <Shield className="w-6 h-6 text-indigo-400" />
+                  <h3 className="text-xl font-black text-white uppercase italic">Admin Audit Log</h3>
+                </div>
+                <button 
+                  onClick={async () => {
+                    try {
+                      const logs = await getAdminAuditLogs(50);
+                      setAuditLogs(logs);
+                    } catch (err) {
+                      console.error('Failed to load audit logs:', err);
+                    }
+                  }}
+                  className="px-3 py-2 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-600/20 rounded-lg text-[10px] font-bold text-indigo-400 transition-all"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+                {auditLogs.length > 0 ? auditLogs.map((log: any) => (
+                  <div key={log.id} className="p-4 bg-indigo-600/5 border border-indigo-600/20 rounded-xl">
+                    <div className="flex items-start justify-between mb-2">
+                      <span className="text-xs font-bold text-white">{log.adminEmail}</span>
+                      <span className="text-[10px] font-black uppercase px-2 py-1 rounded bg-indigo-600/20 text-indigo-400">
+                        {log.action}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mb-2">{log.details}</p>
+                    <p className="text-[10px] text-gray-600">{new Date(log.timestamp).toLocaleString()}</p>
+                  </div>
+                )) : (
+                  <div className="py-12 text-center">
+                    <FileText className="w-12 h-12 text-gray-700 mx-auto mb-3" />
+                    <p className="text-xs text-gray-500">No audit logs yet</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1690,6 +2913,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 10px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
+      </div>
     </div>
   );
+  } catch (error) {
+    console.error('❌ [AdminDashboard] RENDER ERROR:', error);
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        background: 'linear-gradient(to bottom, #1f2937 0%, #111827 50%, #1f2937 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#ffffff',
+        padding: '2rem'
+      }}>
+        <div style={{
+          maxWidth: '600px',
+          background: '#111827',
+          padding: '2rem',
+          borderRadius: '1rem',
+          border: '1px solid #374151'
+        }}>
+          <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#ef4444' }}>⚠️ AdminDashboard Error</h2>
+          <p style={{ marginBottom: '1rem', color: '#d1d5db' }}>An error occurred while rendering the admin dashboard:</p>
+          <pre style={{
+            background: '#1f2937',
+            padding: '1rem',
+            borderRadius: '0.5rem',
+            overflow: 'auto',
+            color: '#f87171',
+            fontSize: '0.875rem',
+            marginBottom: '1rem'
+          }}>
+            {String(error)}
+          </pre>
+          <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Check browser console for more details.</p>
+        </div>
+      </div>
+    );
+  }
 };
