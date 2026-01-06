@@ -206,10 +206,16 @@ body.theme-dark h6 {
   
   /* SEMANTIC TOKENS - Light Theme */
   --text-strong: #0F172A;
-  --text-body: #1F2937;
-  --text-secondary: #4B5563;
-  --text-muted: #6B7280;
+  --text-body: #111827;
+  --text-secondary: #334155;
+  --text-muted: #4B5563;
   --text-disabled: #94A3B8;
+
+  /* High-contrast label & inputs */
+  --label-contrast: #374151;
+  --muted-contrast: #475569;
+  --input-text: #111827;
+  --container-strong-border: #E5E7EB;
   
   --surface: #F9FBFF;
   --surface-muted: #F3F6FB;
@@ -254,6 +260,11 @@ body.theme-dark {
   --text-secondary: #9ca3af; /* Secondary text - readable */
   --text-muted: #6b7280; /* Muted text - 4.5:1 contrast minimum */
   --text-disabled: #4b5563; /* Disabled text - lower contrast */
+
+  --label-contrast: #E5E7EB;
+  --muted-contrast: #CBD5E1;
+  --input-text: #F8FAFC;
+  --container-strong-border: rgba(255, 255, 255, 0.16);
   
   /* SURFACE LAYERS - Proper elevation system */
   --surface: #0f1115; /* App background - darkest, #0f1115 */
@@ -372,6 +383,62 @@ body.theme-dark {
   border-color: var(--border-strong);
   box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
+}
+
+/* Accessible form primitives */
+.form-label {
+  display: block;
+  margin-left: 0.25rem;
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-weight: 600;
+  color: var(--label-contrast);
+}
+
+.form-label--muted {
+  color: var(--muted-contrast);
+  font-weight: 600;
+}
+
+input, textarea, select {
+  color: var(--input-text);
+}
+
+body:not(.theme-dark) input,
+body:not(.theme-dark) textarea,
+body:not(.theme-dark) select {
+  background: #ffffff;
+  border: 1px solid var(--container-strong-border);
+  box-shadow: var(--shadow-sm);
+}
+
+body.theme-dark input,
+body.theme-dark textarea,
+body.theme-dark select,
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] select {
+  color: #F8FAFC;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Raise contrast for legacy Tailwind gray text helpers */
+body:not(.theme-dark) .text-gray-400,
+body:not(.theme-dark) .text-gray-500,
+body:not(.theme-dark) .text-gray-600 {
+  color: var(--muted-contrast) !important;
+}
+
+body.theme-dark .text-gray-400,
+body.theme-dark .text-gray-500 {
+  color: #E5E7EB !important;
+}
+
+body.theme-dark .text-gray-600 {
+  color: #D1D5DB !important;
+}
 }
 
 .tool-card-grid {
@@ -1668,9 +1735,24 @@ nav a.active::after, .nav-link.active::after {
   overflow: visible;
 }
 
+/* Dark Mode Navbar - Vercel/Stripe Aesthetic */
+body.theme-dark .navbar-modern,
+:root[data-theme="dark"] .navbar-modern {
+  background: #0A0A0A;
+  border-bottom: 1px solid #333333;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
 .navbar-modern.navbar-scrolled {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   border-bottom-color: #D4D4D4;
+}
+
+body.theme-dark .navbar-modern.navbar-scrolled,
+:root[data-theme="dark"] .navbar-modern.navbar-scrolled {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  border-bottom-color: #222222;
 }
 
 /* Logo & Brand */
@@ -1693,6 +1775,11 @@ nav a.active::after, .nav-link.active::after {
   font-weight: 700;
   color: #000000;
   letter-spacing: -0.02em;
+}
+
+body.theme-dark .navbar-modern .logo-text,
+:root[data-theme="dark"] .navbar-modern .logo-text {
+  color: #FFFFFF;
 }
 
 /* Desktop Navigation Links */
@@ -1727,6 +1814,16 @@ nav a.active::after, .nav-link.active::after {
   color: #000000;
 }
 
+body.theme-dark .navbar-modern .nav-link,
+:root[data-theme="dark"] .navbar-modern .nav-link {
+  color: #A1A1A1;
+}
+
+body.theme-dark .navbar-modern .nav-link:hover,
+:root[data-theme="dark"] .navbar-modern .nav-link:hover {
+  color: #FFFFFF;
+}
+
 .navbar-modern .nav-link::after {
   content: '';
   position: absolute;
@@ -1740,6 +1837,11 @@ nav a.active::after, .nav-link.active::after {
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+body.theme-dark .navbar-modern .nav-link::after,
+:root[data-theme="dark"] .navbar-modern .nav-link::after {
+  background: #FFFFFF;
+}
+
 .navbar-modern .nav-link:hover::after {
   transform: scaleX(1);
 }
@@ -1751,6 +1853,12 @@ nav a.active::after, .nav-link.active::after {
 
 .navbar-modern .nav-link.active::after {
   transform: scaleX(1);
+}
+
+body.theme-dark .navbar-modern .nav-link.active,
+:root[data-theme="dark"] .navbar-modern .nav-link.active {
+  color: #FFFFFF;
+  font-weight: 600;
 }
 
 /* Right Actions */
@@ -1820,12 +1928,35 @@ nav a.active::after, .nav-link.active::after {
   background: #E5E5E5;
 }
 
+body.theme-dark .navbar-modern .btn-secondary,
+:root[data-theme="dark"] .navbar-modern .btn-secondary {
+  color: #E5E5E5;
+  border-color: #444444;
+  background: transparent;
+}
+
+body.theme-dark .navbar-modern .btn-secondary:hover,
+:root[data-theme="dark"] .navbar-modern .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #666666;
+}
+
+body.theme-dark .navbar-modern .btn-secondary:active,
+:root[data-theme="dark"] .navbar-modern .btn-secondary:active {
+  background: rgba(255, 255, 255, 0.12);
+}
+
 /* Divider */
 .navbar-modern .nav-divider {
   width: 1px;
   height: 20px;
   background: #E5E5E5;
   margin: 0 0.25rem;
+}
+
+body.theme-dark .navbar-modern .nav-divider,
+:root[data-theme="dark"] .navbar-modern .nav-divider {
+  background: #444444;
 }
 
 /* User Avatar */
@@ -3138,6 +3269,225 @@ body.theme-dark [class*="btn-warning"]:hover {
 }
 
 /* Admin stats/metric cards */
+
+/* ===============================================
+   DARK MODE TYPOGRAPHY & COMPONENTS - Vercel/Stripe Aesthetic
+   =============================================== */
+
+/* Dark Mode Typography - Headlines and Body Text */
+body.theme-dark h1,
+:root[data-theme="dark"] h1,
+body.theme-dark h2,
+:root[data-theme="dark"] h2,
+body.theme-dark h3,
+:root[data-theme="dark"] h3,
+body.theme-dark h4,
+:root[data-theme="dark"] h4,
+body.theme-dark h5,
+:root[data-theme="dark"] h5,
+body.theme-dark h6,
+:root[data-theme="dark"] h6 {
+  color: #FFFFFF !important;
+  text-shadow: none;
+}
+
+/* Dark Mode Slate Color Overrides */
+body.theme-dark .text-slate-900,
+:root[data-theme="dark"] .text-slate-900,
+body.theme-dark .text-slate-800,
+:root[data-theme="dark"] .text-slate-800 {
+  color: #EDEDED !important;
+}
+
+body.theme-dark .text-slate-700,
+:root[data-theme="dark"] .text-slate-700,
+body.theme-dark .text-slate-600,
+:root[data-theme="dark"] .text-slate-600 {
+  color: #B0B0B0 !important;
+}
+
+body.theme-dark .text-slate-500,
+:root[data-theme="dark"] .text-slate-500 {
+  color: #888888 !important;
+}
+
+body.theme-dark .text-slate-400,
+:root[data-theme="dark"] .text-slate-400 {
+  color: #666666 !important;
+}
+
+/* Placeholder Text */
+body.theme-dark .placeholder-slate-400::placeholder,
+:root[data-theme="dark"] .placeholder-slate-400::placeholder {
+  color: #999999 !important;
+}
+
+body.theme-dark .placeholder-slate-500::placeholder,
+:root[data-theme="dark"] .placeholder-slate-500::placeholder {
+  color: #888888 !important;
+}
+
+/* Dark Mode Input Fields - Modernized Dark Input Style */
+body.theme-dark input[type="text"],
+:root[data-theme="dark"] input[type="text"],
+body.theme-dark input[type="email"],
+:root[data-theme="dark"] input[type="email"],
+body.theme-dark input[type="password"],
+:root[data-theme="dark"] input[type="password"],
+body.theme-dark input[type="number"],
+:root[data-theme="dark"] input[type="number"],
+body.theme-dark textarea,
+:root[data-theme="dark"] textarea,
+body.theme-dark select,
+:root[data-theme="dark"] select {
+  background-color: #171717 !important;
+  color: #FFFFFF !important;
+  border-color: #333333 !important;
+  box-shadow: none;
+}
+
+body.theme-dark input[type="text"]::placeholder,
+:root[data-theme="dark"] input[type="text"]::placeholder,
+body.theme-dark input[type="email"]::placeholder,
+:root[data-theme="dark"] input[type="email"]::placeholder,
+body.theme-dark textarea::placeholder,
+:root[data-theme="dark"] textarea::placeholder {
+  color: #999999 !important;
+}
+
+body.theme-dark input:focus,
+:root[data-theme="dark"] input:focus,
+body.theme-dark textarea:focus,
+:root[data-theme="dark"] textarea:focus,
+body.theme-dark select:focus,
+:root[data-theme="dark"] select:focus {
+  outline: none !important;
+  border-color: #5B5BFF !important;
+  box-shadow: 0 0 0 3px rgba(91, 91, 255, 0.1) !important;
+}
+
+/* Dark Mode Button Overrides */
+body.theme-dark .bg-white,
+:root[data-theme="dark"] .bg-white {
+  background-color: #0F0F0F !important;
+  border-color: #333333 !important;
+}
+
+body.theme-dark .hover\:bg-slate-50:hover,
+:root[data-theme="dark"] .hover\:bg-slate-50:hover {
+  background-color: #1A1A1A !important;
+}
+
+body.theme-dark .bg-slate-50,
+:root[data-theme="dark"] .bg-slate-50 {
+  background-color: #1A1A1A !important;
+}
+
+body.theme-dark .bg-slate-100,
+:root[data-theme="dark"] .bg-slate-100 {
+  background-color: #222222 !important;
+}
+
+body.theme-dark .bg-gradient-to-b.from-white.via-\[#f5f7fb\].to-white,
+:root[data-theme="dark"] .bg-gradient-to-b.from-white.via-\[#f5f7fb\].to-white {
+  background: linear-gradient(to bottom, #050505 0%, #0F0F0F 50%, #050505 100%) !important;
+}
+
+/* HomeLanding Component - Dark Mode */
+body.theme-dark .bg-gradient-to-r,
+:root[data-theme="dark"] .bg-gradient-to-r,
+body.theme-dark .bg-gradient-to-b,
+:root[data-theme="dark"] .bg-gradient-to-b,
+body.theme-dark .bg-gradient-to-br,
+:root[data-theme="dark"] .bg-gradient-to-br {
+  /* Adjust gradient overlays for dark mode */
+}
+
+body.theme-dark .from-white,
+:root[data-theme="dark"] .from-white {
+  --tw-gradient-from: #1A1A1A !important;
+}
+
+body.theme-dark .to-white,
+:root[data-theme="dark"] .to-white {
+  --tw-gradient-to: #1A1A1A !important;
+}
+
+body.theme-dark .border-slate-200,
+:root[data-theme="dark"] .border-slate-200 {
+  border-color: #333333 !important;
+}
+
+body.theme-dark .hover\:border-slate-300:hover,
+:root[data-theme="dark"] .hover\:border-slate-300:hover {
+  border-color: #444444 !important;
+}
+
+body.theme-dark .shadow-\[0_24px_80px_rgba\(16\,45\,85\,0\.14\)\],
+:root[data-theme="dark"] .shadow-\[0_24px_80px_rgba\(16\,45\,85\,0\.14\)\] {
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5) !important;
+}
+
+body.theme-dark .hover\:shadow-\[0_28px_90px_rgba\(16\,45\,85\,0\.16\)\]:hover,
+:root[data-theme="dark"] .hover\:shadow-\[0_28px_90px_rgba\(16\,45\,85\,0\.16\)\]:hover {
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Input Focus Ring - Dark Mode */
+body.theme-dark .focus-within\:border-\[#1f4b99\],
+:root[data-theme="dark"] .focus-within\:border-\[#1f4b99\] {
+  --tw-border-opacity: 1;
+  border-color: #5B5BFF !important;
+}
+
+body.theme-dark .focus-within\:ring-4.focus-within\:ring-\[#1f4b99\]\/10,
+:root[data-theme="dark"] .focus-within\:ring-4.focus-within\:ring-\[#1f4b99\]\/10 {
+  box-shadow: 0 0 0 4px rgba(91, 91, 255, 0.1) !important;
+}
+
+/* Icon Buttons in Dark Mode */
+body.theme-dark .bg-slate-50,
+:root[data-theme="dark"] .bg-slate-50 {
+  background-color: #1A1A1A !important;
+}
+
+body.theme-dark .text-slate-600,
+:root[data-theme="dark"] .text-slate-600 {
+  color: #A1A1A1 !important;
+}
+
+body.theme-dark .hover\:bg-slate-100:hover,
+:root[data-theme="dark"] .hover\:bg-slate-100:hover {
+  background-color: #222222 !important;
+}
+
+/* 60-30-10 Color Rule Implementation */
+
+/* 60% Background - Deepest Grey/Black */
+body.theme-dark,
+:root[data-theme="dark"] {
+  background-color: #050505 !important;
+}
+
+/* 30% Containers - Slightly lighter dark grey */
+body.theme-dark .rounded-3xl,
+:root[data-theme="dark"] .rounded-3xl,
+body.theme-dark .rounded-2xl,
+:root[data-theme="dark"] .rounded-2xl {
+  background-color: #0F0F0F !important;
+  border-color: #333333 !important;
+}
+
+body.theme-dark .rounded-xl,
+:root[data-theme="dark"] .rounded-xl {
+  background-color: #111111 !important;
+}
+
+/* 10% Accents - White text and brand colors on interactive elements */
+body.theme-dark button,
+:root[data-theme="dark"] button {
+  /* Buttons inherit white text naturally */
+}
 body.theme-dark [class*="stat-card"],
 body.theme-dark [class*="metric-card"] {
   background: var(--surface-muted);

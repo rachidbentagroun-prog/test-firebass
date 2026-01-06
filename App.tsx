@@ -968,8 +968,14 @@ const App: React.FC = () => {
         onChatClick={() => setIsChatOpen(true)}
       />
 
-      {/* Support Chat Widget (opens when selected via ContactPanel; launcher hidden) */}
-      <ChatWidget user={user} isOpen={isChatOpen} setIsOpen={setIsChatOpen} hideLauncher />
+      {/* Support Chat Widget - Only show on home page for guests, hide for logged-in users and on chat-landing */}
+      {(currentPage === 'home' && !user) && (
+        <ChatWidget user={user} isOpen={isChatOpen} setIsOpen={setIsChatOpen} hideLauncher={false} />
+      )}
+      {/* On other pages (including chat-landing), use hidden launcher variant controlled only by ContactPanel */}
+      {currentPage !== 'home' && (
+        <ChatWidget user={user} isOpen={isChatOpen} setIsOpen={setIsChatOpen} hideLauncher={true} />
+      )}
       
       <AuthModal 
         isOpen={isAuthModalOpen} 

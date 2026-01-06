@@ -560,13 +560,13 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
             <div className="flex gap-1 sm:gap-1.5 bg-black/50 p-1 sm:p-1.5 rounded-lg sm:rounded-2xl mb-4 sm:mb-5 border border-white/5 relative z-10">
               <button 
                 onClick={() => setMode('text')} 
-                className={`flex-1 py-2 sm:py-2.5 md:py-3 rounded-lg text-[8px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${mode === 'text' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                className={`flex-1 py-2 sm:py-2.5 md:py-3 rounded-lg text-[8px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${mode === 'text' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-300 hover:text-gray-100'}`}
               >
                 Text Video
               </button>
               <button 
                 onClick={() => setMode('interpolation')} 
-                className={`flex-1 py-2 sm:py-2.5 md:py-3 rounded-lg text-[8px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${mode === 'interpolation' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                className={`flex-1 py-2 sm:py-2.5 md:py-3 rounded-lg text-[8px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${mode === 'interpolation' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-300 hover:text-gray-100'}`}
               >
                 Image Video
               </button>
@@ -574,7 +574,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
 
               {/* Engine Selection */}
               <div className="space-y-1.5 sm:space-y-2 relative md:z-[1000] mb-4 sm:mb-5" ref={engineMenuRef}>
-                <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">AI Engine</label>
+                <label className="form-label text-[9px] sm:text-[10px] tracking-[0.18em]">AI Engine</label>
                 <button 
                   ref={engineButtonRef}
                   onClick={() => !isGenerating && setIsEngineMenuOpen(!isEngineMenuOpen)} 
@@ -593,7 +593,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               <div className="space-y-3 sm:space-y-4 md:space-y-5 relative z-10">
               {mode === 'interpolation' && (
                 <div className="space-y-2 sm:space-y-3 animate-fade-in">
-                  <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Starting Frame</label>
+                  <label className="form-label text-[9px] sm:text-[10px] tracking-[0.18em]">Starting Frame</label>
                   <div 
                     onClick={() => fileInputRef.current?.click()}
                     className="aspect-video bg-black/40 border-2 border-dashed border-white/10 rounded-lg sm:rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500/30 transition-all group overflow-hidden"
@@ -612,12 +612,12 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               )}
 
               <div>
-                <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 block mb-1.5 sm:mb-2">Enter Prompt</label>
+                <label className="form-label text-[9px] sm:text-[10px] tracking-[0.18em]">Enter Prompt</label>
                 <textarea 
                   value={prompt} onChange={(e) => setPrompt(e.target.value)}
                   disabled={isOutOfCredits || isGenerating}
                   placeholder="Describe cinematic lighting, camera moves, and textures..."
-                  className="w-full h-24 sm:h-28 md:h-32 bg-black/40 border border-white/10 rounded-lg sm:rounded-2xl p-3 sm:p-4 md:p-5 text-white text-xs sm:text-sm focus:ring-1 focus:ring-indigo-500/50 outline-none resize-none transition-all placeholder:text-gray-700 custom-scrollbar disabled:opacity-50"
+                  className="w-full h-24 sm:h-28 md:h-32 bg-black/40 border border-white/10 rounded-lg sm:rounded-2xl p-3 sm:p-4 md:p-5 text-white text-sm sm:text-base focus:ring-1 focus:ring-indigo-500/50 outline-none resize-none transition-all placeholder:text-gray-600 custom-scrollbar disabled:opacity-50"
                 />
               </div>
 

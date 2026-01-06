@@ -233,17 +233,17 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                     
                     {/* AI Engine Selector */}
                     <div className="mb-4 relative z-10">
-                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-2 block">AI Engine</label>
+                      <label className="form-label text-[10px] tracking-[0.18em]">AI Engine</label>
                       <div className="flex bg-black/50 p-1.5 rounded-xl border border-white/5">
                         <button 
                           onClick={() => setVideoEngine('klingai')}
-                          className={`flex-1 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${videoEngine === 'klingai' ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                          className={`flex-1 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${videoEngine === 'klingai' ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-lg' : 'text-gray-300 hover:text-gray-100'}`}
                         >
                           KlingAI
                         </button>
                         <button 
                           onClick={() => setVideoEngine('sora')}
-                          className={`flex-1 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${videoEngine === 'sora' ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                          className={`flex-1 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${videoEngine === 'sora' ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg' : 'text-gray-300 hover:text-gray-100'}`}
                         >
                           Sora 2
                         </button>
@@ -253,13 +253,13 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                     <div className="flex bg-black/50 p-1.5 rounded-2xl mb-5 border border-white/5 relative z-10">
                       <button 
                         onClick={() => setMoteurMode('text')}
-                        className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${moteurMode === 'text' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                        className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${moteurMode === 'text' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-300 hover:text-gray-100'}`}
                       >
                          <Terminal className="w-4 h-4" /> Text To Video
                       </button>
                       <button 
                         onClick={() => setMoteurMode('video')}
-                        className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${moteurMode === 'video' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                        className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${moteurMode === 'video' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-300 hover:text-gray-100'}`}
                       >
                          <Layers className="w-4 h-4" /> Frame Link
                       </button>
@@ -269,12 +269,12 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                        {moteurMode === 'text' ? (
                           <div className="animate-fade-in">
                              <div className="flex justify-between mb-2">
-                               <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Directorial Script</label>
+                               <label className="form-label text-[10px] tracking-[0.18em]">Directorial Script</label>
                                <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">{videoEngine === 'sora' ? 'Sora 2' : 'KlingAI'}</span>
                              </div>
                              <textarea 
                                placeholder="Describe the cinematic motion, lighting, and textures..."
-                               className="w-full h-44 bg-black/40 border border-white/10 rounded-[1.5rem] p-6 text-white text-sm outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none custom-scrollbar"
+                               className="w-full h-44 bg-black/40 border border-white/10 rounded-[1.5rem] p-6 text-white text-base outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none custom-scrollbar"
                                value={textPrompt}
                                onChange={(e) => setTextPrompt(e.target.value)}
                              />
@@ -282,7 +282,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                        ) : (
                           <div className="animate-fade-in space-y-6">
                              <div className="flex justify-between mb-2">
-                               <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Temporal Anchor</label>
+                               <label className="form-label text-[10px] tracking-[0.18em]">Temporal Anchor</label>
                              </div>
                              <div onClick={() => fileInputRef.current?.click()} className="aspect-video bg-black/60 border-2 border-dashed border-white/10 rounded-[1.5rem] flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 hover:border-indigo-500/30 transition-all group">
                                 <Upload className="w-10 h-10 text-gray-600 mb-4 group-hover:text-indigo-400 group-hover:scale-110 transition-all" />
@@ -295,8 +295,8 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                                   reader.readAsDataURL(file);
                                 }} />
                              </div>
-                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Motion Guidance Script</label>
+                              <div className="space-y-2">
+                                <label className="form-label text-[10px] tracking-[0.18em]">Motion Guidance Script</label>
                                 <input 
                                   type="text" 
                                   placeholder="Transform into cyberpunk aesthetic..."
@@ -308,9 +308,9 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
 
                        <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-2 relative" ref={dimMenuRef}>
-                             <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Dimension</label>
+                             <label className="form-label text-[9px] tracking-[0.18em]">Dimension</label>
                              <button onClick={() => setIsDimMenuOpen(!isDimMenuOpen)} className="w-full flex items-center justify-between px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all group">
-                               <div className="flex items-center gap-1.5 truncate">
+                               <div className="flex items-center gap-1.5 truncate text-white">
                                  {currentDimOption && <currentDimOption.icon className="w-3.5 h-3.5 text-indigo-400 shrink-0 group-hover:scale-110 transition-transform" />}
                                  <span className="truncate">{aspectRatio}</span>
                                </div>

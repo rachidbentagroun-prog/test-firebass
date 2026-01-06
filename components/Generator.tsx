@@ -961,7 +961,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                 
                 {/* AI Engine Selector */}
                 <div className="mb-3 sm:mb-4 relative z-[50]" ref={imageEngineMenuRef}>
-                  <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-1.5 sm:mb-2 block">AI Engine</label>
+                  <label className="form-label text-[9px] sm:text-[10px] tracking-[0.18em]">AI Engine</label>
                   <button 
                     ref={imageEngineButtonRef}
                     onClick={() => !isGenerating && setIsImageEngineMenuOpen(!isImageEngineMenuOpen)}
@@ -989,13 +989,13 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                 <div className="flex bg-black/50 p-1 sm:p-1.5 rounded-lg sm:rounded-xl md:rounded-2xl mb-3 sm:mb-4 md:mb-5 border border-white/5 relative z-10 gap-1">
                   <button 
                     onClick={() => setGenMode('tti')}
-                    className={`flex-1 py-2 sm:py-2.5 md:py-3 lg:py-4 rounded-lg text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 ${genMode === 'tti' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                    className={`flex-1 py-2 sm:py-2.5 md:py-3 lg:py-4 rounded-lg text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 ${genMode === 'tti' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-300 hover:text-gray-100'}`}
                   >
                     <Terminal className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" /> Text To Image
                   </button>
                   <button 
                     onClick={() => setGenMode('iti')}
-                    className={`flex-1 py-2 sm:py-2.5 md:py-3 lg:py-4 rounded-lg text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 ${genMode === 'iti' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                    className={`flex-1 py-2 sm:py-2.5 md:py-3 lg:py-4 rounded-lg text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 ${genMode === 'iti' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-300 hover:text-gray-100'}`}
                   >
                     <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" /> Image To Image
                   </button>
@@ -1006,7 +1006,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                   {genMode === 'iti' && (
                     <div className="animate-fade-in">
                       <div className="flex justify-between mb-2">
-                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Image Anchor</label>
+                        <label className="form-label text-[10px] tracking-[0.18em]">Image Anchor</label>
                         {previewUrl && (
                           <button onClick={() => { setPreviewUrl(null); setSelectedImage(null); }} className="text-red-500 p-1 hover:bg-red-500/10 rounded-lg">
                             <X className="w-3.5 h-3.5" />
@@ -1029,8 +1029,8 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
 
                   {/* Prompt Textarea */}
                   <div className="animate-fade-in">
-                    <div className="flex justify-between mb-2">
-                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
+                      <div className="flex justify-between mb-2">
+                      <label className="form-label text-[10px] tracking-[0.18em]">
                         {genMode === 'tti' ? 'Directorial Script' : 'Transformation Script'}
                       </label>
                       <div className="flex gap-2">
@@ -1070,7 +1070,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                     </div>
                     <textarea 
                       placeholder={genMode === 'iti' ? "Describe how to transform the image..." : "Describe the cinematic composition, lighting, and textures..."}
-                      className="w-full h-32 sm:h-40 lg:h-44 bg-black/40 border border-white/10 rounded-xl sm:rounded-[1.5rem] p-4 sm:p-6 text-white text-sm outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none"
+                      className="w-full h-32 sm:h-40 lg:h-44 bg-black/40 border border-white/10 rounded-xl sm:rounded-[1.5rem] p-4 sm:p-6 text-white text-base sm:text-[15px] outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
                     />
