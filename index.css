@@ -18,6 +18,31 @@ body {
   background: var(--surface);
 }
 
+/* Ensure the page background matches the theme even during rubber-band overscroll */
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+  background: var(--surface);
+  color: var(--text-body);
+  overscroll-behavior: none;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100%;
+  background: inherit;
+}
+
+/* Override the dark gradient defined in the inline styles so pull-to-refresh reveals the same surface color */
+body::before {
+  background: var(--surface);
+}
+
+body.theme-dark::before {
+  background: var(--surface);
+}
+
 /* Heading hierarchy with Montserrat */
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
