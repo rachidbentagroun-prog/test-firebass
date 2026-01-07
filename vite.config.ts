@@ -538,7 +538,15 @@ export default defineConfig(({ mode }) => {
       target: 'esnext'
     },
     server: {
-      port: 3000
+      port: 3000,
+      https: false, // Set to false for local dev, HTTPS enforced at Vercel level
+      headers: {
+        'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'SAMEORIGIN',
+        'X-XSS-Protection': '1; mode=block',
+        'Referrer-Policy': 'strict-origin-when-cross-origin'
+      }
     }
   };
 });

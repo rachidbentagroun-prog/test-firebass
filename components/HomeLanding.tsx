@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { Image as ImageIcon, Video, Mic2, Globe2, ArrowRight, Upload, X } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Image as ImageIcon, Video, Mic2, Globe2, ArrowRight, Upload, X, Play, Pause } from 'lucide-react';
+import VideoCarousel from './VideoCarousel';
 
 interface HomeLandingProps {
   onSubmitPrompt: (prompt: string) => void;
@@ -21,6 +22,16 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
   const [isRecording, setIsRecording] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // TODO: Replace with your Supabase Storage URLs after uploading videos
+  // Format: https://[supabase-url]/storage/v1/object/public/ai-video-previews/[filename].mp4
+  const videoUrls = [
+    'https://via.placeholder.com/1080x1920/000000/ffffff?text=Video+1', // Replace with your CDN URL
+    'https://via.placeholder.com/1080x1920/1a1a2e/0f3460?text=Video+2', // Replace with your CDN URL
+    'https://via.placeholder.com/1080x1920/16213e/e94560?text=Video+3', // Replace with your CDN URL
+    'https://via.placeholder.com/1080x1920/0f3460/533483?text=Video+4', // Replace with your CDN URL
+    'https://via.placeholder.com/1080x1920/2d3561/a8dadc?text=Video+5'  // Replace with your CDN URL
+  ];
 
   const handleSubmit = () => {
     onSubmitPrompt(prompt.trim());
@@ -107,81 +118,146 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
   const buttonBase = 'group relative flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 hover:shadow-md transition-all duration-300 text-sm font-semibold py-3 px-4 overflow-hidden text-slate-800';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-[#f5f7fb] to-white text-slate-900">
-      <section className="relative flex min-h-screen items-center justify-center px-4 py-20 sm:px-6 lg:px-8">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#1f4b99]/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#47526a]/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[640px] h-[640px] bg-gradient-to-r from-[#1f4b99]/12 via-[#47526a]/10 to-transparent rounded-full blur-[120px]" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900">
+      
+      {/* Premium Hero Section */}
+      <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-20 pb-20 px-4">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden z-0">
+          {/* Gradient orbs */}
+          <div className="absolute top-0 -left-40 w-96 h-96 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full blur-3xl opacity-40 animate-pulse" />
+          <div className="absolute bottom-0 -right-40 w-96 h-96 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full blur-3xl opacity-40 animate-pulse" style={{ animationDelay: '1s' }} />
+          
+          {/* Subtle grid pattern */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:14rem_14rem] opacity-[0.05]" />
         </div>
-        <div className="relative z-10 w-full max-w-4xl space-y-12">
-          <div className="space-y-4 text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#eef1f6] to-white border border-slate-200 shadow-sm">
-              <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
-              <span className="text-xs font-bold uppercase tracking-[0.25em] text-slate-700">ImaginAI Studio</span>
+
+        {/* Main content */}
+        <div className="relative z-10 w-full max-w-4xl space-y-8">
+          {/* Badge - Premium style */}
+          <div className="flex justify-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-slate-200 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-300">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-700">Powered by Sora & Gemini 2.5</span>
             </div>
-            <h1 className="text-5xl font-black sm:text-6xl md:text-7xl bg-gradient-to-r from-[#102d55] via-[#1f4b99] to-[#47526a] bg-clip-text text-transparent leading-tight">
-              What can we build today?
+          </div>
+
+          {/* Main Heading - Premium Typography */}
+          <div className="text-center space-y-6">
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-slate-900 leading-[1.1] tracking-tight">
+              Turn your <br className="hidden sm:block" />
+              imagination into <br className="hidden sm:block" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 animate-gradient">
+                visual reality
+              </span>
             </h1>
-            <p className="text-lg text-slate-600 sm:text-xl md:text-2xl max-w-2xl mx-auto leading-relaxed font-medium">
-              Fast, focused workspace inspired by ChatGPT—describe anything and jump into the right AI tool.
+            
+            <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
+              Create stunning, unique images and cinematic videos in seconds. 
+              Just describe your vision and watch it come to life instantly.
             </p>
           </div>
-          <div className="rounded-3xl border border-slate-200 bg-white/85 backdrop-blur-sm p-6 shadow-[0_24px_80px_rgba(16,45,85,0.14)] hover:shadow-[0_28px_90px_rgba(16,45,85,0.16)] transition-shadow duration-300 sm:p-8 space-y-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="relative flex w-full items-center gap-2 rounded-2xl border-2 border-slate-200 bg-white px-4 py-4 shadow-sm hover:border-slate-300 focus-within:border-[#1f4b99] focus-within:ring-4 focus-within:ring-[#1f4b99]/10 transition-all duration-200">
-                <button onClick={() => fileInputRef.current?.click()} className={`flex-shrink-0 rounded-lg p-2.5 transition-all duration-200 ${selectedFile ? 'bg-[#1f4b99] text-white shadow-lg scale-105' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:scale-105'}`} title="Upload file" type="button">
-                  <Upload className="h-4 w-4" />
-                </button>
-                <input ref={fileInputRef} type="file" onChange={handleFileSelect} className="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx" />
-                {selectedFile && (
-                  <div className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#eef1f6] to-white px-3 py-1.5 border border-slate-200 shadow-sm">
-                    <span className="text-xs font-semibold text-slate-800">{selectedFile.name}</span>
-                    <button onClick={removeFile} className="text-slate-500 hover:text-rose-600 transition-colors" type="button">
-                      <X className="h-3 w-3" />
+
+          {/* Premium Input Box - Stripe/Vercel inspired */}
+          <div className="mt-12 mx-auto w-full max-w-3xl">
+            <div className="relative group">
+              {/* Glow effect on hover */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-indigo-200 via-purple-200 to-pink-200 rounded-2xl blur-xl opacity-0 group-hover:opacity-30 transition duration-500 -z-10" />
+              
+              {/* Main container */}
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
+                {/* Input section */}
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center p-6 sm:p-7 border-b border-slate-100">
+                  <button 
+                    onClick={() => fileInputRef.current?.click()} 
+                    className={`flex-shrink-0 rounded-lg p-3 transition-all duration-200 ${selectedFile ? 'bg-indigo-100 text-indigo-600 shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`} 
+                    title="Upload file" 
+                    type="button"
+                  >
+                    <Upload className="h-5 w-5" />
+                  </button>
+                  <input ref={fileInputRef} type="file" onChange={handleFileSelect} className="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx" />
+                  
+                  {selectedFile && (
+                    <div className="flex items-center gap-2 rounded-lg bg-indigo-50 px-4 py-2.5 border border-indigo-200">
+                      <span className="text-sm font-medium text-slate-900 truncate">{selectedFile.name}</span>
+                      <button onClick={removeFile} className="text-slate-500 hover:text-red-500 transition-colors flex-shrink-0" type="button">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                  
+                  <input 
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Describe your vision..."
+                    className="flex-1 bg-transparent text-slate-900 placeholder-slate-400 focus:outline-none text-lg font-medium"
+                  />
+                  
+                  <button 
+                    onClick={handleSubmit} 
+                    className="flex-shrink-0 flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold px-6 py-3.5 rounded-lg transition-all duration-200 hover:shadow-lg active:scale-95 whitespace-nowrap"
+                  >
+                    Generate <ArrowRight className="h-5 w-5" />
+                  </button>
+                </div>
+                
+                {/* Quick actions grid */}
+                <div className="px-6 sm:px-7 py-5 border-t border-slate-100 bg-slate-50/50">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <button 
+                      className={`${buttonBase}`} 
+                      onClick={onGoToImage} 
+                      title="Create Image"
+                    >
+                      <ImageIcon className="h-5 w-5 text-indigo-600" />
+                      <span className="hidden sm:inline text-slate-900">Image</span>
+                    </button>
+                    <button 
+                      className={`${buttonBase}`} 
+                      onClick={onGoToVideo} 
+                      title="Create Video"
+                    >
+                      <Video className="h-5 w-5 text-purple-600" />
+                      <span className="hidden sm:inline text-slate-900">Video</span>
+                    </button>
+                    <button 
+                      className={`${buttonBase}`} 
+                      onClick={onGoToWebsite} 
+                      title="Create Website"
+                    >
+                      <Globe2 className="h-5 w-5 text-blue-600" />
+                      <span className="hidden sm:inline text-slate-900">Website</span>
+                    </button>
+                    <button 
+                      className={`${buttonBase}`} 
+                      onClick={onGoToAudio} 
+                      title="Create Audio"
+                    >
+                      <Mic2 className="h-5 w-5 text-pink-600" />
+                      <span className="hidden sm:inline text-slate-900">Audio</span>
                     </button>
                   </div>
-                )}
-                <input value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={handleKeyDown} placeholder="Describe an image, video, website, or audio idea..." className="flex-1 border-none bg-transparent text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-0 font-medium" />
-                <button onClick={toggleRecording} className={`flex-shrink-0 rounded-lg p-2.5 transition-all duration-200 ${isRecording ? 'animate-pulse bg-rose-500 text-white shadow-lg shadow-rose-500/40 scale-105' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:scale-105'}`} title={isRecording ? 'Stop recording' : 'Record audio'} type="button">
-                  <Mic2 className="h-4 w-4" />
-                </button>
+                </div>
               </div>
-              <button onClick={handleSubmit} className="btn-steel w-full sm:w-auto px-8 py-4 text-sm tracking-wide">
-                Send <ArrowRight className="h-4 w-4" />
-              </button>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <button className={buttonBase} onClick={onGoToImage}>
-                <div className="absolute inset-0 bg-gradient-to-r from-[#eef1f6] to-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <ImageIcon className="h-5 w-5 relative z-10 text-[#1f4b99] group-hover:scale-110 transition-transform" />
-                <span className="relative z-10">Create Image</span>
-              </button>
-              <button className={buttonBase} onClick={onGoToVideo}>
-                <div className="absolute inset-0 bg-gradient-to-r from-white to-[#eef1f6] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <Video className="h-5 w-5 relative z-10 text-[#47526a] group-hover:scale-110 transition-transform" />
-                <span className="relative z-10">Create Video</span>
-              </button>
-              <button className={buttonBase} onClick={onGoToWebsite}>
-                <div className="absolute inset-0 bg-gradient-to-r from-[#eef1f6] to-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <Globe2 className="h-5 w-5 relative z-10 text-[#1f4b99] group-hover:scale-110 transition-transform" />
-                <span className="relative z-10">Create Website</span>
-              </button>
-              <button className={buttonBase} onClick={onGoToAudio}>
-                <div className="absolute inset-0 bg-gradient-to-r from-white to-[#eef1f6] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <Mic2 className="h-5 w-5 relative z-10 text-[#47526a] group-hover:scale-110 transition-transform" />
-                <span className="relative z-10">Create Audio</span>
-              </button>
-            </div>
-          </div>
-          <div className="space-y-3">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 text-center">Quick Ideas</p>
-            <div className="grid grid-cols-1 gap-3 text-sm text-slate-600 sm:grid-cols-3">
-              {["Product demo video for a new wearable", "Minimal landing page for an AI startup", "Warm podcast intro voiceover"].map((idea) => (
-                <button key={idea} onClick={() => setPrompt(idea)} className="group w-full rounded-xl border border-slate-200 bg-white hover:bg-gradient-to-br hover:from-[#eef1f6] hover:to-white px-4 py-4 text-left font-medium hover:border-slate-300 hover:shadow-md transition-all duration-300 hover:-translate-y-1">
-                  <span className="text-slate-700 group-hover:text-slate-900">{idea}</span>
-                </button>
-              ))}
+
+            {/* Quick Ideas Section */}
+            <div className="mt-12 text-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-4">Quick Inspiration</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {["Product demo video for a new wearable", "Minimal landing page for an AI startup", "Warm podcast intro voiceover"].map((idea) => (
+                  <button 
+                    key={idea} 
+                    onClick={() => setPrompt(idea)} 
+                    className="group relative text-left px-5 py-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:shadow-md hover:border-slate-300 transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-50 to-purple-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <span className="relative text-sm font-medium text-slate-700 group-hover:text-slate-900">{idea}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -197,6 +273,21 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
             transform: translateY(0);
           }
         }
+        
+        @keyframes gradient {
+          0%, 100% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+        }
+        
+        .animate-gradient {
+          background-size: 200% 200%;
+          animation: gradient 6s ease infinite;
+        }
+        
         .animate-fade-in {
           animation: fade-in 0.6s ease-out;
         }
