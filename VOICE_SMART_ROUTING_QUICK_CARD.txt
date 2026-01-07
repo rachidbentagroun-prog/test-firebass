@@ -1,0 +1,141 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║       🎙️ VOICE INPUT & SMART ROUTING - QUICK REFERENCE CARD             ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 🎤 VOICE INPUT                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  USAGE:
+  1. Click 🎙️ microphone icon (in input box)
+  2. Allow microphone permission (first time)
+  3. Speak your prompt
+  4. Text appears automatically
+  5. Click 🎙️ again to stop
+
+  VISUAL FEEDBACK:
+  ● Idle:         Gray mic icon
+  ● Recording:    🔴 Red with pulsing animation
+  ● Listening:    "Speak now..." placeholder
+  ● Transcribing: "Listening..." placeholder
+
+  SUPPORTED BROWSERS:
+  ✅ Chrome (recommended)
+  ✅ Edge (recommended)
+  ✅ Safari (iOS/macOS)
+  ⚠️ Firefox (limited)
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 🧠 SMART ROUTING KEYWORDS                                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  🖼️ IMAGE PAGE TRIGGERS:
+  ├─ image, photo, picture, illustration
+  ├─ artwork, portrait, logo, design
+  ├─ poster, background, realistic, anime
+  └─ drawing, sketch, painting, wallpaper
+
+  🎥 VIDEO PAGE TRIGGERS:
+  ├─ video, cinematic, clip, animation
+  ├─ reel, shorts, movie, scene, footage
+  └─ motion, vlog, film, trailer, montage
+
+  🔊 AUDIO PAGE TRIGGERS:
+  ├─ voice, audio, narration, speech
+  ├─ podcast, voiceover, sound, music
+  └─ song, talking, narrator, dialogue
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ✨ VISUAL INDICATORS                                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  DETECTION BADGE (top-right of Generate button):
+  🖼️ = Will create image
+  🎥 = Will create video
+  🔊 = Will create audio
+
+  INFO TEXT (below input box):
+  🟢 "Will create an image 🖼️"
+  🟢 "Will create a video 🎥"
+  🟢 "Will create audio 🔊"
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 🚀 EXAMPLE FLOWS                                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  VOICE → IMAGE:
+  1. Click 🎙️
+  2. Say: "Create a futuristic city skyline"
+  3. 🖼️ badge appears
+  4. Click Generate
+  5. → Routes to AI Image page
+
+  TYPING → VIDEO:
+  1. Type: "Cinematic drone shot of mountains"
+  2. 🎥 badge appears as you type
+  3. See: "Will create a video 🎥"
+  4. Click Generate
+  5. → Routes to AI Video page
+
+  QUICK IDEA → AUDIO:
+  1. Click: "Professional podcast intro voiceover"
+  2. 🔊 badge appears instantly
+  3. Click Generate
+  4. → Routes to AI Voice page
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ⚙️ TECHNICAL NOTES                                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  ● Uses Web Speech API (browser-native)
+  ● Real-time keyword detection as you type/speak
+  ● Automatic intent scoring algorithm
+  ● No server-side processing for transcription
+  ● Works for both guests and logged-in users
+  ● Mobile-friendly (iOS + Android)
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 🎯 BENEFITS                                                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  FOR USERS:
+  ✅ Hands-free prompt creation
+  ✅ Automatic tool selection
+  ✅ Faster on mobile devices
+  ✅ No learning curve
+
+  FOR PRODUCT:
+  ✅ Modern AI-first experience
+  ✅ Higher conversion rates
+  ✅ Improved accessibility
+  ✅ Reduced friction
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 🔧 TROUBLESHOOTING                                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  ISSUE: Mic not working
+  → Check browser permissions (Settings → Privacy)
+  → Try Chrome/Edge instead
+  → Reload page after granting permission
+
+  ISSUE: Wrong page routing
+  → Use more specific keywords
+  → Include tool name in prompt (e.g., "video of...")
+  → Manually click Image/Video/Audio buttons
+
+  ISSUE: No detection badge
+  → Keep typing - detection is real-time
+  → Use keywords from lists above
+  → Badge only appears when intent is clear
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                    🎉 READY TO USE - TEST IT NOW! 🎉                       ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+📍 Location: Hero section on landing page
+🎨 Style: Premium motion design with smooth animations
+📱 Works: Desktop, tablet, and mobile
+🌍 Browsers: Chrome, Edge, Safari
+
+Try saying: "Create a photorealistic image of a sunset over the ocean" 🎙️
