@@ -36,72 +36,36 @@ export async function generateSpeechWithElevenLabs(
   voice: string = 'Kore',
   options?: ElevenLabsOptions
 ): Promise<Blob> {
-  console.log('🎙️ ElevenLabs: Starting voice generation...', { voice, textLength: text.length });
+  console.log('🎙️ ElevenLabs: Starting voice generation via API route...', { voice, textLength: text.length });
   
-  const apiKey = process.env.ELEVENLABS_API_KEY;
-  
-  if (!apiKey || apiKey === '""' || apiKey === 'undefined' || apiKey.trim() === '' || apiKey === 'your_elevenlabs_api_key_here') {
-    console.error('❌ ElevenLabs API key is missing or invalid');
-    throw new Error('ELEVENLABS_API_KEY is missing. Set it in your .env file.');
-  }
-  
-  console.log('✅ ElevenLabs API key found');
-
-  // If voice is already an ElevenLabs voice name, use it directly
-  // Otherwise, map Gemini voice names to ElevenLabs equivalents
-  const elevenlabsVoice = VOICE_MAPPING[voice] || voice || 'Rachel';
-  console.log('🎤 Voice mapping:', { inputVoice: voice, mappedVoice: elevenlabsVoice });
-  
-  // ElevenLabs voice IDs (these are standard IDs for pre-made voices)
-  const voiceIds: Record<string, string> = {
-    'Rachel': '21m00Tcm4TlvDq8ikWAM',
-    'Domi': 'AZnzlk1XvdvUeBnXmlld',
-    'Bella': 'EXAVITQu4vr4xnSDxMaL',
-    'Antoni': 'ErXwobaYiN019PkySvjV',
-    'Elli': 'MF3mGyEYCl7XYWbV9V6O',
-    'Josh': 'TxGEqnHWrfWFTfGW9XjX',
-    'Arnold': 'VR6AewLTigWG4xSOukaG',
-    'Adam': 'pNInz6obpgDQGcFmaJgB',
-    'Sam': 'yoZ06aMxZJJ28mfd3POQ',
-    'Charlotte': 'XB0fDUnXU5powFXDhCwa',
-    'Emily': 'LcfcDJNUP1GQjkzn1xUU',
-    'Ethan': 'g5CIjZEefAph4nQFvHAz',
-  };
-
-  const voiceId = options?.voiceIdOverride || voiceIds[elevenlabsVoice] || voiceIds['Rachel'];
-  
-  console.log('🎯 Using voice ID:', { voiceId, voiceName: elevenlabsVoice });
-
   try {
-    console.log('📡 Calling ElevenLabs API...');
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+    console.log('📡 Calling /api/tts-elevenlabs...');
+    const response = await fetch('/api/tts-elevenlabs', {
       method: 'POST',
       headers: {
-        'Accept': 'audio/mpeg',
         'Content-Type': 'application/json',
-        'xi-api-key': apiKey,
       },
       body: JSON.stringify({
         text,
-        model_id: options?.model_id || 'eleven_monolingual_v1',
-        voice_settings: {
-          stability: options?.voice_settings?.stability ?? 0.5,
-          similarity_boost: options?.voice_settings?.similarity_boost ?? 0.5,
-          style: options?.voice_settings?.style ?? undefined,
-          use_speaker_boost: options?.voice_settings?.use_speaker_boost ?? undefined,
-        },
+        voice,
+        options
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      console.error('❌ ElevenLabs API error:', { status: response.status, error: errorText });
-      throw new Error(errorText || `ElevenLabs API failed with status ${response.status}`);
+      const errorData = await response.json().catch(() => ({ error: response.statusText }));
+      console.error('❌ API route error:', { status: response.status, error: errorData });
+      throw new Error(errorData.error || `API failed with status ${response.status}`);
     }
 
-    console.log('✅ ElevenLabs API success, converting to blob...');
+    console.log('📥 Receiving audio data...');
     const blob = await response.blob();
     console.log('✅ Blob created:', { size: blob.size, type: blob.type });
+    
+    if (blob.size === 0) {
+      throw new Error('Received empty audio blob from server');
+    }
+    
     return blob;
   } catch (error) {
     console.error('❌ ElevenLabs speech generation failed:', error);
