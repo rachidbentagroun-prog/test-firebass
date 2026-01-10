@@ -271,7 +271,26 @@ const App: React.FC = () => {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
+  // Handle Google Sign-In redirect result
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const { handleGoogleSignInRedirect } = await import('./services/firebase');
+        const result = await handleGoogleSignInRedirect();
+        if (result?.user) {
+          console.log('✅ Google Sign-In redirect successful!');
+          setCurrentPage('dashboard');
+        } else if (result?.error) {
+          console.error('❌ Google Sign-In redirect error:', result.error);
+        }
+      } catch (err) {
+        console.warn('Redirect result handler error:', err);
+      }
+    };
+
+    handleRedirectResult();
   }, []);
+
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authPrefillEmail, setAuthPrefillEmail] = useState<string | undefined>(undefined);
   const [isIdentityCheckActive, setIsIdentityCheckActive] = useState(false);

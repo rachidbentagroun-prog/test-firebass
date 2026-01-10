@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, applyActionCode, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, applyActionCode, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { getFirestore, doc, setDoc, serverTimestamp, collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { getAnalytics, logEvent as gaLogEvent, setUserId as gaSetUserId, setUserProperties as gaSetUserProperties } from 'firebase/analytics';
 import { GeneratedAudio, GeneratedImage, GeneratedVideo } from '../types';
@@ -80,14 +80,15 @@ export async function signUpWithFirebase(email: string, password: string, displa
   return { userCredential, emailSent, sendError };
 }
 
-// Sign in or sign up using Google OAuth provider (popup)
+// Sign in or sign up using Google OAuth provider (popup with fallback to redirect)
 export async function signInWithGoogle() {
   try {
     console.log('🔵 Initializing Google Sign-In...');
     console.log('🔵 Firebase Config:', {
       projectId: firebaseConfig.projectId,
       authDomain: firebaseConfig.authDomain,
-      apiKey: firebaseConfig.apiKey?.substring(0, 10) + '...'
+      apiKey: firebaseConfig.apiKey?.substring(0, 10) + '...',
+      currentURL: typeof window !== 'undefined' ? window.location.origin : 'N/A'
     });
     
     const provider = new GoogleAuthProvider();
@@ -101,11 +102,34 @@ export async function signInWithGoogle() {
     });
 
     console.log('🔵 Attempting popup sign-in...');
-    const result = await signInWithPopup(auth, provider);
+    let result;
+    
+    try {
+      // Try popup first
+      result = await signInWithPopup(auth, provider);
+      console.log('✅ Popup sign-in successful!');
+    } catch (popupErr: any) {
+      console.warn('⚠️ Popup sign-in failed, trying redirect method...', popupErr?.code);
+      
+      // If popup fails, try redirect
+      if (popupErr?.code === 'auth/popup-blocked' || 
+          popupErr?.code === 'auth/popup-closed-by-user' ||
+          popupErr?.code === 'auth/internal-error') {
+        console.log('🔵 Falling back to redirect sign-in...');
+        await signInWithRedirect(auth, provider);
+        
+        // Wait a moment for redirect
+        return { user: null, isNew: false, redirecting: true };
+      }
+      
+      // If not a popup issue, re-throw
+      throw popupErr;
+    }
+
     const user = result.user;
     const isNew = (result as any)?.additionalUserInfo?.isNewUser ?? false;
 
-    console.log('✅ Google Sign-In successful!', { userId: user?.uid });
+    console.log('✅ Google Sign-In successful!', { userId: user?.uid, isNew });
 
     // If this is a newly created user via Google, grant default entitlements and mark verified
     if (isNew && user?.uid) {
@@ -133,17 +157,45 @@ export async function signInWithGoogle() {
     } else if (err?.code === 'auth/popup-closed-by-user') {
       errorMessage = 'Sign-in popup was closed. Please try again.';
     } else if (err?.code === 'auth/internal-error') {
-      errorMessage = 'Firebase configuration error. Check: 1) Google Sign-in enabled in Firebase Console 2) Authorized domains include your current domain 3) OAuth credentials configured';
+      errorMessage = '⚠️ CRITICAL: OAuth Configuration Issue. Check Firebase Console:\n1. Go to Authentication → Sign-in method\n2. Verify Google provider is ENABLED (toggle is ON)\n3. Open Google Cloud Console → OAuth consent screen\n4. Make sure consent screen is PUBLISHED (not in Testing mode)\n5. Add your Google email account as a TEST USER\n6. Verify authorized domains in Firebase Console include your current domain';
     } else if (err?.code === 'auth/operation-not-supported-in-this-environment') {
-      errorMessage = 'Sign-in is not supported in this environment. Try a different browser or disable extensions.';
+      errorMessage = 'Sign-in not supported in this environment. Try disabling browser extensions or using Incognito mode.';
     } else if (err?.code === 'auth/network-request-failed') {
       errorMessage = 'Network error. Please check your internet connection.';
     } else if (err?.code === 'auth/invalid-api-key') {
       errorMessage = 'Invalid Firebase API Key. Check your Firebase configuration.';
+    } else if (err?.code === 'auth/unauthorized-domain') {
+      const domain = typeof window !== 'undefined' ? window.location.hostname : 'unknown';
+      errorMessage = `Domain "${domain}" is not authorized. Add it in Firebase Console → Settings → Authorized domains.`;
     }
     
     return { error: errorMessage, code: err?.code };
   }
+}
+
+// Handle redirect result (called on page load after redirect from Google)
+export async function handleGoogleSignInRedirect() {
+  try {
+    const result = await getRedirectResult(auth);
+    if (result) {
+      const user = result.user;
+      const isNew = (result as any)?.additionalUserInfo?.isNewUser ?? false;
+
+      if (isNew && user?.uid) {
+        try {
+          await grantDefaultEntitlements(user.uid);
+        } catch (err) {
+          console.warn('Failed to grant entitlements to new Google user:', err);
+        }
+      }
+
+      return { user, isNew, result };
+    }
+  } catch (err: any) {
+    console.error('❌ Redirect sign-in error:', err);
+    return { error: err?.message || String(err), code: err?.code };
+  }
+  return null;
 }
 
 // Apply a verification action code (used by the post-verify route)
