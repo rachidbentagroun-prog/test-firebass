@@ -296,12 +296,34 @@ export const pollVideoOperation = async (operation: any): Promise<string> => {
 
 export const convertBlobToBase64 = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
+    if (!blob || blob.size === 0) {
+      console.error('❌ convertBlobToBase64: Empty or null blob provided');
+      reject(new Error('Cannot convert empty blob to base64'));
+      return;
+    }
+    
+    console.log('🔄 convertBlobToBase64: Starting conversion for blob:', { size: blob.size, type: blob.type });
+    
     const reader = new FileReader();
     reader.onloadend = () => {
-      if (typeof reader.result === 'string') resolve(reader.result.split(',')[1]);
-      else reject(new Error("Base64 conversion failed"));
+      if (typeof reader.result === 'string') {
+        const base64 = reader.result.split(',')[1];
+        console.log('✅ convertBlobToBase64: Conversion complete, base64 length:', base64?.length || 0);
+        if (!base64 || base64.length === 0) {
+          console.error('❌ convertBlobToBase64: Result is empty string');
+          reject(new Error('Base64 conversion resulted in empty string'));
+        } else {
+          resolve(base64);
+        }
+      } else {
+        console.error('❌ convertBlobToBase64: Reader result is not a string');
+        reject(new Error("Base64 conversion failed: Result is not a string"));
+      }
     };
-    reader.onerror = reject;
+    reader.onerror = (error) => {
+      console.error('❌ convertBlobToBase64: FileReader error:', error);
+      reject(error);
+    };
     reader.readAsDataURL(blob);
   });
 };

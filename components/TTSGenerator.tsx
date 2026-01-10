@@ -555,11 +555,36 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
         }
       }
 
+      // Validate blob before processing
+      console.log('🔍 Validating generated audio blob:', { 
+        size: blob.size, 
+        type: blob.type,
+        isBlob: blob instanceof Blob 
+      });
+      
+      if (!blob || blob.size === 0) {
+        console.error('❌ Generated audio blob is empty!');
+        throw new Error('Audio generation failed: Empty audio data received from API');
+      }
+      
+      if (blob.size < 100) {
+        console.warn('⚠️ Audio blob suspiciously small:', blob.size, 'bytes');
+      }
+
       // Create Object URL for playback (better performance and compatibility)
       const objectUrl = URL.createObjectURL(blob);
+      console.log('✅ Object URL created:', objectUrl.substring(0, 60) + '...');
       
       // Also create base64 for storage/download
+      console.log('🔄 Converting blob to base64...');
       const base64 = await convertBlobToBase64(blob);
+      
+      if (!base64 || base64.length === 0) {
+        console.error('❌ Base64 conversion resulted in empty string!');
+        throw new Error('Failed to convert audio to base64');
+      }
+      
+      console.log('✅ Base64 conversion complete, length:', base64.length);
       const base64Url = `data:${blob.type || 'audio/mpeg'};base64,${base64}`;
       
       console.log('🎵 Audio generated successfully:', {
