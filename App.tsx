@@ -253,6 +253,17 @@ const App: React.FC = () => {
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
         if (params.get('goto') === 'dashboard') return 'dashboard';
+        
+        // If we just completed Google sign-in, always go to dashboard
+        try {
+          const googleSigninCompleted = localStorage.getItem('google_signin_completed');
+          if (googleSigninCompleted === 'true') {
+            console.log('🔵 Detected completed Google sign-in - starting on dashboard');
+            localStorage.removeItem('google_signin_completed');
+            return 'dashboard';
+          }
+        } catch {}
+        
         // If we just signed in, honor a stored post-login target
         try {
           const target = localStorage.getItem('post_login_target');
@@ -306,13 +317,22 @@ const App: React.FC = () => {
         
         if (result?.user) {
           console.log('✅ Google Sign-In redirect successful! User:', result.user.email);
+          console.log('🎯 FORCING NAVIGATION TO DASHBOARD after Google OAuth');
+          
           // Immediately navigate to dashboard to avoid landing back on login/signup
-          try { localStorage.setItem('post_login_target', 'dashboard'); } catch {}
+          try { 
+            localStorage.setItem('post_login_target', 'dashboard'); 
+            localStorage.setItem('google_signin_completed', 'true');
+          } catch {}
+          
+          // Force page state to dashboard
           setCurrentPage('dashboard');
+          
           // Ensure URL reflects dashboard path in case route state was home
           try {
             const newPath = getPathFromPage('dashboard');
             if (window.location.pathname !== newPath) {
+              console.log('🔄 Replacing URL from', window.location.pathname, 'to', newPath);
               window.history.replaceState({}, '', newPath);
             }
           } catch (e) { console.warn('Failed to replace URL after redirect', e); }
@@ -447,8 +467,10 @@ const App: React.FC = () => {
           try {
             const isGoogleUser = fbUser.providerData?.some(p => p.providerId === 'google.com') ?? false;
             const shouldGoDashboard = isGoogleUser || !!fbUser.email || !!fbUser.uid;
-            if (shouldGoDashboard && currentPage !== 'dashboard') {
-              setCurrentPage('dashboard');
+            
+            if (shouldGoDashboard && currentPage !== 'dashboard' && currentPage !== 'profile' && currentPage !== 'admin') {
+              console.log('🎯 Auth listener forcing navigation to dashboard (current page:', currentPage, ')');
+              setTimeout(() => setCurrentPage('dashboard'), 100); // Slight delay to ensure state is ready
             }
           } catch (_) {}
 
@@ -957,7 +979,8 @@ const App: React.FC = () => {
           onResetKey={() => {}} 
         />;
       case 'gallery':
-        if (!user) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
+        if (!user && !initializing) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
+        if (initializing) return null; // Wait for auth to complete
         return <Gallery images={gallery} videos={videoGallery} audioGallery={audioGallery} onDelete={() => {}} />;
       case 'explore':
         return <ExplorePage user={user} images={gallery} videos={videoGallery} siteConfig={siteConfig} onNavigate={setCurrentPage} />;
