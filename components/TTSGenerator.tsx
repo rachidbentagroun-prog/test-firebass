@@ -77,6 +77,7 @@ const ELEVENLABS_VOICES = [
 ];
 
 const PREVIEW_SCRIPTS: Record<string, string> = {
+  // Gemini voices
   'Kore': "Neural weights synced. I am Kore, your production voice.",
   'Puck': "Yo! Puck here. Let's bring some energy to this track.",
   'Charon': "The shadows have stories. I am Charon.",
@@ -85,6 +86,19 @@ const PREVIEW_SCRIPTS: Record<string, string> = {
   'Aoede': "Melody is thought. I am Aoede.",
   'Leda': "Precision in speech. I am Leda.",
   'Orus': "Commanding focus. I am Orus.",
+  // ElevenLabs voices
+  'Rachel': "Hello! I'm Rachel, delivering clear and professional narration.",
+  'Domi': "Hey there! I'm Domi, bringing energy and confidence to every word.",
+  'Bella': "Greetings. I'm Bella, articulate and elegant in my delivery.",
+  'Antoni': "I am Antoni. Sharp, commanding, and precise.",
+  'Elli': "Hi! I'm Elli, young and dynamic with vibrant energy.",
+  'Josh': "What's up! Josh here, youthful and energetic.",
+  'Arnold': "This is Arnold. Deep, cinematic, and powerful.",
+  'Adam': "I am Adam, a storyteller with a rich, engaging voice.",
+  'Sam': "Hey, Sam speaking. Raspy and mature tones.",
+  'Charlotte': "Hello, I'm Charlotte. Calm and soothing narration.",
+  'Emily': "Hi there! Emily here, melodic and warm.",
+  'Ethan': "Ethan speaking. Strong and authoritative delivery.",
 };
 
 const LANGUAGES = [
@@ -407,17 +421,47 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
       const script = PREVIEW_SCRIPTS[voiceId] || `Hello, I am ${voiceId}.`;
       let blob: Blob;
       if (engine === 'elevenlabs') {
-        blob = await generateSpeechWithElevenLabs(`Speak clearly: ${script}`, voiceId);
+        console.log('🎤 Generating ElevenLabs preview for:', voiceId);
+        blob = await generateSpeechWithElevenLabs(script, voiceId);
       } else {
-        blob = await generateSpeechWithGemini(`Speak clearly: ${script}`, voiceId);
+        console.log('🎤 Generating Gemini preview for:', voiceId);
+        blob = await generateSpeechWithGemini(script, voiceId);
       }
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
+      
+      console.log('🎤 Preview audio blob generated:', { size: blob.size, type: blob.type });
+      
+      // Convert to base64 data URL for reliable playback
+      const base64 = await convertBlobToBase64(blob);
+      const dataUrl = `data:${blob.type || 'audio/mpeg'};base64,${base64}`;
+      
+      const audio = new Audio(dataUrl);
       previewAudioRef.current = audio;
-      audio.onplay = () => { setLoadingVoiceId(null); setPlayingVoiceId(voiceId); };
-      audio.onended = () => { setPlayingVoiceId(null); URL.revokeObjectURL(url); };
+      
+      audio.onloadeddata = () => {
+        console.log('✅ Preview audio loaded successfully');
+      };
+      
+      audio.onplay = () => { 
+        console.log('▶️ Preview audio playing');
+        setLoadingVoiceId(null); 
+        setPlayingVoiceId(voiceId); 
+      };
+      
+      audio.onended = () => { 
+        console.log('⏹️ Preview audio ended');
+        setPlayingVoiceId(null); 
+      };
+      
+      audio.onerror = (e) => {
+        console.error('❌ Preview audio error:', e);
+        setLoadingVoiceId(null);
+        setPlayingVoiceId(null);
+      };
+      
       await audio.play();
+      console.log('🎵 Preview playback started');
     } catch (e) {
+      console.error('❌ Voice preview failed:', e);
       setLoadingVoiceId(null);
       setPlayingVoiceId(null);
     }
@@ -1019,6 +1063,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                        {/* Plyr Audio Player */}
                        <div className="mt-10 w-full max-w-2xl">
                          <Plyr
+                           key={currentAudio.id}
                            source={{
                              type: 'audio',
                              sources: [
@@ -1055,6 +1100,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                              resetOnEnd: false,
                              clickToPlay: true,
                              disableContextMenu: false,
+                             autoplay: true,
                            }}
                          />
                        </div>
