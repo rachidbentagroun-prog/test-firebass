@@ -44,17 +44,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     setError(null);
     try {
       console.log('🔵 handleGoogleSignIn: Starting Google sign-in process');
+      
+      // Set login flags BEFORE sign-in to ensure redirect to dashboard
+      try {
+        localStorage.setItem('google_signin_completed', 'true');
+        localStorage.setItem('post_login_target', 'dashboard');
+      } catch {}
+      
       const res = await signInWithGoogle();
       if (res?.error) {
         console.error('GOOGLE SIGN-IN FAILED:', res.error);
         setError(res.error);
+        // Clear flags on error
+        try {
+          localStorage.removeItem('google_signin_completed');
+          localStorage.removeItem('post_login_target');
+        } catch {}
         return;
       }
       console.log('✅ Google Sign-In completed, waiting for auth state to propagate...');
       
       // Wait a brief moment for the auth state listener to process the new user
       // This ensures the onAuthStateChanged listener has time to set the user in App.tsx
-      // Increased from 500ms to 1000ms to ensure auth state is fully processed
       console.log('⏳ Waiting 1000ms for auth listener to fire...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       
@@ -66,6 +77,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
       console.error('Google sign-in exception:', err);
       const errorMsg = err?.message || String(err);
       setError(errorMsg);
+      // Clear flags on error
+      try {
+        localStorage.removeItem('google_signin_completed');
+        localStorage.removeItem('post_login_target');
+      } catch {}
     } finally {
       setIsGoogleLoading(false);
     }

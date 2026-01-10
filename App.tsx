@@ -490,23 +490,25 @@ const App: React.FC = () => {
           console.log('   User will be visible in Navbar and components');
           console.log('   Next: Dashboard should render or onLoginSuccess will navigate');
 
-          // Only redirect to dashboard if user just logged in (not on every auth state change)
+          // Auto-redirect to dashboard only if user just logged in
+          // Check if user is on a public page (home, signup) or has login flags set
           try {
-            const isGoogleUser = fbUser.providerData?.some(p => p.providerId === 'google.com') ?? false;
             const justLoggedIn = localStorage.getItem('google_signin_completed') === 'true' || localStorage.getItem('post_login_target') === 'dashboard';
+            const onPublicPage = currentPage === 'home' || currentPage === 'signup';
             
-            // Only auto-navigate to dashboard if:
-            // 1. User just completed Google sign-in OR
-            // 2. User is on home/signup page (not already navigating somewhere else)
-            if (justLoggedIn || (currentPage === 'home' || currentPage === 'signup')) {
-              console.log('🎯 Auth listener navigating to dashboard (just logged in or on landing page)');
-              setTimeout(() => setCurrentPage('dashboard'), 100); // Slight delay to ensure state is ready
+            // Navigate to dashboard if:
+            // 1. Just completed Google sign-in (flag set) OR
+            // 2. User is on public landing/signup pages
+            // BUT NOT if user is already on app pages (dashboard, gallery, video-generator, etc.)
+            if (justLoggedIn || onPublicPage) {
+              console.log('🎯 Auth listener navigating to dashboard (just logged in or on public page)');
+              setTimeout(() => setCurrentPage('dashboard'), 100);
               try {
                 if (window.location.pathname !== '/dashboard') {
                   window.history.replaceState({}, '', '/dashboard');
                 }
               } catch (_) {}
-              // Clear the flags so we don't keep redirecting
+              // Clear the flags after redirect
               try {
                 localStorage.removeItem('google_signin_completed');
                 localStorage.removeItem('post_login_target');
