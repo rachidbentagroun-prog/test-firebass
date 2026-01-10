@@ -353,7 +353,7 @@ const App: React.FC = () => {
 
           // Ensure URL reflects dashboard path in case route state was home
           try {
-            const newPath = getPathFromPage('dashboard');
+            const newPath = '/dashboard';
             if (window.location.pathname !== newPath) {
               console.log('🔄 Replacing URL from', window.location.pathname, 'to', newPath);
               window.history.replaceState({}, '', newPath);
@@ -373,6 +373,25 @@ const App: React.FC = () => {
     
     return () => { isMounted = false; };
   }, []);
+
+  // After initialization, if we already have an authenticated session, enforce dashboard route
+  useEffect(() => {
+    if (isInitializing) return;
+    try {
+      const fbUser = auth.currentUser;
+      if (fbUser && currentPage !== 'dashboard' && currentPage !== 'profile' && currentPage !== 'admin') {
+        console.log('✅ Session detected post-init, routing to /dashboard');
+        setCurrentPage('dashboard');
+        try {
+          if (window.location.pathname !== '/dashboard') {
+            window.history.replaceState({}, '', '/dashboard');
+          }
+        } catch (e) { console.warn('Failed to update URL after session restore', e); }
+      }
+    } catch (e) {
+      console.warn('Post-init session route check failed', e);
+    }
+  }, [isInitializing, currentPage]);
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authPrefillEmail, setAuthPrefillEmail] = useState<string | undefined>(undefined);
@@ -494,6 +513,11 @@ const App: React.FC = () => {
             if (shouldGoDashboard && currentPage !== 'dashboard' && currentPage !== 'profile' && currentPage !== 'admin') {
               console.log('🎯 Auth listener forcing navigation to dashboard (current page:', currentPage, ')');
               setTimeout(() => setCurrentPage('dashboard'), 100); // Slight delay to ensure state is ready
+              try {
+                if (window.location.pathname !== '/dashboard') {
+                  window.history.replaceState({}, '', '/dashboard');
+                }
+              } catch (_) {}
             }
           } catch (_) {}
 

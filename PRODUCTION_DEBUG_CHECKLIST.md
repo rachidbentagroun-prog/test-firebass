@@ -25,7 +25,7 @@ Look for: `🔒 Firebase Auth persistence set to browserLocalPersistence`
 🔵 Checking for Google Sign-In redirect result...
 ✅ Google Sign-In redirect successful! User: your@email.com
 🎯 FORCING NAVIGATION TO DASHBOARD after Google OAuth
-🔄 Replacing URL from / to /AI-Image
+🔄 Replacing URL from / to /dashboard
 🔵 Calling getRedirectResult()...
 ✅ Redirect result found! uid: abc123...
 🔵 Forcing auth state sync via currentUser.reload()...
@@ -68,7 +68,7 @@ If missing, there's a timing issue or state race
 
 ### Step 5: Verify Dashboard Access
 After Google sign-in completes:
-- ✅ URL should be: `https://test-firebass.vercel.app/AI-Image`
+- ✅ URL should be: `https://test-firebass.vercel.app/dashboard`
 - ✅ Navbar should show user email/name
 - ✅ Login/Signup buttons should disappear
 - ✅ Dashboard content should render
