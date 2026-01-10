@@ -195,6 +195,44 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // Map URL paths to internal page names
+  const getPageFromPath = (pathname: string): string => {
+    const pathMap: Record<string, string> = {
+      '/AI-Image': 'dashboard',
+      '/AI-Video': 'video-generator',
+      '/AI-Voice': 'tts-generator',
+      '/AI-Chat': 'chat-landing',
+      '/Explore': 'explore',
+      '/Pricing': 'pricing',
+      '/gallery': 'gallery',
+      '/profile': 'profile',
+      '/admin': 'admin',
+      '/upgrade': 'upgrade',
+      '/signup': 'signup',
+      '/post-verify': 'post-verify',
+    };
+    return pathMap[pathname] || 'home';
+  };
+
+  const getPathFromPage = (page: string): string => {
+    const pageMap: Record<string, string> = {
+      'dashboard': '/AI-Image',
+      'video-generator': '/AI-Video',
+      'tts-generator': '/AI-Voice',
+      'chat-landing': '/AI-Chat',
+      'explore': '/Explore',
+      'pricing': '/Pricing',
+      'gallery': '/gallery',
+      'profile': '/profile',
+      'admin': '/admin',
+      'upgrade': '/upgrade',
+      'signup': '/signup',
+      'post-verify': '/post-verify',
+      'home': '/',
+    };
+    return pageMap[page] || '/';
+  };
+
   const [currentPage, setCurrentPage] = useState<string>(() => {
     // If app is opened via verification action URL, show the post-verify page
     try {
@@ -205,10 +243,35 @@ const App: React.FC = () => {
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
         if (params.get('goto') === 'dashboard') return 'dashboard';
+        
+        // Get page from URL pathname
+        return getPageFromPath(window.location.pathname);
       }
     } catch (e) {}
     return 'home';
   });
+
+  // Sync URL with current page
+  useEffect(() => {
+    try {
+      const newPath = getPathFromPage(currentPage);
+      if (window.location.pathname !== newPath) {
+        window.history.pushState({}, '', newPath);
+      }
+    } catch (e) {
+      console.warn('Failed to update URL:', e);
+    }
+  }, [currentPage]);
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const page = getPageFromPath(window.location.pathname);
+      setCurrentPage(page);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authPrefillEmail, setAuthPrefillEmail] = useState<string | undefined>(undefined);
   const [isIdentityCheckActive, setIsIdentityCheckActive] = useState(false);
