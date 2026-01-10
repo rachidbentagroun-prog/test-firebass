@@ -36,15 +36,21 @@ export async function generateSpeechWithElevenLabs(
   voice: string = 'Kore',
   options?: ElevenLabsOptions
 ): Promise<Blob> {
+  console.log('🎙️ ElevenLabs: Starting voice generation...', { voice, textLength: text.length });
+  
   const apiKey = process.env.ELEVENLABS_API_KEY;
   
   if (!apiKey || apiKey === '""' || apiKey === 'undefined' || apiKey.trim() === '' || apiKey === 'your_elevenlabs_api_key_here') {
+    console.error('❌ ElevenLabs API key is missing or invalid');
     throw new Error('ELEVENLABS_API_KEY is missing. Set it in your .env file.');
   }
+  
+  console.log('✅ ElevenLabs API key found');
 
   // If voice is already an ElevenLabs voice name, use it directly
   // Otherwise, map Gemini voice names to ElevenLabs equivalents
   const elevenlabsVoice = VOICE_MAPPING[voice] || voice || 'Rachel';
+  console.log('🎤 Voice mapping:', { inputVoice: voice, mappedVoice: elevenlabsVoice });
   
   // ElevenLabs voice IDs (these are standard IDs for pre-made voices)
   const voiceIds: Record<string, string> = {
@@ -63,8 +69,11 @@ export async function generateSpeechWithElevenLabs(
   };
 
   const voiceId = options?.voiceIdOverride || voiceIds[elevenlabsVoice] || voiceIds['Rachel'];
+  
+  console.log('🎯 Using voice ID:', { voiceId, voiceName: elevenlabsVoice });
 
   try {
+    console.log('📡 Calling ElevenLabs API...');
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
       headers: {
@@ -86,12 +95,16 @@ export async function generateSpeechWithElevenLabs(
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => '');
+      console.error('❌ ElevenLabs API error:', { status: response.status, error: errorText });
       throw new Error(errorText || `ElevenLabs API failed with status ${response.status}`);
     }
 
-    return await response.blob();
+    console.log('✅ ElevenLabs API success, converting to blob...');
+    const blob = await response.blob();
+    console.log('✅ Blob created:', { size: blob.size, type: blob.type });
+    return blob;
   } catch (error) {
-    console.error('ElevenLabs speech generation failed:', error);
+    console.error('❌ ElevenLabs speech generation failed:', error);
     throw error;
   }
 }
