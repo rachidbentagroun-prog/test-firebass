@@ -271,6 +271,8 @@ const App: React.FC = () => {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // Handle Google Sign-In redirect result
   useEffect(() => {
     const handleRedirectResult = async () => {
