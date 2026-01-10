@@ -195,20 +195,43 @@ export async function signInWithGoogle() {
 // Handle redirect result (called on page load after redirect from Google)
 export async function handleGoogleSignInRedirect() {
   try {
+    console.log('🔵 Calling getRedirectResult()...');
     const result = await getRedirectResult(auth);
+    
     if (result) {
       const user = result.user;
       const isNew = (result as any)?.additionalUserInfo?.isNewUser ?? false;
 
+      console.log('✅ Redirect result found!', {
+        uid: user?.uid?.substring(0, 8) + '...',
+        email: user?.email,
+        isNew
+      });
+
       if (isNew && user?.uid) {
         try {
+          console.log('📝 Granting default entitlements to new Google user...');
           await grantDefaultEntitlements(user.uid);
+          console.log('✅ Entitlements granted');
         } catch (err) {
           console.warn('Failed to grant entitlements to new Google user:', err);
         }
       }
 
+      // Force auth state sync to ensure onAuthStateChanged fires
+      console.log('🔵 Forcing auth state sync via currentUser.reload()...');
+      if (auth.currentUser) {
+        try {
+          await auth.currentUser.reload();
+          console.log('✅ Auth state reloaded');
+        } catch (reloadErr) {
+          console.warn('Failed to reload auth state:', reloadErr);
+        }
+      }
+
       return { user, isNew, result };
+    } else {
+      console.log('ℹ️ No redirect result (not a redirect from Google OAuth)');
     }
   } catch (err: any) {
     console.error('❌ Redirect sign-in error:', err);

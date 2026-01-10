@@ -283,17 +283,26 @@ const App: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Handle Google Sign-In redirect result
+  // Handle Google Sign-In redirect result (critical for production)
   useEffect(() => {
+    let isMounted = true;
+    
     const handleRedirectResult = async () => {
       try {
+        console.log('🔵 Checking for Google Sign-In redirect result...');
         const { handleGoogleSignInRedirect } = await import('./services/firebase');
         const result = await handleGoogleSignInRedirect();
+        
+        if (!isMounted) return;
+        
         if (result?.user) {
-          console.log('✅ Google Sign-In redirect successful!');
-          setCurrentPage('dashboard');
+          console.log('✅ Google Sign-In redirect successful! User:', result.user.email);
+          // Don't navigate yet - let onAuthStateChanged fire and set the user
+          // Then navigate to dashboard in the auth listener
         } else if (result?.error) {
           console.error('❌ Google Sign-In redirect error:', result.error);
+        } else {
+          console.log('ℹ️ No redirect result found (first page load or no pending redirect)');
         }
       } catch (err) {
         console.warn('Redirect result handler error:', err);
@@ -301,6 +310,8 @@ const App: React.FC = () => {
     };
 
     handleRedirectResult();
+    
+    return () => { isMounted = false; };
   }, []);
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -370,6 +381,7 @@ const App: React.FC = () => {
           if (timeoutId) { clearTimeout(timeoutId); timeoutId = undefined; }
 
           if (!fbUser) {
+            console.log('✅ No user logged in');
             setUser(null);
             setGallery([]);
             setVideoGallery([]);
@@ -377,6 +389,9 @@ const App: React.FC = () => {
             safeSetInitFalse();
             return;
           }
+
+          // ✅ CRITICAL: User is authenticated - this fires for BOTH popup and redirect flows
+          console.log('✅ USER IS AUTHENTICATED - setting user in React state');
 
           // Set a lightweight user immediately so the UI can render the dashboard quickly
           const isQuickSuperAdmin = fbUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
@@ -409,6 +424,7 @@ const App: React.FC = () => {
 
           console.log('✅ Auth listener complete - user set in React state');
           console.log('   User will be visible in Navbar and components');
+          console.log('   Next: Dashboard should render or onLoginSuccess will navigate');
 
           // Perform heavier profile/entitlements fetches in the background and update the user when ready
           (async () => {
