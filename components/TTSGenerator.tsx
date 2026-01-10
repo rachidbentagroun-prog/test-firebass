@@ -1,6 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import Plyr from 'plyr-react';
+import 'plyr-react/plyr.css';
 import { 
   Mic2, Volume2, Sparkles, Wand2, RefreshCw, AlertCircle, 
   Trash2, Download, Play, Pause, Headphones, Star, 
@@ -1020,29 +1022,54 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                           <Headphones className="w-16 h-16 text-white" />
                        </div>
                        <div className="mt-8 text-center space-y-2">
-                          <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">Protocol Rendered</p>
-                          <h4 className="text-xl font-black text-white italic uppercase tracking-tighter">Voice Persona: {currentAudio.voice}</h4>
+                          <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">Audio Generated</p>
+                          <h4 className="text-xl font-black text-white italic uppercase tracking-tighter">Voice: {currentAudio.voice}</h4>
                        </div>
-                       <div className="mt-10 flex items-center gap-6">
-                          <button 
-                            onClick={() => {
-                              console.log('🎵 Play button clicked, isPlaying:', isPlaying);
-                              if (mainAudioRef.current) {
-                                if (isPlaying) {
-                                  mainAudioRef.current.pause();
-                                } else {
-                                  mainAudioRef.current.play().catch(err => {
-                                    console.error('❌ Play failed:', err);
-                                  });
-                                }
-                              } else {
-                                console.error('❌ Audio ref is null');
-                              }
-                            }} 
-                            className="w-20 h-20 bg-white text-dark-950 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform"
-                          >
-                             {isPlaying ? <Pause className="w-8 h-8 fill-dark-950" /> : <Play className="w-8 h-8 fill-dark-950 ml-1" />}
-                          </button>
+                       
+                       {/* Plyr Audio Player */}
+                       <div className="mt-10 w-full max-w-2xl">
+                         <Plyr
+                           source={{
+                             type: 'audio',
+                             sources: [
+                               {
+                                 src: currentAudio.url,
+                                 type: currentAudio.mimeType || 'audio/mpeg',
+                               },
+                             ],
+                           }}
+                           options={{
+                             controls: [
+                               'play-large',
+                               'restart',
+                               'rewind',
+                               'play',
+                               'fast-forward',
+                               'progress',
+                               'current-time',
+                               'duration',
+                               'mute',
+                               'volume',
+                               'settings',
+                               'download',
+                             ],
+                             settings: ['speed'],
+                             speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] },
+                             seekTime: 5,
+                             invertTime: false,
+                             toggleInvert: false,
+                             displayDuration: true,
+                             keyboard: { focused: true, global: true },
+                             tooltips: { controls: true, seek: true },
+                             autopause: true,
+                             resetOnEnd: false,
+                             clickToPlay: true,
+                             disableContextMenu: false,
+                           }}
+                         />
+                       </div>
+                       
+                       <div className="mt-6 flex items-center gap-4">
                           <a 
                             href={currentAudio.base64Audio || currentAudio.url} 
                             download={`imaginai-audio-${currentAudio.id}.mp3`} 

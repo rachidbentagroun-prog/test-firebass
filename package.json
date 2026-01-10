@@ -16,6 +16,8 @@
     "firebase": "^12.7.0",
     "google-auth-library": "^9.14.2",
     "lucide-react": "^0.475.0",
+    "plyr": "^3.8.4",
+    "plyr-react": "^6.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-image-crop": "^11.0.5"
