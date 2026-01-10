@@ -12,6 +12,16 @@ const firebaseConfig = {
   ...(measurementId ? { measurementId } : {}),
 };
 
+// Log Firebase config on startup to diagnose issues
+console.log('🔧 Firebase Configuration:', {
+  isDev: import.meta.env.DEV,
+  isProduction: import.meta.env.PROD,
+  authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId,
+  apiKeyExists: !!firebaseConfig.apiKey,
+  currentUrl: typeof window !== 'undefined' ? window.location.href : 'SSR',
+});
+
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
@@ -88,7 +98,9 @@ export async function signInWithGoogle() {
       projectId: firebaseConfig.projectId,
       authDomain: firebaseConfig.authDomain,
       apiKey: firebaseConfig.apiKey?.substring(0, 10) + '...',
-      currentURL: typeof window !== 'undefined' ? window.location.origin : 'N/A'
+      currentURL: typeof window !== 'undefined' ? window.location.origin : 'N/A',
+      isDev: import.meta.env.DEV,
+      isProd: import.meta.env.PROD,
     });
     
     const provider = new GoogleAuthProvider();
@@ -107,7 +119,7 @@ export async function signInWithGoogle() {
     try {
       // Try popup first
       result = await signInWithPopup(auth, provider);
-      console.log('✅ Popup sign-in successful!', { uid: result.user?.uid });
+      console.log('✅ Popup sign-in successful!', { uid: result.user?.uid, email: result.user?.email });
       
       // Force reload to ensure auth state is synchronized
       if (auth.currentUser) {
@@ -116,7 +128,7 @@ export async function signInWithGoogle() {
         console.log('✅ Auth state reloaded, user should now be recognized');
       }
     } catch (popupErr: any) {
-      console.warn('⚠️ Popup sign-in failed, trying redirect method...', popupErr?.code);
+      console.warn('⚠️ Popup sign-in failed, trying redirect method...', popupErr?.code, popupErr?.message);
       
       // If popup fails, try redirect
       if (popupErr?.code === 'auth/popup-blocked' || 
@@ -136,7 +148,7 @@ export async function signInWithGoogle() {
     const user = result.user;
     const isNew = (result as any)?.additionalUserInfo?.isNewUser ?? false;
 
-    console.log('✅ Google Sign-In successful!', { userId: user?.uid, isNew });
+    console.log('✅ Google Sign-In successful!', { userId: user?.uid, email: user?.email, isNew });
 
     // If this is a newly created user via Google, grant default entitlements and mark verified
     if (isNew && user?.uid) {
