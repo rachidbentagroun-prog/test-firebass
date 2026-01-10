@@ -207,26 +207,29 @@ const App: React.FC = () => {
 
   // Map URL paths to internal page names
   const getPageFromPath = (pathname: string): string => {
+    const p = pathname.toLowerCase();
     const pathMap: Record<string, string> = {
-      '/AI-Image': 'dashboard',
-      '/AI-Video': 'video-generator',
-      '/AI-Voice': 'tts-generator',
-      '/AI-Chat': 'chat-landing',
-      '/Explore': 'explore',
-      '/Pricing': 'pricing',
-      '/GALLERY': 'gallery',
+      '/dashboard': 'dashboard',
+      '/ai-image': 'dashboard',
+      '/ai-video': 'video-generator',
+      '/ai-voice': 'tts-generator',
+      '/ai-chat': 'chat-landing',
+      '/explore': 'explore',
+      '/pricing': 'pricing',
+      '/gallery': 'gallery',
       '/profile': 'profile',
       '/admin': 'admin',
       '/upgrade': 'upgrade',
       '/signup': 'signup',
       '/post-verify': 'post-verify',
+      '/': 'home',
     };
-    return pathMap[pathname] || 'home';
+    return pathMap[p] || 'home';
   };
 
   const getPathFromPage = (page: string): string => {
     const pageMap: Record<string, string> = {
-      'dashboard': '/AI-Image',
+      'dashboard': '/dashboard',
       'video-generator': '/AI-Video',
       'tts-generator': '/AI-Voice',
       'chat-landing': '/AI-Chat',
@@ -999,8 +1002,8 @@ const App: React.FC = () => {
           onResetKey={() => {}} 
         />;
       case 'gallery':
-        if (!user && !initializing) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
-        if (initializing) return null; // Wait for auth to complete
+        if (!user && !isInitializing) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
+        if (isInitializing) return null; // Wait for auth to complete
         return <Gallery images={gallery} videos={videoGallery} audioGallery={audioGallery} onDelete={() => {}} />;
       case 'explore':
         return <ExplorePage user={user} images={gallery} videos={videoGallery} siteConfig={siteConfig} onNavigate={setCurrentPage} />;
