@@ -216,15 +216,35 @@ export async function applyVerificationCode(oobCode: string) {
 export async function grantDefaultEntitlements(uid: string) {
   if (!uid) throw new Error('uid is required');
   const userRef = doc(db, 'users', uid);
+  
+  // Get current user from Firebase Auth to capture their email and name
+  const currentUser = auth.currentUser;
+  const email = currentUser?.email || null;
+  const name = currentUser?.displayName || email?.split('@')[0] || 'Creator';
+  
+  console.log('📝 grantDefaultEntitlements - Creating user profile:', {
+    uid: uid.substring(0, 8) + '...',
+    name,
+    email,
+    isGoogleUser: currentUser?.providerData?.some(p => p.providerId === 'google.com')
+  });
+  
   await setDoc(userRef, {
+    name: name,
+    email: email,
     entitlements: {
       image: true,
       video: true,
       audio: true,
     },
     verified: true,
+    plan: 'free',
+    credits: 3,
+    role: 'user',
     updatedAt: serverTimestamp(),
   }, { merge: true });
+  
+  console.log('✅ User profile created successfully');
 }
 
 // Read or create a simple profile in Firestore for the given uid

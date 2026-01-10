@@ -184,6 +184,16 @@ const App: React.FC = () => {
     } catch (e) { return DEFAULT_CONFIG; }
   });
 
+  // Log user state changes
+  useEffect(() => {
+    console.log('👤 User state changed:', user ? {
+      email: user.email,
+      isRegistered: user.isRegistered,
+      isVerified: user.isVerified,
+      name: user.name
+    } : 'null (logged out)');
+  }, [user]);
+
   useEffect(() => {
     try {
       localStorage.setItem('site_theme', 'light');
@@ -353,6 +363,10 @@ const App: React.FC = () => {
       const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
         try {
           console.log('🔵 onAuthStateChanged fired! User:', fbUser?.uid ? `${fbUser.uid.substring(0, 8)}...` : 'null');
+          console.log('   Provider:', fbUser?.providerData?.map(p => p.providerId).join(', ') || 'none');
+          console.log('   Email:', fbUser?.email, 'Verified:', fbUser?.emailVerified);
+          console.log('   Display Name:', fbUser?.displayName);
+          
           if (timeoutId) { clearTimeout(timeoutId); timeoutId = undefined; }
 
           if (!fbUser) {
@@ -390,6 +404,12 @@ const App: React.FC = () => {
             gallery: [],
           };
 
+          console.log('✅ Setting quickUser:', {
+            email: quickUser.email,
+            isRegistered: quickUser.isRegistered,
+            isVerified: quickUser.isVerified,
+            name: quickUser.name
+          });
           setUser(quickUser);
           safeSetInitFalse();
 
