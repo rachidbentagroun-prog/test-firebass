@@ -253,6 +253,15 @@ const App: React.FC = () => {
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
         if (params.get('goto') === 'dashboard') return 'dashboard';
+        // If we just signed in, honor a stored post-login target
+        try {
+          const target = localStorage.getItem('post_login_target');
+          if (target === 'dashboard') {
+            // Clear flag and go to dashboard
+            localStorage.removeItem('post_login_target');
+            return 'dashboard';
+          }
+        } catch {}
         
         // Get page from URL pathname
         return getPageFromPath(window.location.pathname);
@@ -298,7 +307,15 @@ const App: React.FC = () => {
         if (result?.user) {
           console.log('✅ Google Sign-In redirect successful! User:', result.user.email);
           // Immediately navigate to dashboard to avoid landing back on login/signup
+          try { localStorage.setItem('post_login_target', 'dashboard'); } catch {}
           setCurrentPage('dashboard');
+          // Ensure URL reflects dashboard path in case route state was home
+          try {
+            const newPath = getPathFromPage('dashboard');
+            if (window.location.pathname !== newPath) {
+              window.history.replaceState({}, '', newPath);
+            }
+          } catch (e) { console.warn('Failed to replace URL after redirect', e); }
         } else if (result?.error) {
           console.error('❌ Google Sign-In redirect error:', result.error);
         } else {
