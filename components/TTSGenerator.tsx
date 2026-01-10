@@ -1,8 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import Plyr from 'plyr-react';
-import 'plyr-react/plyr.css';
+import { Plyr } from 'plyr-react';
+import 'plyr/dist/plyr.css';
 import { 
   Mic2, Volume2, Sparkles, Wand2, RefreshCw, AlertCircle, 
   Trash2, Download, Play, Pause, Headphones, Star, 
