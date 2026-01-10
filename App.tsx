@@ -419,9 +419,11 @@ const App: React.FC = () => {
               const profile = await getUserProfile(fbUser.uid);
 
               // Grant entitlements when verified or for the super-admin regardless of verification
+              // Also grant for Google Sign-In users since they're pre-verified by Google
               try {
                 const { grantDefaultEntitlements } = await import('./services/firebase');
-                if ((fbUser.emailVerified && !(profile?.entitlements?.image)) || fbUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) {
+                const isGoogleUser = fbUser.providerData?.some(p => p.providerId === 'google.com') ?? false;
+                if ((fbUser.emailVerified || isGoogleUser || fbUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) && !(profile?.entitlements?.image)) {
                   grantDefaultEntitlements(fbUser.uid).catch((err) => console.warn('Failed to grant entitlements on auth bg task', err));
                 }
               } catch (err) {
