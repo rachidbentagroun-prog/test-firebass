@@ -404,14 +404,11 @@ const App: React.FC = () => {
             gallery: [],
           };
 
-          console.log('✅ Setting quickUser:', {
-            email: quickUser.email,
-            isRegistered: quickUser.isRegistered,
-            isVerified: quickUser.isVerified,
-            name: quickUser.name
-          });
           setUser(quickUser);
           safeSetInitFalse();
+
+          console.log('✅ Auth listener complete - user set in React state');
+          console.log('   User will be visible in Navbar and components');
 
           // Perform heavier profile/entitlements fetches in the background and update the user when ready
           (async () => {
