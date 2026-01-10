@@ -12,8 +12,6 @@ interface NavbarProps {
   customMenu: NavItem[];
   logoUrl?: string;
   onUpgradeClick: () => void;
-  theme?: 'dark' | 'light';
-  onToggleTheme?: () => void;
   onOpenInbox?: () => void;
 }
 

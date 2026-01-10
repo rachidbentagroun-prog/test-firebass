@@ -216,7 +216,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
       {/* Premium Hero Section with Motion Design */}
       <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-20 pb-20 px-4">
         {/* Animated background elements */}
-        <div className="absolute inset-0 overflow-hidden z-0">
+        <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none">
           {/* Soft gradient orbs */}
           <div className="absolute top-0 -left-40 w-96 h-96 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full blur-3xl opacity-30 animate-float" />
           <div className="absolute bottom-0 -right-40 w-96 h-96 bg-gradient-to-br from-pink-100 to-purple-100 rounded-full blur-3xl opacity-30 animate-float-delayed" />
@@ -264,147 +264,139 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
           <div className="mt-12 mx-auto w-full max-w-3xl animate-scale-in" style={{ animationDelay: '450ms' }}>
             <div className="relative group">
               {/* Ambient glow underneath */}
-              <div className="absolute -inset-4 bg-gradient-to-r from-pink-200 via-purple-200 to-indigo-200 rounded-3xl blur-2xl opacity-0 group-hover:opacity-40 group-focus-within:opacity-50 transition-all duration-700 -z-10" />
+              <div className="pointer-events-none absolute -inset-4 bg-gradient-to-r from-pink-200 via-purple-200 to-indigo-200 rounded-3xl blur-2xl opacity-0 group-hover:opacity-40 group-focus-within:opacity-50 transition-all duration-700 -z-10" />
               
               {/* Main input container */}
-              <div className="relative rounded-2xl bg-white shadow-xl hover:shadow-2xl focus-within:shadow-2xl transition-all duration-500 overflow-hidden border border-slate-200">
+              <div className="relative z-20 rounded-2xl bg-white shadow-xl hover:shadow-2xl focus-within:shadow-2xl transition-all duration-500 overflow-hidden border border-slate-200">
                 {/* Animated top gradient border */}
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 animate-border-flow transition-opacity duration-500"></div>
+                <div className="pointer-events-none absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 animate-border-flow transition-opacity duration-500"></div>
                 
                 {/* Input section */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center p-6 sm:p-8">
-                  <button 
-                    onClick={() => fileInputRef.current?.click()} 
-                    className={`flex-shrink-0 rounded-xl p-3 transition-all duration-300 hover:scale-105 active:scale-95 ${selectedFile ? 'bg-indigo-100 text-indigo-600 shadow-md ring-2 ring-indigo-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`} 
-                    title="Upload file" 
-                    type="button"
-                  >
-                    <Upload className="h-5 w-5" />
-                  </button>
-                  <input ref={fileInputRef} type="file" onChange={handleFileSelect} className="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx" />
-                  
-                  {selectedFile && (
-                    <div className="flex items-center gap-2 rounded-xl bg-indigo-50 px-4 py-2.5 border border-indigo-200 animate-fade-in">
-                      <span className="text-sm font-medium text-slate-900 truncate">{selectedFile.name}</span>
-                      <button onClick={removeFile} className="text-slate-500 hover:text-red-500 transition-colors flex-shrink-0 hover:scale-110" type="button">
-                        <X className="h-4 w-4" />
+                <div className="flex flex-col gap-3 p-5 sm:p-8">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <div className="flex items-center gap-3 w-full">
+                      <button 
+                        onClick={() => fileInputRef.current?.click()} 
+                        className={`flex-shrink-0 h-12 w-12 sm:h-[52px] sm:w-[52px] rounded-xl p-3 transition-all duration-300 hover:scale-105 active:scale-95 ${selectedFile ? 'bg-indigo-100 text-indigo-600 shadow-md ring-2 ring-indigo-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`} 
+                        title="Upload file" 
+                        type="button"
+                      >
+                        <Upload className="h-5 w-5" />
                       </button>
+                      <input ref={fileInputRef} type="file" onChange={handleFileSelect} className="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx" />
+                      
+                      <div className="relative flex-1 min-w-0">
+                        <input 
+                          value={prompt}
+                          onChange={(e) => {
+                            setPrompt(e.target.value);
+                            // Update detected intent as user types
+                            if (e.target.value.trim()) {
+                              setDetectedIntent(detectPromptIntent(e.target.value));
+                            } else {
+                              setDetectedIntent(null);
+                            }
+                          }}
+                          onKeyDown={handleKeyDown}
+                          placeholder={isRecording ? (isTranscribing ? "Listening..." : "Speak now...") : "Describe your vision..."}
+                          className="h-[56px] w-full rounded-xl bg-slate-50/60 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2 focus:ring-offset-white text-[16px] sm:text-lg font-medium transition-all duration-300 px-4 pr-14"
+                          style={{ WebkitAppearance: 'none' }}
+                        />
+                        
+                        {/* Microphone button for speech-to-text */}
+                        <div className="pointer-events-auto absolute inset-y-1 right-1 flex items-center">
+                          <button
+                            onClick={toggleRecording}
+                            className={`relative flex h-11 w-11 items-center justify-center rounded-lg transition-all duration-300 hover:scale-105 active:scale-95 ${
+                              isRecording 
+                                ? 'bg-red-500 text-white shadow-lg shadow-red-200' 
+                                : 'bg-white text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'
+                            }`}
+                            title={isRecording ? 'Stop recording' : 'Click to speak'}
+                            type="button"
+                            aria-label={isRecording ? 'Stop recording' : 'Start voice input'}
+                          >
+                            <Mic className="h-[20px] w-[20px]" />
+                            {/* Recording pulse animation */}
+                            {isRecording && (
+                              <>
+                                <span className="absolute inset-0 rounded-lg bg-red-500 animate-ping opacity-60"></span>
+                                <span className="absolute inset-0 rounded-lg bg-red-400 animate-pulse"></span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                  
-                  <input 
-                    value={prompt}
-                    onChange={(e) => {
-                      setPrompt(e.target.value);
-                      // Update detected intent as user types
-                      if (e.target.value.trim()) {
-                        setDetectedIntent(detectPromptIntent(e.target.value));
-                      } else {
-                        setDetectedIntent(null);
-                      }
-                    }}
-                    onKeyDown={handleKeyDown}
-                    placeholder={isRecording ? (isTranscribing ? "Listening..." : "Speak now...") : "Describe your vision..."}
-                    className="flex-1 bg-transparent text-slate-900 placeholder-slate-400 focus:outline-none text-lg font-medium transition-all duration-300"
-                  />
-                  
-                  {/* Microphone button for speech-to-text */}
-                  <div className="relative group/mic">
-                    <button
-                      onClick={toggleRecording}
-                      className={`relative flex-shrink-0 rounded-xl p-3 transition-all duration-300 hover:scale-105 active:scale-95 ${
-                        isRecording 
-                          ? 'bg-red-500 text-white shadow-lg shadow-red-200' 
-                          : 'bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'
-                      }`}
-                      title={isRecording ? 'Stop recording' : 'Click to speak'}
-                      type="button"
+
+                    {selectedFile && (
+                      <div className="flex items-center gap-2 rounded-xl bg-indigo-50 px-4 py-2.5 border border-indigo-200 animate-fade-in">
+                        <span className="text-sm font-medium text-slate-900 truncate">{selectedFile.name}</span>
+                        <button onClick={removeFile} className="text-slate-500 hover:text-red-500 transition-colors flex-shrink-0 hover:scale-110" type="button">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <button 
+                      onClick={handleSubmit} 
+                      className="relative w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold px-6 py-3.5 sm:py-3 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.01] active:scale-95"
                     >
-                      <Mic className="h-5 w-5" />
-                      {/* Recording pulse animation */}
-                      {isRecording && (
-                        <>
-                          <span className="absolute inset-0 rounded-xl bg-red-500 animate-ping opacity-75"></span>
-                          <span className="absolute inset-0 rounded-xl bg-red-400 animate-pulse"></span>
-                        </>
+                      Generate 
+                      <ArrowRight className="h-5 w-5 transition-transform duration-300" />
+                      
+                      {/* Smart routing indicator */}
+                      {detectedIntent && (
+                        <span className="absolute -top-2 -right-2 flex items-center gap-1 px-2 py-0.5 bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-lg animate-fade-in">
+                          {detectedIntent === 'image' && '🖼️'}
+                          {detectedIntent === 'video' && '🎥'}
+                          {detectedIntent === 'audio' && '🔊'}
+                        </span>
                       )}
                     </button>
-                    
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg opacity-0 group-hover/mic:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap z-50">
-                      {isRecording ? 'Stop recording' : 'Click to speak'}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-900"></div>
-                    </div>
                   </div>
-                  
-                  <button 
-                    onClick={handleSubmit} 
-                    className="relative flex-shrink-0 flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold px-6 py-3.5 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-95 whitespace-nowrap group"
-                  >
-                    Generate 
-                    <ArrowRight className="h-5 w-5 group-hover:translate-x-0.5 transition-transform duration-300" />
-                    
-                    {/* Smart routing indicator */}
-                    {detectedIntent && (
-                      <span className="absolute -top-2 -right-2 flex items-center gap-1 px-2 py-0.5 bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-lg animate-fade-in">
-                        {detectedIntent === 'image' && '🖼️'}
-                        {detectedIntent === 'video' && '🎥'}
-                        {detectedIntent === 'audio' && '🔊'}
-                      </span>
-                    )}
-                  </button>
                 </div>
                 
-                {/* Quick actions grid */}
-                <div className="px-6 sm:px-7 py-5 border-t border-slate-100 bg-slate-50/50">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {/* Quick actions pills */}
+                <div className="px-5 sm:px-7 py-5 border-t border-slate-100 bg-slate-50/50">
+                  <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar">
                     <button 
-                      className={`${buttonBase}`} 
+                      className={`${buttonBase} min-w-[120px] sm:min-w-[0] flex-1 sm:flex-none`} 
                       onClick={onGoToImage} 
                       title="Create Image"
                     >
                       <ImageIcon className="h-5 w-5 text-indigo-600" />
-                      <span className="hidden sm:inline text-slate-900">Image</span>
+                      <span className="text-slate-900">Image</span>
                     </button>
                     <button 
-                      className={`${buttonBase}`} 
+                      className={`${buttonBase} min-w-[120px] sm:min-w-[0] flex-1 sm:flex-none`} 
                       onClick={onGoToVideo} 
                       title="Create Video"
                     >
                       <Video className="h-5 w-5 text-purple-600" />
-                      <span className="hidden sm:inline text-slate-900">Video</span>
+                      <span className="text-slate-900">Video</span>
                     </button>
                     <button 
-                      className={`${buttonBase}`} 
+                      className={`${buttonBase} min-w-[120px] sm:min-w-[0] flex-1 sm:flex-none`} 
                       onClick={onGoToWebsite} 
                       title="Create Website"
                     >
                       <Globe2 className="h-5 w-5 text-blue-600" />
-                      <span className="hidden sm:inline text-slate-900">Website</span>
+                      <span className="text-slate-900">Website</span>
                     </button>
                     <button 
-                      className={`${buttonBase}`} 
+                      className={`${buttonBase} min-w-[120px] sm:min-w-[0] flex-1 sm:flex-none`} 
                       onClick={onGoToAudio} 
                       title="Create Audio"
                     >
                       <Mic2 className="h-5 w-5 text-pink-600" />
-                      <span className="hidden sm:inline text-slate-900">Audio</span>
+                      <span className="text-slate-900">Audio</span>
                     </button>
                   </div>
                 </div>
               </div>
-              
-              {/* Smart routing info */}
-              {detectedIntent && (
-                <div className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-600 animate-fade-in">
-                  <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span>
-                    Will create {detectedIntent === 'image' && 'an image 🖼️'}
-                    {detectedIntent === 'video' && 'a video 🎥'}
-                    {detectedIntent === 'audio' && 'audio 🔊'}
-                  </span>
-                </div>
-              )}
             </div>
 
             {/* Quick Ideas Section */}
@@ -584,6 +576,15 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
         /* Smooth all transitions */
         * {
           transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Hide scrollbars for pill list on mobile */
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
         }
       `}</style>
     </div>

@@ -7,8 +7,7 @@ import {
   Upload, RefreshCw, ShieldCheck, AlertCircle, Zap,
   Database, Download, Trash2, Activity,
   Image as ImageIcon, Video as VideoIcon, Mic2, Play, Pause, Headphones,
-  FileText, Scissors, FileAudio, Bell, Inbox, CreditCard, Languages, ChevronDown, Crown,
-  Sun, Moon
+  FileText, Scissors, FileAudio, Bell, Inbox, CreditCard, Languages, ChevronDown, Crown
 } from 'lucide-react';
 import { User as UserType, GeneratedImage, GeneratedVideo, GeneratedAudio, SystemMessage, SupportSession } from '../types';
 import { convertBlobToBase64 } from '../services/geminiService';
@@ -29,17 +28,14 @@ interface UserProfileProps {
   onBack: () => void;
   onUpdateUser: (user: UserType) => void;
   onGalleryImport: (images: GeneratedImage[]) => void;
-   onNavigate?: (page: string) => void;
+  onNavigate?: (page: string) => void;
   initialContactOpen?: boolean;
   initialInboxOpen?: boolean;
-  theme: 'dark' | 'light';
-  onToggleTheme: () => void;
 }
 
 export const UserProfile: React.FC<UserProfileProps> = ({ 
   user, gallery, videoGallery = [], audioGallery = [], 
-  onLogout, onBack, onUpdateUser, onNavigate, initialContactOpen, initialInboxOpen,
-  theme, onToggleTheme
+  onLogout, onBack, onUpdateUser, onNavigate, initialContactOpen, initialInboxOpen
 }) => {
   const { language, setLanguage, t } = useLanguage();
   const [isLangOpen, setIsLangOpen] = useState(false);
@@ -77,7 +73,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const [audios, setAudios] = useState<GeneratedAudio[]>(audioGallery || []);
 
   const unreadCount = user.messages?.filter(m => !m.isRead).length || 0;
-  const isLight = theme === 'light';
 
   useEffect(() => {
     if (initialContactOpen) setIsContactOpen(true);
@@ -298,14 +293,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         </button>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={onToggleTheme}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest text-gray-200 transition-all"
-          >
-            {isLight ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-            {isLight ? 'Dark Mode' : 'Light Mode'}
-          </button>
-
           <div ref={tabDropdownRef} className="relative">
             <button
               ref={tabButtonRef}

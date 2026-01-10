@@ -109,18 +109,17 @@ export const Hero: React.FC<HeroProps> = ({
         </p>
 
         {/* Prompt Input Section with Multimodal Features */}
-        <div className="max-w-4xl mx-auto mb-6 sm:mb-8 md:mb-12 px-2 sm:px-0">
+        <div className="mx-auto mb-6 sm:mb-8 md:mb-12 px-2 sm:px-0">
           <div className="relative group">
             <div className="absolute -inset-0.5 sm:-inset-1 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl sm:rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-200"></div>
-            <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center bg-dark-900 border border-white/10 rounded-lg sm:rounded-2xl p-1.5 sm:p-3 shadow-2xl gap-1.5 sm:gap-0">
-              
+            
+            {/* Mobile & Tablet Layout (< 1024px) */}
+            <div className="lg:hidden relative flex flex-col items-stretch gap-3 bg-dark-900 border border-white/10 rounded-lg sm:rounded-2xl p-1.5 sm:p-3 shadow-2xl overflow-visible">
               {/* Left Side: Sparkle & Upload */}
               <div className="flex items-center gap-1 sm:gap-2 pl-1.5 sm:pl-3">
                 <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg">
                   <Sparkles className="w-3.5 sm:w-4 md:w-5 h-3.5 sm:h-4 md:h-5 text-indigo-400" />
                 </div>
-                
-                <div className="h-6 sm:h-8 w-px bg-white/10 mx-1 sm:mx-2 hidden sm:block" />
                 
                 <button 
                   onClick={() => fileInputRef.current?.click()}
@@ -128,13 +127,13 @@ export const Hero: React.FC<HeroProps> = ({
                   title="Upload Image Reference"
                 >
                   <Upload className="w-3.5 sm:w-4 md:w-5 h-3.5 sm:h-4 md:h-5" />
-                  <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest hidden lg:block ml-1">Ref</span>
+                  <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest hidden sm:inline ml-1">Ref</span>
                 </button>
                 <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*" />
               </div>
 
               {/* Middle: Text Input & Preview */}
-              <div className="flex-1 flex items-center px-2 sm:px-4 w-full min-h-[44px]">
+              <div className="flex items-center px-2 sm:px-4 w-full min-h-[44px]">
                 {previewUrl && (
                   <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-lg overflow-hidden border border-indigo-500/50 mr-2 shrink-0 animate-scale-in group/preview">
                     <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" />
@@ -156,21 +155,85 @@ export const Hero: React.FC<HeroProps> = ({
                 />
               </div>
 
-              {/* Right Side: Generate */}
+              {/* Generate Button - Full Width on Mobile/Tablet */}
               <button
                 onClick={handleGenerateClick}
-                className="w-full sm:w-auto px-3 sm:px-6 md:px-8 py-3 sm:py-4 rounded-lg sm:rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-[11px] sm:text-xs md:text-sm uppercase tracking-widest transition-all whitespace-nowrap flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3 shadow-xl min-h-[44px] flex-shrink-0 m-1 sm:m-0"
+                className="w-full px-3 sm:px-6 py-3 sm:py-4 rounded-lg sm:rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-black text-[11px] sm:text-xs uppercase tracking-widest transition-all whitespace-nowrap flex items-center justify-center gap-1.5 sm:gap-2 shadow-xl min-h-[44px]"
               >
                 {(prompt.trim() || selectedImage) ? (
                   <>
-                    <span className="hidden sm:inline">Synthesize</span>
-                    <span className="sm:hidden">Generate</span>
-                    <ArrowRight className="w-2.5 sm:w-3 md:w-4 h-2.5 sm:h-3 md:h-4" />
+                    <span>Generate</span>
+                    <ArrowRight className="w-2.5 sm:w-3 h-2.5 sm:h-3" />
                   </>
                 ) : (
                   <>Try Free</>
                 )}
               </button>
+            </div>
+
+            {/* Desktop Layout (≥ 1024px) - Column with centered button */}
+            <div className="hidden lg:flex relative flex-col items-center max-w-[780px] mx-auto gap-0 overflow-visible">
+              {/* Input Container */}
+              <div className="w-full flex flex-col items-stretch bg-dark-900 border border-white/10 rounded-2xl p-3 shadow-2xl overflow-visible">
+                {/* Left Side: Sparkle & Upload */}
+                <div className="flex items-center gap-2 pl-3 mb-3">
+                  <div className="p-2 bg-white/5 rounded-lg">
+                    <Sparkles className="w-5 h-5 text-indigo-400" />
+                  </div>
+                  
+                  <div className="h-8 w-px bg-white/10 mx-2" />
+                  
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`p-2.5 rounded-xl transition-all flex items-center justify-center flex-shrink-0 ${selectedImage ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}
+                    title="Upload Image Reference"
+                  >
+                    <Upload className="w-5 h-5" />
+                    <span className="text-[9px] font-black uppercase tracking-widest ml-1">Ref</span>
+                  </button>
+                  <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*" />
+                </div>
+
+                {/* Text Input & Preview */}
+                <div className="flex items-center px-4 min-h-[52px] w-full">
+                  {previewUrl && (
+                    <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-indigo-500/50 mr-2 shrink-0 animate-scale-in group/preview">
+                      <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" />
+                      <button 
+                        onClick={removeImage}
+                        className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center text-white"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                  <input 
+                    type="text" 
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={promptPlaceholder}
+                    className="flex-1 bg-transparent border-none text-base text-white placeholder-gray-600 focus:ring-0 focus:outline-none py-4 px-1"
+                  />
+                </div>
+              </div>
+
+              {/* Generate Button Wrapper - Centers button below input */}
+              <div className="flex justify-center items-center w-full mt-4">
+                <button
+                  onClick={handleGenerateClick}
+                  className="px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-black text-sm uppercase tracking-widest transition-all duration-200 whitespace-nowrap flex items-center justify-center gap-3 shadow-xl min-h-[52px] min-w-[180px] flex-shrink-0 hover:scale-105 active:scale-95"
+                >
+                  {(prompt.trim() || selectedImage) ? (
+                    <>
+                      <span>Synthesize</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  ) : (
+                    <>Try Free</>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
           

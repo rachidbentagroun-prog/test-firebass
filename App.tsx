@@ -183,26 +183,17 @@ const App: React.FC = () => {
       return saved ? { ...DEFAULT_CONFIG, ...JSON.parse(saved) } : DEFAULT_CONFIG; 
     } catch (e) { return DEFAULT_CONFIG; }
   });
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    if (typeof window === 'undefined') return 'light';
-    try {
-      return (localStorage.getItem('site_theme') as 'dark' | 'light') || 'light';
-    } catch {
-      return 'light';
-    }
-  });
 
-  // Persist theme preference and apply to DOM
   useEffect(() => {
     try {
-      localStorage.setItem('site_theme', theme);
-      document.documentElement.setAttribute('data-theme', theme);
-      document.body.classList.remove('theme-dark', 'theme-light');
-      document.body.classList.add(`theme-${theme}`);
+      localStorage.setItem('site_theme', 'light');
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.body.classList.remove('theme-dark');
+      document.body.classList.add('theme-light', 'light-theme');
     } catch (err) {
-      console.warn('Failed to persist theme:', err);
+      console.warn('Failed to enforce light theme:', err);
     }
-  }, [theme]);
+  }, []);
 
   const [currentPage, setCurrentPage] = useState<string>(() => {
     // If app is opened via verification action URL, show the post-verify page
@@ -240,18 +231,6 @@ const App: React.FC = () => {
     };
     checkApiKey();
   }, []);
-
-  // Apply theme to document root
-  useEffect(() => {
-    try {
-      const root = document.documentElement;
-      if (theme === 'light') root.classList.add('light-theme');
-      else root.classList.remove('light-theme');
-      localStorage.setItem('site_theme', theme);
-    } catch (e) {
-      /* noop */
-    }
-  }, [theme]);
 
   // If navigating to profile from Upgrade -> Contact Us, open the contact modal once
   useEffect(() => {
@@ -357,11 +336,6 @@ const App: React.FC = () => {
                 gallery: [],
                 audioGallery: [],
               };
-
-              // Note: Theme preference is stored in localStorage/body class, not in database
-              // if (profile?.theme && (profile.theme === 'dark' || profile.theme === 'light')) {
-              //   setTheme(profile.theme as 'dark' | 'light');
-              // }
 
               setUser(updatedUser);
               
@@ -727,26 +701,6 @@ const App: React.FC = () => {
     setCurrentPage('home');
   };
 
-  const handleToggleTheme = async () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    
-    // Save theme preference to user profile if logged in
-    if (user?.id) {
-      try {
-        const { doc, updateDoc } = await import('firebase/firestore');
-        const { db } = await import('./services/firebase');
-        const userDocRef = doc(db, 'users', user.id);
-        await updateDoc(userDocRef, { theme: newTheme });
-        
-        // Update local user state
-        setUser(prev => prev ? { ...prev, theme: newTheme as any } : null);
-      } catch (err) {
-        console.warn('Failed to save theme preference:', err);
-      }
-    }
-  };
-
   const handleSelectPlan = (plan: Plan) => {
     // If the plan has a buttonUrl (external purchase link), open it directly
     if (plan.buttonUrl) {
@@ -901,7 +855,7 @@ const App: React.FC = () => {
         console.log('✅ ADMIN ACCESS GRANTED - Rendering AdminDashboard');
         return <AdminDashboard users={allUsers} siteConfig={siteConfig} onUpdateConfig={setSiteConfig} onDeleteUser={handleDeleteUser} onUpdateUser={handleUpdateUser} onSendMessageToUser={handleSendMessageToUser} onBroadcastMessage={handleBroadcastMessage} onSupportReply={() => {}} hasApiKey={hasApiKey} onSelectKey={() => {}} onSyncFirebase={handleSyncFirebaseUsers} />;
       case 'profile':
-        return user ? <UserProfile user={user} gallery={gallery} videoGallery={videoGallery} audioGallery={audioGallery} onLogout={handleLogout} onBack={() => setCurrentPage('home')} onUpdateUser={() => {}} onGalleryImport={() => {}} onNavigate={setCurrentPage} initialContactOpen={openContactFromUpgrade} initialInboxOpen={openInboxFromDropdown} theme={theme} onToggleTheme={handleToggleTheme} /> : null;
+        return user ? <UserProfile user={user} gallery={gallery} videoGallery={videoGallery} audioGallery={audioGallery} onLogout={handleLogout} onBack={() => setCurrentPage('home')} onUpdateUser={() => {}} onGalleryImport={() => {}} onNavigate={setCurrentPage} initialContactOpen={openContactFromUpgrade} initialInboxOpen={openInboxFromDropdown} /> : null;
       case 'upgrade':
         return <UpgradePage onBack={() => setCurrentPage(user ? 'profile' : 'home')} onContactUs={() => { setOpenContactFromUpgrade(true); setCurrentPage('profile'); }} />;
       case 'signup':
@@ -937,8 +891,6 @@ const App: React.FC = () => {
         <div className={`min-h-screen transition-colors duration-300 ${
           currentPage === 'admin'
             ? '' /* No theme class for admin - uses inline styles */
-            : theme === 'dark'
-            ? 'landing-theme bg-gradient-to-b from-dark-950 via-dark-900 to-dark-950 text-white'
             : 'landing-theme bg-gradient-to-b from-white via-gray-50 to-white text-gray-900'
         }`}>
       <Navbar 
@@ -949,8 +901,6 @@ const App: React.FC = () => {
         currentPage={currentPage} 
         customMenu={[]} 
         onUpgradeClick={() => setIsUpgradeModalOpen(true)}
-        theme={theme}
-        onToggleTheme={handleToggleTheme}
         onOpenInbox={() => setOpenInboxFromDropdown(true)}
       />
       <main className={`pt-16 ${currentPage === 'admin' ? 'bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 min-h-screen' : ''}`}>
