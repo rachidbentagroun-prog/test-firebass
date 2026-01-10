@@ -358,13 +358,14 @@ const App: React.FC = () => {
     return () => { isMounted = false; };
   }, []);
 
-  // After initialization, if we already have an authenticated session, enforce dashboard route
+  // After initialization, if we just logged in and are on home page, redirect to dashboard
   useEffect(() => {
     if (isInitializing) return;
     try {
       const fbUser = auth.currentUser;
-      if (fbUser && currentPage !== 'dashboard' && currentPage !== 'profile' && currentPage !== 'admin') {
-        console.log('✅ Session detected post-init, routing to /dashboard');
+      // Only auto-redirect to dashboard if user just logged in and is still on home page
+      if (fbUser && currentPage === 'home') {
+        console.log('✅ Session detected on home page, routing to /dashboard');
         setCurrentPage('dashboard');
         try {
           if (window.location.pathname !== '/dashboard') {
@@ -375,7 +376,7 @@ const App: React.FC = () => {
     } catch (e) {
       console.warn('Post-init session route check failed', e);
     }
-  }, [isInitializing, currentPage]);
+  }, [isInitializing]);
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authPrefillEmail, setAuthPrefillEmail] = useState<string | undefined>(undefined);
@@ -489,18 +490,26 @@ const App: React.FC = () => {
           console.log('   User will be visible in Navbar and components');
           console.log('   Next: Dashboard should render or onLoginSuccess will navigate');
 
-          // Ensure authenticated users land on the dashboard (especially after Google OAuth redirect)
+          // Only redirect to dashboard if user just logged in (not on every auth state change)
           try {
             const isGoogleUser = fbUser.providerData?.some(p => p.providerId === 'google.com') ?? false;
-            const shouldGoDashboard = isGoogleUser || !!fbUser.email || !!fbUser.uid;
+            const justLoggedIn = localStorage.getItem('google_signin_completed') === 'true' || localStorage.getItem('post_login_target') === 'dashboard';
             
-            if (shouldGoDashboard && currentPage !== 'dashboard' && currentPage !== 'profile' && currentPage !== 'admin') {
-              console.log('🎯 Auth listener forcing navigation to dashboard (current page:', currentPage, ')');
+            // Only auto-navigate to dashboard if:
+            // 1. User just completed Google sign-in OR
+            // 2. User is on home/signup page (not already navigating somewhere else)
+            if (justLoggedIn || (currentPage === 'home' || currentPage === 'signup')) {
+              console.log('🎯 Auth listener navigating to dashboard (just logged in or on landing page)');
               setTimeout(() => setCurrentPage('dashboard'), 100); // Slight delay to ensure state is ready
               try {
                 if (window.location.pathname !== '/dashboard') {
                   window.history.replaceState({}, '', '/dashboard');
                 }
+              } catch (_) {}
+              // Clear the flags so we don't keep redirecting
+              try {
+                localStorage.removeItem('google_signin_completed');
+                localStorage.removeItem('post_login_target');
               } catch (_) {}
             }
           } catch (_) {}
