@@ -241,6 +241,24 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
     }
   }, [user, mode, text, negativePrompt, engine, selectedVoice, selectedLanguage, selectedElevenlabsVoice, selectedElevenlabsLanguage, songGenre, songBpm, songMood, songKey, songStyle, songStability, songSimilarityBoost, songUseSpeakerBoost, songModel]);
 
+  // Auto-play audio when generated
+  useEffect(() => {
+    if (currentAudio && mainAudioRef.current) {
+      console.log('🎵 New audio generated, attempting auto-play');
+      const playPromise = mainAudioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log('✅ Audio auto-play started successfully');
+          })
+          .catch((error) => {
+            console.warn('⚠️ Auto-play failed (browser may require user interaction):', error);
+            // This is expected in some browsers - user needs to click play button
+          });
+      }
+    }
+  }, [currentAudio]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!isEngineMenuOpen) return;
@@ -477,6 +495,14 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
 
       const base64 = await convertBlobToBase64(blob);
       const url = `data:${blob.type || 'audio/mpeg'};base64,${base64}`;
+      
+      console.log('🎵 Audio generated successfully:', {
+        blobSize: blob.size,
+        blobType: blob.type,
+        urlLength: url.length,
+        base64Length: base64.length
+      });
+      
       const voiceLabel = engine === 'elevenlabs' 
         ? (mode === 'clone' ? `Clone (${detectedGender})` : (mode === 'song' ? `${selectedElevenlabsVoice} (Song)` : selectedElevenlabsVoice))
         : (mode === 'clone' ? `Clone (${detectedGender})` : selectedVoice);
@@ -494,20 +520,26 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
         mimeType: blob.type || 'audio/mpeg'
       };
 
+      console.log('🎵 Setting current audio and adding to list');
       setCurrentAudio(newAudio);
       setAudioList(prev => [newAudio, ...prev].slice(0, 20));
+      
+      console.log('🎵 Calling onAudioGenerated callback');
       onAudioGenerated(newAudio);
       
       // Save to Firebase if user is logged in
       if (user?.id) {
         try {
+          console.log('🎵 Saving audio to Firebase for user:', user.id);
           await saveAudioToFirebase(newAudio, user.id);
+          console.log('✅ Audio saved to Firebase successfully');
         } catch (err) {
-          console.error('Failed to save audio to Firebase:', err);
+          console.error('❌ Failed to save audio to Firebase:', err);
           // Continue anyway - audio is still playable
         }
       }
       
+      console.log('✅ Audio generation complete!');
       onCreditUsed();
     } catch (e: any) {
       setError(e.message || "Synthesis failure.");
@@ -1010,11 +1042,40 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                        <audio 
                          ref={mainAudioRef} 
                          src={currentAudio.url} 
-                         onEnded={() => setIsPlaying(false)} 
-                         onPlay={() => setIsPlaying(true)} 
-                         onPause={() => setIsPlaying(false)}
-                         onLoadedMetadata={(e) => setAudioDuration(e.currentTarget.duration)}
+                         onEnded={() => {
+                           console.log('🎵 Audio playback ended');
+                           setIsPlaying(false);
+                         }} 
+                         onPlay={() => {
+                           console.log('🎵 Audio playback started');
+                           setIsPlaying(true);
+                         }} 
+                         onPause={() => {
+                           console.log('🎵 Audio playback paused');
+                           setIsPlaying(false);
+                         }}
+                         onLoadedMetadata={(e) => {
+                           console.log('🎵 Audio metadata loaded, duration:', e.currentTarget.duration);
+                           setAudioDuration(e.currentTarget.duration);
+                         }}
                          onTimeUpdate={(e) => setAudioProgress(e.currentTarget.currentTime)}
+                         onError={(e) => {
+                           console.error('❌ Audio playback error:', e);
+                           const audioEl = e.currentTarget;
+                           console.error('Audio error details:', {
+                             error: audioEl.error,
+                             code: audioEl.error?.code,
+                             message: audioEl.error?.message,
+                             src: audioEl.src,
+                             currentSrc: audioEl.currentSrc,
+                             networkState: audioEl.networkState,
+                             readyState: audioEl.readyState
+                           });
+                         }}
+                         onCanPlay={() => console.log('✅ Audio can play')}
+                         onCanPlayThrough={() => console.log('✅ Audio can play through')}
+                         onLoadStart={() => console.log('🎵 Audio load started')}
+                         onLoadedData={() => console.log('🎵 Audio data loaded')}
                          className="hidden" 
                        />
                     </div>
