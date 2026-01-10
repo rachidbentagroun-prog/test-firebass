@@ -384,7 +384,9 @@ const App: React.FC = () => {
             plan: isQuickSuperAdmin ? 'premium' : 'free',
             credits: isQuickSuperAdmin ? 99999 : 3,
             isRegistered: true,
-            isVerified: isQuickSuperAdmin || !!fbUser.emailVerified,
+            // For Google Sign-In, the email is always verified by Google
+            // So we can safely set isVerified to true for Google-signed-in users
+            isVerified: isQuickSuperAdmin || !!fbUser.emailVerified || (fbUser.providerData?.some(p => p.providerId === 'google.com') ? true : false),
             gallery: [],
           };
 
@@ -407,6 +409,7 @@ const App: React.FC = () => {
               }
 
               const isSuperAdmin = fbUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+              const isGoogleUser = fbUser.providerData?.some(p => p.providerId === 'google.com') ?? false;
 
               const updatedUser: User = {
                 id: fbUser.uid,
@@ -416,8 +419,9 @@ const App: React.FC = () => {
                 plan: isSuperAdmin ? 'premium' : (profile?.plan || 'free'),
                 credits: isSuperAdmin ? 99999 : (profile?.credits ?? 3),
                 isRegistered: true,
-                // Auto-verify the super-admin email so they can access the Admin Dashboard without an email verification
-                isVerified: isSuperAdmin || !!fbUser.emailVerified || !!profile?.verified,
+                // Auto-verify Google Sign-In users (Google email is always verified)
+                // Also verify super-admin and users with confirmed emails or profiles marked as verified
+                isVerified: isSuperAdmin || isGoogleUser || !!fbUser.emailVerified || !!profile?.verified,
                 gallery: [],
                 audioGallery: [],
               };
@@ -1016,50 +1020,57 @@ const App: React.FC = () => {
         isOpen={isAuthModalOpen} 
         onClose={() => { setIsAuthModalOpen(false); setAuthPrefillEmail(undefined); }}
         onLoginSuccess={() => { 
+          console.log('✅ onLoginSuccess called - closing modal and navigating to dashboard');
           setIsAuthModalOpen(false); 
           setAuthPrefillEmail(undefined); 
           
-          // Check if we should navigate to a specific page after login
-          try {
-            const params = new URLSearchParams(window.location.search);
-            const gotoParam = params.get('goto');
-            const verifiedParam = params.get('verified');
+          // Navigate to dashboard immediately
+          // The auth listener should have already set the user by now (we waited 500ms in AuthModal)
+          setTimeout(() => {
+            console.log('✅ Navigating to dashboard');
             
-            if (gotoParam === 'dashboard' || verifiedParam === '1') {
-              setCurrentPage('dashboard');
+            // Check if we should navigate to a specific page after login
+            try {
+              const params = new URLSearchParams(window.location.search);
+              const gotoParam = params.get('goto');
+              const verifiedParam = params.get('verified');
               
-              // Clean up pending verification from localStorage
-              if (verifiedParam === '1') {
-                try {
-                  localStorage.removeItem('pending_verification');
-                } catch (e) {
-                  console.warn('Failed to clear pending_verification', e);
+              if (gotoParam === 'dashboard' || verifiedParam === '1') {
+                setCurrentPage('dashboard');
+                
+                // Clean up pending verification from localStorage
+                if (verifiedParam === '1') {
+                  try {
+                    localStorage.removeItem('pending_verification');
+                  } catch (e) {
+                    console.warn('Failed to clear pending_verification', e);
+                  }
+                  
+                  // Force reload Firebase auth state to ensure emailVerified is up to date
+                  if (auth.currentUser) {
+                    auth.currentUser.reload().then(() => {
+                      console.log('Auth state reloaded after login following verification');
+                    }).catch((err) => {
+                      console.warn('Failed to reload auth state after login', err);
+                    });
+                  }
                 }
                 
-                // Force reload Firebase auth state to ensure emailVerified is up to date
-                if (auth.currentUser) {
-                  auth.currentUser.reload().then(() => {
-                    console.log('Auth state reloaded after login following verification');
-                  }).catch((err) => {
-                    console.warn('Failed to reload auth state after login', err);
-                  });
-                }
+                // Clean up URL params
+                params.delete('goto');
+                params.delete('openAuth');
+                params.delete('email');
+                params.delete('verified');
+                const search = params.toString();
+                const newUrl = search ? `${window.location.pathname}?${search}` : window.location.pathname;
+                window.history.replaceState({}, '', newUrl);
+              } else {
+                setCurrentPage('dashboard');
               }
-              
-              // Clean up URL params
-              params.delete('goto');
-              params.delete('openAuth');
-              params.delete('email');
-              params.delete('verified');
-              const search = params.toString();
-              const newUrl = search ? `${window.location.pathname}?${search}` : window.location.pathname;
-              window.history.replaceState({}, '', newUrl);
-            } else {
+            } catch (e) {
               setCurrentPage('dashboard');
             }
-          } catch (e) {
-            setCurrentPage('dashboard');
-          }
+          }, 0);
         }}
         initialEmail={authPrefillEmail}
       />
