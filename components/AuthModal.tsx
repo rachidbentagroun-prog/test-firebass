@@ -36,14 +36,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     try {
       const res = await signInWithGoogle();
       if (res?.error) {
-        setError('Google sign-in failed: ' + res.error);
+        console.error('GOOGLE SIGN-IN FAILED:', res.error);
+        setError(res.error);
         return;
       }
       // Successful sign-in
       onLoginSuccess();
       onClose();
     } catch (err: any) {
-      setError(err?.message || String(err));
+      console.error('Google sign-in exception:', err);
+      const errorMsg = err?.message || String(err);
+      setError(errorMsg);
     } finally {
       setIsGoogleLoading(false);
     }

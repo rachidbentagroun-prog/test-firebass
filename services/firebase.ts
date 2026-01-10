@@ -84,6 +84,15 @@ export async function signUpWithFirebase(email: string, password: string, displa
 export async function signInWithGoogle() {
   try {
     const provider = new GoogleAuthProvider();
+    // Set scopes for Google Sign-In
+    provider.addScope('profile');
+    provider.addScope('email');
+    
+    // Set custom parameters to force account selection
+    provider.setCustomParameters({
+      'prompt': 'select_account'
+    });
+
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
     const isNew = (result as any)?.additionalUserInfo?.isNewUser ?? false;
@@ -99,8 +108,21 @@ export async function signInWithGoogle() {
 
     return { user, isNew, result };
   } catch (err: any) {
-    console.warn('Google sign-in failed:', err);
-    return { error: err?.message || String(err) };
+    console.warn('Google sign-in error:', err);
+    // Return more helpful error messages
+    let errorMessage = err?.message || String(err);
+    
+    if (err?.code === 'auth/popup-blocked') {
+      errorMessage = 'Sign-in popup was blocked. Please allow popups for this site.';
+    } else if (err?.code === 'auth/popup-closed-by-user') {
+      errorMessage = 'Sign-in popup was closed. Please try again.';
+    } else if (err?.code === 'auth/internal-error') {
+      errorMessage = 'Authentication service error. Please ensure Google Sign-In is properly configured in Firebase Console.';
+    } else if (err?.code === 'auth/operation-not-supported-in-this-environment') {
+      errorMessage = 'Sign-in is not supported in this environment.';
+    }
+    
+    return { error: errorMessage };
   }
 }
 
