@@ -44,6 +44,7 @@ export async function generateSpeechWithElevenLabs(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg, audio/*, */*',
       },
       body: JSON.stringify({
         text,
@@ -52,18 +53,36 @@ export async function generateSpeechWithElevenLabs(
       }),
     });
 
+    console.log('📥 Response received:', { 
+      status: response.status, 
+      contentType: response.headers.get('content-type'),
+      contentLength: response.headers.get('content-length')
+    });
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: response.statusText }));
-      console.error('❌ API route error:', { status: response.status, error: errorData });
-      throw new Error(errorData.error || `API failed with status ${response.status}`);
+      const contentType = response.headers.get('content-type');
+      if (contentType?.includes('application/json')) {
+        const errorData = await response.json();
+        console.error('❌ API route error:', { status: response.status, error: errorData });
+        throw new Error(errorData.error || `API failed with status ${response.status}`);
+      } else {
+        const errorText = await response.text();
+        console.error('❌ API route error:', { status: response.status, error: errorText });
+        throw new Error(errorText || `API failed with status ${response.status}`);
+      }
     }
 
-    console.log('📥 Receiving audio data...');
+    console.log('📥 Converting response to blob...');
     const blob = await response.blob();
     console.log('✅ Blob created:', { size: blob.size, type: blob.type });
     
     if (blob.size === 0) {
+      console.error('❌ Received empty audio blob');
       throw new Error('Received empty audio blob from server');
+    }
+    
+    if (blob.size < 100) {
+      console.warn('⚠️ Audio blob suspiciously small:', blob.size, 'bytes');
     }
     
     return blob;
