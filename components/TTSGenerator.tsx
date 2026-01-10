@@ -257,7 +257,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
     }
   }, [user, mode, text, negativePrompt, engine, selectedVoice, selectedLanguage, selectedElevenlabsVoice, selectedElevenlabsLanguage, songGenre, songBpm, songMood, songKey, songStyle, songStability, songSimilarityBoost, songUseSpeakerBoost, songModel]);
 
-  // Auto-play audio when generated
+  // Auto-play audio when generated and cleanup old Object URLs
   useEffect(() => {
     if (currentAudio && mainAudioRef.current) {
       console.log('🎵 New audio generated, attempting auto-play');
@@ -276,6 +276,18 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
           });
       }
     }
+    
+    // Cleanup: revoke old object URLs when component unmounts or audio changes
+    return () => {
+      const audioToCleanup = currentAudio;
+      if (audioToCleanup?.url && audioToCleanup.url.startsWith('blob:')) {
+        // Delay cleanup to allow download to complete if in progress
+        setTimeout(() => {
+          console.log('🧹 Cleaning up Object URL');
+          URL.revokeObjectURL(audioToCleanup.url);
+        }, 1000);
+      }
+    };
   }, [currentAudio]);
 
 
@@ -543,13 +555,17 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
         }
       }
 
-      // Create base64 data URL for playback and download
+      // Create Object URL for playback (better performance and compatibility)
+      const objectUrl = URL.createObjectURL(blob);
+      
+      // Also create base64 for storage/download
       const base64 = await convertBlobToBase64(blob);
       const base64Url = `data:${blob.type || 'audio/mpeg'};base64,${base64}`;
       
       console.log('🎵 Audio generated successfully:', {
         blobSize: blob.size,
         blobType: blob.type,
+        objectUrl: objectUrl.substring(0, 50) + '...',
         base64Length: base64.length,
         hasBlob: !!blob
       });
@@ -560,12 +576,12 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
       
       const newAudio: GeneratedAudio = {
         id: Date.now().toString(),
-        url: base64Url, // Use base64 data URL for playback and download
+        url: objectUrl, // Use Object URL for Plyr playback
         text: displayScript,
         voice: voiceLabel,
         createdAt: Date.now(),
         blob,
-        base64Audio: base64Url, // Keep base64 for storage/download
+        base64Audio: base64Url, // Keep base64 for storage and download
         isCloned: mode === 'clone',
         engine,
         mimeType: blob.type || 'audio/mpeg'
@@ -1107,8 +1123,8 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                        
                        <div className="mt-6 flex items-center gap-4">
                           <a 
-                            href={currentAudio.url} 
-                            download={`imaginai-audio-${currentAudio.id}.mp3`} 
+                            href={currentAudio.base64Audio} 
+                            download={`imaginai-audio-${currentAudio.id}.${currentAudio.mimeType?.includes('wav') ? 'wav' : 'mp3'}`} 
                             className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-white transition-all"
                           >
                              <Download className="w-6 h-6" />
