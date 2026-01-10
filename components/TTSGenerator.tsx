@@ -262,14 +262,6 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
           });
       }
     }
-    
-    // Cleanup: revoke old object URLs when currentAudio changes
-    return () => {
-      if (currentAudio?.url && currentAudio.url.startsWith('blob:')) {
-        console.log('🧹 Cleaning up old object URL');
-        URL.revokeObjectURL(currentAudio.url);
-      }
-    };
   }, [currentAudio]);
 
 
@@ -507,15 +499,13 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
         }
       }
 
-      // Create both Object URL and base64 for compatibility
-      const objectUrl = URL.createObjectURL(blob);
+      // Create base64 data URL for playback and download
       const base64 = await convertBlobToBase64(blob);
       const base64Url = `data:${blob.type || 'audio/mpeg'};base64,${base64}`;
       
       console.log('🎵 Audio generated successfully:', {
         blobSize: blob.size,
         blobType: blob.type,
-        objectUrlLength: objectUrl.length,
         base64Length: base64.length,
         hasBlob: !!blob
       });
@@ -526,7 +516,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
       
       const newAudio: GeneratedAudio = {
         id: Date.now().toString(),
-        url: objectUrl, // Use Object URL for better performance and compatibility
+        url: base64Url, // Use base64 data URL for playback and download
         text: displayScript,
         voice: voiceLabel,
         createdAt: Date.now(),
@@ -1071,7 +1061,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                        
                        <div className="mt-6 flex items-center gap-4">
                           <a 
-                            href={currentAudio.base64Audio || currentAudio.url} 
+                            href={currentAudio.url} 
                             download={`imaginai-audio-${currentAudio.id}.mp3`} 
                             className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-white transition-all"
                           >
