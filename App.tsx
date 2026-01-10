@@ -426,6 +426,15 @@ const App: React.FC = () => {
           console.log('   User will be visible in Navbar and components');
           console.log('   Next: Dashboard should render or onLoginSuccess will navigate');
 
+          // Ensure authenticated users land on the dashboard (especially after Google OAuth redirect)
+          try {
+            const isGoogleUser = fbUser.providerData?.some(p => p.providerId === 'google.com') ?? false;
+            const shouldGoDashboard = isGoogleUser || !!fbUser.email || !!fbUser.uid;
+            if (shouldGoDashboard && currentPage !== 'dashboard') {
+              setCurrentPage('dashboard');
+            }
+          } catch (_) {}
+
           // Perform heavier profile/entitlements fetches in the background and update the user when ready
           (async () => {
             try {
