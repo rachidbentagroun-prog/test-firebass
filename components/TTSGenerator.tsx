@@ -245,6 +245,9 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
   useEffect(() => {
     if (currentAudio && mainAudioRef.current) {
       console.log('🎵 New audio generated, attempting auto-play');
+      console.log('Audio URL:', currentAudio.url);
+      console.log('Audio element src:', mainAudioRef.current.src);
+      
       const playPromise = mainAudioRef.current.play();
       if (playPromise !== undefined) {
         playPromise
@@ -257,7 +260,16 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
           });
       }
     }
+    
+    // Cleanup: revoke old object URLs when currentAudio changes
+    return () => {
+      if (currentAudio?.url && currentAudio.url.startsWith('blob:')) {
+        console.log('🧹 Cleaning up old object URL');
+        URL.revokeObjectURL(currentAudio.url);
+      }
+    };
   }, [currentAudio]);
+
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -493,14 +505,17 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
         }
       }
 
+      // Create both Object URL and base64 for compatibility
+      const objectUrl = URL.createObjectURL(blob);
       const base64 = await convertBlobToBase64(blob);
-      const url = `data:${blob.type || 'audio/mpeg'};base64,${base64}`;
+      const base64Url = `data:${blob.type || 'audio/mpeg'};base64,${base64}`;
       
       console.log('🎵 Audio generated successfully:', {
         blobSize: blob.size,
         blobType: blob.type,
-        urlLength: url.length,
-        base64Length: base64.length
+        objectUrlLength: objectUrl.length,
+        base64Length: base64.length,
+        hasBlob: !!blob
       });
       
       const voiceLabel = engine === 'elevenlabs' 
@@ -509,12 +524,12 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
       
       const newAudio: GeneratedAudio = {
         id: Date.now().toString(),
-        url,
+        url: objectUrl, // Use Object URL for better performance and compatibility
         text: displayScript,
         voice: voiceLabel,
         createdAt: Date.now(),
         blob,
-        base64Audio: url,
+        base64Audio: base64Url, // Keep base64 for storage/download
         isCloned: mode === 'clone',
         engine,
         mimeType: blob.type || 'audio/mpeg'
@@ -1009,10 +1024,30 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                           <h4 className="text-xl font-black text-white italic uppercase tracking-tighter">Voice Persona: {currentAudio.voice}</h4>
                        </div>
                        <div className="mt-10 flex items-center gap-6">
-                          <button onClick={() => isPlaying ? mainAudioRef.current?.pause() : mainAudioRef.current?.play()} className="w-20 h-20 bg-white text-dark-950 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform">
+                          <button 
+                            onClick={() => {
+                              console.log('🎵 Play button clicked, isPlaying:', isPlaying);
+                              if (mainAudioRef.current) {
+                                if (isPlaying) {
+                                  mainAudioRef.current.pause();
+                                } else {
+                                  mainAudioRef.current.play().catch(err => {
+                                    console.error('❌ Play failed:', err);
+                                  });
+                                }
+                              } else {
+                                console.error('❌ Audio ref is null');
+                              }
+                            }} 
+                            className="w-20 h-20 bg-white text-dark-950 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform"
+                          >
                              {isPlaying ? <Pause className="w-8 h-8 fill-dark-950" /> : <Play className="w-8 h-8 fill-dark-950 ml-1" />}
                           </button>
-                          <a href={currentAudio.url} download={`imaginai-audio-${currentAudio.id}.wav`} className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-white transition-all">
+                          <a 
+                            href={currentAudio.base64Audio || currentAudio.url} 
+                            download={`imaginai-audio-${currentAudio.id}.mp3`} 
+                            className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-white transition-all"
+                          >
                              <Download className="w-6 h-6" />
                           </a>
                        </div>
