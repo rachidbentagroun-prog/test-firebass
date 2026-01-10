@@ -1041,13 +1041,36 @@ const App: React.FC = () => {
         onClose={() => { setIsAuthModalOpen(false); setAuthPrefillEmail(undefined); }}
         onLoginSuccess={() => { 
           console.log('✅ onLoginSuccess called - closing modal and navigating to dashboard');
+          console.log('   Current auth.currentUser:', auth.currentUser ? `${auth.currentUser.email}` : 'null');
+          
           setIsAuthModalOpen(false); 
           setAuthPrefillEmail(undefined); 
           
           // Navigate to dashboard immediately
-          // The auth listener should have already set the user by now (we waited 500ms in AuthModal)
+          // The auth listener should have already set the user by now (we waited 1000ms in AuthModal)
           setTimeout(() => {
-            console.log('✅ Navigating to dashboard');
+            console.log('✅ About to navigate to dashboard');
+            console.log('   Auth.currentUser:', auth.currentUser ? auth.currentUser.email : 'null');
+            console.log('   React user state:', user ? user.email : 'null');
+            
+            // If auth listener hasn't fired yet, manually set the user
+            if (!user && auth.currentUser) {
+              console.warn('⚠️ Auth listener may not have fired - manually setting user from auth.currentUser');
+              const fbUser = auth.currentUser;
+              const quickUser: User = {
+                id: fbUser.uid,
+                name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Creator',
+                email: fbUser.email || '',
+                role: 'user',
+                plan: 'free',
+                credits: 3,
+                isRegistered: true,
+                isVerified: fbUser.emailVerified || (fbUser.providerData?.some(p => p.providerId === 'google.com') ? true : false),
+                gallery: [],
+              };
+              setUser(quickUser);
+              console.log('✅ Manually set user:', quickUser.email);
+            }
             
             // Check if we should navigate to a specific page after login
             try {
