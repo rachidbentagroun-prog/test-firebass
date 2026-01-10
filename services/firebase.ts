@@ -83,6 +83,13 @@ export async function signUpWithFirebase(email: string, password: string, displa
 // Sign in or sign up using Google OAuth provider (popup)
 export async function signInWithGoogle() {
   try {
+    console.log('🔵 Initializing Google Sign-In...');
+    console.log('🔵 Firebase Config:', {
+      projectId: firebaseConfig.projectId,
+      authDomain: firebaseConfig.authDomain,
+      apiKey: firebaseConfig.apiKey?.substring(0, 10) + '...'
+    });
+    
     const provider = new GoogleAuthProvider();
     // Set scopes for Google Sign-In
     provider.addScope('profile');
@@ -93,9 +100,12 @@ export async function signInWithGoogle() {
       'prompt': 'select_account'
     });
 
+    console.log('🔵 Attempting popup sign-in...');
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
     const isNew = (result as any)?.additionalUserInfo?.isNewUser ?? false;
+
+    console.log('✅ Google Sign-In successful!', { userId: user?.uid });
 
     // If this is a newly created user via Google, grant default entitlements and mark verified
     if (isNew && user?.uid) {
@@ -108,7 +118,13 @@ export async function signInWithGoogle() {
 
     return { user, isNew, result };
   } catch (err: any) {
-    console.warn('Google sign-in error:', err);
+    console.error('❌ Google sign-in error details:', {
+      code: err?.code,
+      message: err?.message,
+      customData: err?.customData,
+      fullError: err
+    });
+    
     // Return more helpful error messages
     let errorMessage = err?.message || String(err);
     
@@ -117,12 +133,16 @@ export async function signInWithGoogle() {
     } else if (err?.code === 'auth/popup-closed-by-user') {
       errorMessage = 'Sign-in popup was closed. Please try again.';
     } else if (err?.code === 'auth/internal-error') {
-      errorMessage = 'Authentication service error. Please ensure Google Sign-In is properly configured in Firebase Console.';
+      errorMessage = 'Firebase configuration error. Check: 1) Google Sign-in enabled in Firebase Console 2) Authorized domains include your current domain 3) OAuth credentials configured';
     } else if (err?.code === 'auth/operation-not-supported-in-this-environment') {
-      errorMessage = 'Sign-in is not supported in this environment.';
+      errorMessage = 'Sign-in is not supported in this environment. Try a different browser or disable extensions.';
+    } else if (err?.code === 'auth/network-request-failed') {
+      errorMessage = 'Network error. Please check your internet connection.';
+    } else if (err?.code === 'auth/invalid-api-key') {
+      errorMessage = 'Invalid Firebase API Key. Check your Firebase configuration.';
     }
     
-    return { error: errorMessage };
+    return { error: errorMessage, code: err?.code };
   }
 }
 
