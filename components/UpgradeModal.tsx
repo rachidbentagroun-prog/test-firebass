@@ -139,7 +139,12 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onS
                 </ul>
 
                 <button
-                  onClick={() => onSelectPlan(plan)}
+                  onClick={() => {
+                    const message = encodeURIComponent(
+                      `Hi! I'm interested in subscribing to the ${plan.name} (${plan.price}/mo with ${plan.credits} credits). Can you help me with the subscription process?`
+                    );
+                    window.open(`https://wa.me/212630961392?text=${message}`, '_blank');
+                  }}
                   className={`w-full py-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
                     plan.recommended
                       ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25'
@@ -147,7 +152,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onS
                   }`}
                 >
                   Subscribe Now
-                  {plan.buttonUrl && <ExternalLink className="w-4 h-4" />}
+                  <ExternalLink className="w-4 h-4" />
                 </button>
               </div>
             ))}
