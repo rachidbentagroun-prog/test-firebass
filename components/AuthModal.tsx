@@ -19,6 +19,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  // Log auth modal open/close
+  useEffect(() => {
+    if (isOpen) {
+      console.log('🟦 AuthModal opened');
+    } else {
+      console.log('🟩 AuthModal closed');
+    }
+  }, [isOpen]);
+
   // Prefill email if we receive an initialEmail and the modal was just opened
   useEffect(() => {
     if (isOpen && initialEmail && !email) {
@@ -34,6 +43,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     setIsGoogleLoading(true);
     setError(null);
     try {
+      console.log('🔵 handleGoogleSignIn: Starting Google sign-in process');
       const res = await signInWithGoogle();
       if (res?.error) {
         console.error('GOOGLE SIGN-IN FAILED:', res.error);
@@ -44,9 +54,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
       
       // Wait a brief moment for the auth state listener to process the new user
       // This ensures the onAuthStateChanged listener has time to set the user in App.tsx
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Increased from 500ms to 1000ms to ensure auth state is fully processed
+      console.log('⏳ Waiting 1000ms for auth listener to fire...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      console.log('✅ Calling onLoginSuccess callback');
+      console.log('✅ Calling onLoginSuccess callback - auth listener should have fired by now');
       // Successful sign-in
       onLoginSuccess();
       onClose();
