@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, applyActionCode, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, applyActionCode, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore, doc, setDoc, serverTimestamp, collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { getAnalytics, logEvent as gaLogEvent, setUserId as gaSetUserId, setUserProperties as gaSetUserProperties } from 'firebase/analytics';
 import { GeneratedAudio, GeneratedImage, GeneratedVideo } from '../types';
@@ -31,6 +31,14 @@ export const analytics = typeof window !== 'undefined'
       try { return getAnalytics(app); } catch { return undefined; }
     })()
   : undefined;
+
+// Ensure Firebase Auth uses durable local persistence in the browser
+try {
+  // Do not await at module top-level; log asynchronously
+  setPersistence(auth, browserLocalPersistence)
+    .then(() => console.log('🔒 Firebase Auth persistence set to browserLocalPersistence'))
+    .catch(() => {/* ignore */});
+} catch {/* ignore */}
 
 export function logAnalyticsEvent(name: string, params?: Record<string, any>) {
   try {
@@ -94,6 +102,13 @@ export async function signUpWithFirebase(email: string, password: string, displa
 export async function signInWithGoogle() {
   try {
     console.log('🔵 Initializing Google Sign-In...');
+        // Enforce local persistence before initiating sign-in (important for production redirects)
+        try {
+          await setPersistence(auth, browserLocalPersistence);
+          console.log('🔒 Persistence confirmed before Google Sign-In');
+        } catch (perErr) {
+          console.warn('Failed to set persistence before Google Sign-In', perErr);
+        }
     console.log('🔵 Firebase Config:', {
       projectId: firebaseConfig.projectId,
       authDomain: firebaseConfig.authDomain,

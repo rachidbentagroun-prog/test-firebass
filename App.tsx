@@ -297,8 +297,8 @@ const App: React.FC = () => {
         
         if (result?.user) {
           console.log('✅ Google Sign-In redirect successful! User:', result.user.email);
-          // Don't navigate yet - let onAuthStateChanged fire and set the user
-          // Then navigate to dashboard in the auth listener
+          // Immediately navigate to dashboard to avoid landing back on login/signup
+          setCurrentPage('dashboard');
         } else if (result?.error) {
           console.error('❌ Google Sign-In redirect error:', result.error);
         } else {
