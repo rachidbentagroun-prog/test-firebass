@@ -320,49 +320,33 @@ const App: React.FC = () => {
         
         if (result?.user) {
           console.log('✅ Google Sign-In redirect successful! User:', result.user.email);
-          console.log('🎯 FORCING NAVIGATION TO DASHBOARD after Google OAuth');
+          console.log('🎯 Navigating to dashboard after Google OAuth redirect');
 
-          // Set a lightweight user immediately to avoid auth modal flicker
-          try {
-            const fbUser = result.user;
-            const isQuickSuperAdmin = (fbUser.email || '').toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
-            const quickUser: User = {
-              id: fbUser.uid,
-              name: (fbUser.displayName || fbUser.email?.split('@')[0] || 'Creator') as string,
-              email: fbUser.email || '',
-              role: isQuickSuperAdmin ? 'super_admin' : 'user',
-              plan: isQuickSuperAdmin ? 'premium' : 'free',
-              credits: isQuickSuperAdmin ? 99999 : 3,
-              isRegistered: true,
-              isVerified: isQuickSuperAdmin || !!fbUser.emailVerified || (fbUser.providerData?.some(p => p.providerId === 'google.com') ? true : false),
-              gallery: [],
-            };
-            setUser(quickUser);
-          } catch (e) {
-            console.warn('Failed to set quick user from redirect result', e);
-          }
-
-          // Immediately navigate to dashboard to avoid landing back on login/signup
+          // Set flag to force dashboard navigation after auth state settles
           try { 
             localStorage.setItem('post_login_target', 'dashboard'); 
             localStorage.setItem('google_signin_completed', 'true');
           } catch {}
 
-          // Force page state to dashboard
+          // Force page state to dashboard immediately
           setCurrentPage('dashboard');
 
-          // Ensure URL reflects dashboard path in case route state was home
+          // Update URL to dashboard
           try {
             const newPath = '/dashboard';
             if (window.location.pathname !== newPath) {
-              console.log('🔄 Replacing URL from', window.location.pathname, 'to', newPath);
+              console.log('🔄 Updating URL to', newPath);
               window.history.replaceState({}, '', newPath);
             }
-          } catch (e) { console.warn('Failed to replace URL after redirect', e); }
+          } catch (e) { 
+            console.warn('Failed to update URL after redirect', e); 
+          }
+
+          // onAuthStateChanged will fire shortly and complete the user setup
         } else if (result?.error) {
           console.error('❌ Google Sign-In redirect error:', result.error);
         } else {
-          console.log('ℹ️ No redirect result found (first page load or no pending redirect)');
+          console.log('ℹ️ No redirect result (first load or no pending redirect)');
         }
       } catch (err) {
         console.warn('Redirect result handler error:', err);

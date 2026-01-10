@@ -98,17 +98,19 @@ export async function signUpWithFirebase(email: string, password: string, displa
   return { userCredential, emailSent, sendError };
 }
 
-// Sign in or sign up using Google OAuth provider (popup with fallback to redirect)
+// Sign in or sign up using Google OAuth provider (popup preferred, redirect as fallback)
 export async function signInWithGoogle() {
   try {
     console.log('🔵 Initializing Google Sign-In...');
-        // Enforce local persistence before initiating sign-in (important for production redirects)
-        try {
-          await setPersistence(auth, browserLocalPersistence);
-          console.log('🔒 Persistence confirmed before Google Sign-In');
-        } catch (perErr) {
-          console.warn('Failed to set persistence before Google Sign-In', perErr);
-        }
+    
+    // Enforce local persistence before initiating sign-in (critical for production)
+    try {
+      await setPersistence(auth, browserLocalPersistence);
+      console.log('🔒 Persistence confirmed before Google Sign-In');
+    } catch (perErr) {
+      console.warn('⚠️ Failed to set persistence before Google Sign-In', perErr);
+    }
+    
     console.log('🔵 Firebase Config:', {
       projectId: firebaseConfig.projectId,
       authDomain: firebaseConfig.authDomain,
@@ -119,45 +121,26 @@ export async function signInWithGoogle() {
     });
     
     const provider = new GoogleAuthProvider();
-    // Set scopes for Google Sign-In
     provider.addScope('profile');
     provider.addScope('email');
-    
-    // Set custom parameters to force account selection
     provider.setCustomParameters({
       'prompt': 'select_account'
     });
 
-    console.log('🔵 Attempting popup sign-in...');
-    let result;
+    console.log('🔵 Attempting popup sign-in (preferred method)...');
     
-    try {
-      // Try popup first
-      result = await signInWithPopup(auth, provider);
-      console.log('✅ Popup sign-in successful!', { uid: result.user?.uid, email: result.user?.email });
-      
-      // Force reload to ensure auth state is synchronized
-      if (auth.currentUser) {
-        console.log('🔵 Reloading auth state to ensure synchronization...');
-        await auth.currentUser.reload();
-        console.log('✅ Auth state reloaded, user should now be recognized');
-      }
-    } catch (popupErr: any) {
-      console.warn('⚠️ Popup sign-in failed, trying redirect method...', popupErr?.code, popupErr?.message);
-      
-      // If popup fails, try redirect
-      if (popupErr?.code === 'auth/popup-blocked' || 
-          popupErr?.code === 'auth/popup-closed-by-user' ||
-          popupErr?.code === 'auth/internal-error') {
-        console.log('🔵 Falling back to redirect sign-in...');
-        await signInWithRedirect(auth, provider);
-        
-        // Wait a moment for redirect
-        return { user: null, isNew: false, redirecting: true };
-      }
-      
-      // If not a popup issue, re-throw
-      throw popupErr;
+    // Try popup first - this is the preferred method for production
+    const result = await signInWithPopup(auth, provider);
+    console.log('✅ Popup sign-in successful!', { 
+      uid: result.user?.uid?.substring(0, 8) + '...', 
+      email: result.user?.email 
+    });
+    
+    // Reload user to ensure fresh auth state
+    if (auth.currentUser) {
+      console.log('🔵 Reloading auth state to ensure synchronization...');
+      await auth.currentUser.reload();
+      console.log('✅ Auth state reloaded successfully');
     }
 
     const user = result.user;
