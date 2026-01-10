@@ -352,6 +352,7 @@ const App: React.FC = () => {
 
       const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
         try {
+          console.log('🔵 onAuthStateChanged fired! User:', fbUser?.uid ? `${fbUser.uid.substring(0, 8)}...` : 'null');
           if (timeoutId) { clearTimeout(timeoutId); timeoutId = undefined; }
 
           if (!fbUser) {

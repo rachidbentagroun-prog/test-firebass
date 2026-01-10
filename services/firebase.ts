@@ -107,7 +107,14 @@ export async function signInWithGoogle() {
     try {
       // Try popup first
       result = await signInWithPopup(auth, provider);
-      console.log('✅ Popup sign-in successful!');
+      console.log('✅ Popup sign-in successful!', { uid: result.user?.uid });
+      
+      // Force reload to ensure auth state is synchronized
+      if (auth.currentUser) {
+        console.log('🔵 Reloading auth state to ensure synchronization...');
+        await auth.currentUser.reload();
+        console.log('✅ Auth state reloaded, user should now be recognized');
+      }
     } catch (popupErr: any) {
       console.warn('⚠️ Popup sign-in failed, trying redirect method...', popupErr?.code);
       

@@ -40,6 +40,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         setError(res.error);
         return;
       }
+      console.log('✅ Google Sign-In completed, waiting for auth state to propagate...');
+      
+      // Wait a brief moment for the auth state listener to process the new user
+      // This ensures the onAuthStateChanged listener has time to set the user in App.tsx
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      console.log('✅ Calling onLoginSuccess callback');
       // Successful sign-in
       onLoginSuccess();
       onClose();
