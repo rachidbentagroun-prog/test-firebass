@@ -38,12 +38,5 @@
         }
       ]
     }
-  ],
-  "redirects": [
-    {
-      "source": "/(.*)$",
-      "destination": "https://$1",
-      "statusCode": 308
-    }
   ]
 }
