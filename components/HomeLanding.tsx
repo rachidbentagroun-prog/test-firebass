@@ -227,14 +227,6 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
 
         {/* Main content */}
         <div className="relative z-10 w-full max-w-4xl space-y-10">
-          {/* Badge - Subtle entrance */}
-          <div className="flex justify-center animate-fade-in-up" style={{ animationDelay: '0ms' }}>
-            <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-slate-200 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-300">
-              <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-700">Powered by Sora & Gemini 2.5</span>
-            </div>
-          </div>
-
           {/* Hero Headline with Sparkles */}
           <div className="text-center space-y-6">
             <div className="relative inline-block animate-fade-in-up" style={{ animationDelay: '150ms' }}>
