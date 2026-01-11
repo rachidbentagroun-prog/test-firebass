@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Send, Loader2, AlertCircle, User as UserIcon, Bot, Paperclip, Mic } from 'lucide-react';
 import { User } from '../types';
+import { updateUserCredits } from '../services/dbService';
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
@@ -20,11 +21,20 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [messageCount, setMessageCount] = useState(0); // Track total messages sent by user
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const assistantMessageCount = messages.filter(m => m.role === 'assistant').length;
-  const isBlocked = assistantMessageCount >= 2;
+  // Count user messages
+  const userMessageCount = messages.filter(m => m.role === 'user').length;
+  
+  // Check if user is on free plan (no plan or 'free' plan)
+  const isFreePlan = !user?.plan || user.plan === 'free';
+  
+  // Check if blocked
+  const isBlocked = isFreePlan 
+    ? userMessageCount >= 2  // Free plan: 2 messages only
+    : (user?.credits || 0) <= 0; // Paid plan: no credits left
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -41,6 +51,7 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
       return;
     }
 
+    // Check if blocked before sending
     if (isBlocked) {
       setShowUpgradeModal(true);
       return;
@@ -85,6 +96,30 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      
+      // Credit deduction logic for paid plans
+      if (!isFreePlan && user?.id) {
+        const newUserMessageCount = userMessageCount + 1;
+        
+        // Deduct 1 credit every 10 messages
+        if (newUserMessageCount % 10 === 0) {
+          const currentCredits = user.credits || 0;
+          const newCredits = Math.max(0, currentCredits - 1);
+          
+          try {
+            await updateUserCredits(user.id, newCredits);
+            console.log(`✅ Deducted 1 credit. New balance: ${newCredits}`);
+            
+            // If credits hit 0, show upgrade modal
+            if (newCredits === 0) {
+              setTimeout(() => setShowUpgradeModal(true), 1000);
+            }
+          } catch (err) {
+            console.error('❌ Failed to deduct credits:', err);
+          }
+        }
+      }
+      
     } catch (e: any) {
       setError(e?.message || 'Unexpected error');
     } finally {
@@ -242,9 +277,24 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
           </div>
 
           {/* Helper Text */}
-          <p className="text-xs text-slate-500 text-center">
-            Press <kbd className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-300 font-mono text-slate-700">Enter</kbd> to send · <kbd className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-300 font-mono text-slate-700">Shift</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-300 font-mono text-slate-700">Enter</kbd> for new line
-          </p>
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <span>
+              Press <kbd className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-300 font-mono text-slate-700">Enter</kbd> to send · <kbd className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-300 font-mono text-slate-700">Shift</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-300 font-mono text-slate-700">Enter</kbd> for new line
+            </span>
+            {user && (
+              <span className="font-semibold">
+                {isFreePlan ? (
+                  <span className={userMessageCount >= 2 ? 'text-red-600' : 'text-slate-600'}>
+                    {2 - userMessageCount} free messages left
+                  </span>
+                ) : (
+                  <span className={(user.credits || 0) <= 5 ? 'text-amber-600' : 'text-indigo-600'}>
+                    💎 {user.credits || 0} credits · Next deduction at {10 - (userMessageCount % 10)} messages
+                  </span>
+                )}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -256,17 +306,31 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
               <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center mx-auto">
                 <MessageSquare className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-2xl font-black text-slate-900">Upgrade to Continue</h2>
+              <h2 className="text-2xl font-black text-slate-900">
+                {isFreePlan ? 'Upgrade to Continue' : 'Out of Credits'}
+              </h2>
               <p className="text-slate-600">
-                You've used your free 2 GPT-5.2 conversations. Upgrade to Premium for unlimited chat access.
+                {isFreePlan 
+                  ? "You've used your free 2 GPT-5.2 messages. Upgrade to Premium for unlimited access."
+                  : "You've run out of credits. Buy more credits to continue chatting with GPT-5.2."}
               </p>
+              {!isFreePlan && user && (
+                <div className="text-sm text-slate-500 bg-slate-50 rounded-xl p-3 border border-slate-200">
+                  Current balance: <span className="font-bold text-slate-900">{user.credits || 0} credits</span>
+                </div>
+              )}
             </div>
             <div className="space-y-3">
               <button
-                onClick={() => window.location.href = '/upgrade'}
+                onClick={() => {
+                  const message = isFreePlan 
+                    ? 'Hello! I want to upgrade my plan to continue using GPT-5.2 chat.'
+                    : 'Hello! I need to buy more credits to continue using GPT-5.2 chat.';
+                  window.open(`https://wa.me/212630961392?text=${encodeURIComponent(message)}`, '_blank');
+                }}
                 className="w-full py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black uppercase tracking-wide shadow-lg transition-all"
               >
-                Upgrade Now
+                {isFreePlan ? '💳 Upgrade Now' : '💰 Buy Credits Now To Continue'}
               </button>
               <button
                 onClick={() => setShowUpgradeModal(false)}
