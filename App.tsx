@@ -142,12 +142,12 @@ const DEFAULT_CONFIG: SiteConfig = {
     hero: {
       title: "Cinematic AI Video Moteur",
       subtitle: "Transform scripts into high-fidelity cinematic experiences using Gemini Veo 3.1 technology.",
-      videoUrl: "https://v.ftcdn.net/06/18/88/54/700_F_618885472_vU6YfF48xY5MvP8n0q2xN8J0Z6n3B0N7_ST.mp4"
+      videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
     },
     scriptToCinema: {
       title: "Script to Cinema",
       subtitle: "Professional lighting, camera moves, and textures from a single prompt.",
-      videoUrl: "https://v.ftcdn.net/06/18/88/54/700_F_618885472_vU6YfF48xY5MvP8n0q2xN8J0Z6n3B0N7_ST.mp4",
+      videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
       prompt: "Cinematic drone shot of a futuristic neon city in the rain, hyper-realistic."
     },
     refineExtend: {

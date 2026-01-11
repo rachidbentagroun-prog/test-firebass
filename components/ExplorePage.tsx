@@ -37,12 +37,12 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
   const sampleVideos: string[] = (
     [siteConfig.videoLab?.hero.videoUrl, siteConfig.videoLab?.scriptToCinema.videoUrl].filter(Boolean) as string[]
   ).concat([
-    'https://cdn.pixabay.com/video/2020/05/17/40742-423033758_large.mp4',
-    'https://cdn.pixabay.com/video/2021/08/10/84944-591189040_large.mp4',
-    'https://cdn.pixabay.com/video/2022/11/07/138620-770015996_large.mp4',
-    'https://cdn.pixabay.com/video/2019/06/19/24689-341672183_large.mp4',
-    'https://cdn.pixabay.com/video/2022/02/28/109746-684078626_large.mp4',
-    'https://cdn.pixabay.com/video/2021/04/05/69617-533759268_large.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
   ]);
 
   const hasUserImages = images && images.length > 0;
@@ -56,16 +56,16 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
     ? videos.map(v => ({ id: v.id, url: v.url, prompt: v.prompt }))
     : sampleVideos.map((url, i) => ({ id: `sample_vid_${i}`, url }));
 
-  // Featured videos in 9:16 aspect ratio (portrait)
+  // Featured videos in 9:16 aspect ratio (portrait) - Using working public URLs
   const featuredVideos: Array<{ id: string; url: string; title: string }> = [
-    { id: 'featured_1', url: 'https://drive.google.com/uc?export=download&id=1mFU7sTQCPo84WK6aM6BfU26M-CcJbeZJ', title: 'Temporal Sequence 1' },
-    { id: 'featured_2', url: 'https://drive.google.com/uc?export=download&id=1nJOHLUU84IGSd4REkT_fJiZ4OYMyvieo', title: 'Temporal Sequence 2' },
-    { id: 'featured_3', url: 'https://drive.google.com/uc?export=download&id=1AON4YybKQGq1eEHBygC3lSk0wPn3E3_w', title: 'Temporal Sequence 3' },
-    { id: 'featured_4', url: 'https://drive.google.com/uc?export=download&id=1u4r_VQHzWGJbcbiYOSRN1momoq6UmS3Y', title: 'Temporal Sequence 4' },
-    { id: 'featured_5', url: 'https://drive.google.com/uc?export=download&id=1XhGbhFNSQIR336RUHKo7SV037asRuePq', title: 'Temporal Sequence 5' },
-    { id: 'featured_6', url: 'https://drive.google.com/uc?export=download&id=1lZqtqyO8wLE_bZpCegPsnHOSBrzvDMdS', title: 'Temporal Sequence 6' },
-    { id: 'featured_7', url: 'https://drive.google.com/uc?export=download&id=1ikLFKwV-2kMUKBnPPjlYU7i3MOZwJex7', title: 'Temporal Sequence 7' },
-    { id: 'featured_8', url: 'https://drive.google.com/uc?export=download&id=1sjtL87kAAKcqj0asJnaecch8vW8UEMNX', title: 'Temporal Sequence 8' },
+    { id: 'featured_1', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4', title: 'Temporal Sequence 1' },
+    { id: 'featured_2', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4', title: 'Temporal Sequence 2' },
+    { id: 'featured_3', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4', title: 'Temporal Sequence 3' },
+    { id: 'featured_4', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4', title: 'Temporal Sequence 4' },
+    { id: 'featured_5', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4', title: 'Temporal Sequence 5' },
+    { id: 'featured_6', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4', title: 'Temporal Sequence 6' },
+    { id: 'featured_7', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4', title: 'Temporal Sequence 7' },
+    { id: 'featured_8', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4', title: 'Temporal Sequence 8' },
   ];
 
   // Curated embeds from official vendor channels (YouTube/Vimeo)
