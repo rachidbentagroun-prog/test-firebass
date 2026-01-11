@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageSquare, Send, Loader2, AlertCircle, User as UserIcon, Bot, Paperclip, Mic } from 'lucide-react';
+import { MessageSquare, Send, Loader2, AlertCircle, User as UserIcon, Bot, Paperclip, Mic, Trash2 } from 'lucide-react';
 import { User } from '../types';
-import { updateUserCredits } from '../services/dbService';
+import { updateUserCredits, saveGPTMessage, loadGPTChatHistory, clearGPTChatHistory } from '../services/dbService';
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
@@ -40,9 +40,40 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Load chat history when user logs in
+  useEffect(() => {
+    if (user?.id) {
+      loadChatHistory();
+    }
+  }, [user?.id]);
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const loadChatHistory = async () => {
+    if (!user?.id) return;
+    try {
+      const history = await loadGPTChatHistory(user.id);
+      setMessages(history);
+      console.log('✅ Loaded chat history:', history.length, 'messages');
+    } catch (e) {
+      console.error('Failed to load chat history:', e);
+    }
+  };
+
+  const clearHistory = async () => {
+    if (!user?.id) return;
+    if (!confirm('Are you sure you want to clear all chat history?')) return;
+    
+    try {
+      await clearGPTChatHistory(user.id);
+      setMessages([]);
+      console.log('✅ Chat history cleared');
+    } catch (e) {
+      console.error('Failed to clear chat history:', e);
+    }
+  };
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -67,6 +98,11 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
     setInput('');
     setIsLoading(true);
     setError(null);
+
+    // Save user message to Firebase
+    if (user?.id) {
+      await saveGPTMessage(user.id, userMessage);
+    }
 
     try {
       const conversationMessages = [
@@ -96,6 +132,11 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      
+      // Save assistant message to Firebase
+      if (user?.id) {
+        await saveGPTMessage(user.id, assistantMessage);
+      }
       
       // Credit deduction logic for paid plans
       if (!isFreePlan && user?.id) {
@@ -136,6 +177,26 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-white text-gray-900 flex flex-col">
+      {/* Header with Clear Chat Button */}
+      {user && messages.length > 0 && (
+        <div className="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
+          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Bot className="w-5 h-5 text-indigo-600" />
+              <span className="font-semibold text-slate-900">GPT-5.2 Chat</span>
+              <span className="text-xs text-slate-500">• {messages.length} messages</span>
+            </div>
+            <button
+              onClick={clearHistory}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all"
+            >
+              <Trash2 className="w-4 h-4" />
+              Clear Chat
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-4xl mx-auto space-y-6">

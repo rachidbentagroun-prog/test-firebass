@@ -596,3 +596,83 @@ export const sendEmailToUser = async (toEmail: string, subject: string, body: st
     console.warn('Email queue not available, falling back to console log:', e.message || e);
   }
 };
+
+// ============================================
+// GPT CHAT HISTORY FUNCTIONS
+// ============================================
+
+interface GPTMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: number;
+}
+
+/**
+ * Save a GPT chat message to Firebase for a user
+ */
+export const saveGPTMessage = async (userId: string, message: GPTMessage): Promise<void> => {
+  try {
+    const { getFirestore, collection, addDoc } = await import('firebase/firestore');
+    const db = getFirestore();
+    
+    await addDoc(collection(db, 'users', userId, 'gpt_chat_history'), {
+      role: message.role,
+      content: message.content,
+      timestamp: message.timestamp,
+      created_at: new Date().toISOString()
+    });
+  } catch (e) {
+    console.error('Failed to save GPT message:', e);
+  }
+};
+
+/**
+ * Load GPT chat history for a user
+ */
+export const loadGPTChatHistory = async (userId: string): Promise<GPTMessage[]> => {
+  try {
+    const { getFirestore, collection, query, orderBy, getDocs } = await import('firebase/firestore');
+    const db = getFirestore();
+    
+    const q = query(
+      collection(db, 'users', userId, 'gpt_chat_history'),
+      orderBy('timestamp', 'asc')
+    );
+    
+    const snapshot = await getDocs(q);
+    const messages: GPTMessage[] = [];
+    
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      messages.push({
+        role: data.role,
+        content: data.content,
+        timestamp: data.timestamp
+      });
+    });
+    
+    return messages;
+  } catch (e) {
+    console.error('Failed to load GPT chat history:', e);
+    return [];
+  }
+};
+
+/**
+ * Clear GPT chat history for a user
+ */
+export const clearGPTChatHistory = async (userId: string): Promise<void> => {
+  try {
+    const { getFirestore, collection, getDocs, deleteDoc } = await import('firebase/firestore');
+    const db = getFirestore();
+    
+    const snapshot = await getDocs(collection(db, 'users', userId, 'gpt_chat_history'));
+    const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+    await Promise.all(deletePromises);
+    
+    console.log('✅ GPT chat history cleared for user:', userId);
+  } catch (e) {
+    console.error('Failed to clear GPT chat history:', e);
+  }
+};
+
