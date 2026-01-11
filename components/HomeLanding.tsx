@@ -208,7 +208,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
     }
   };
 
-  const buttonBase = 'group relative flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 hover:shadow-md transition-all duration-300 text-sm font-semibold py-3 px-4 overflow-hidden text-slate-800';
+  const buttonBase = 'group relative flex items-center justify-center gap-2.5 rounded-full border border-transparent bg-white hover:bg-slate-50 hover:border-slate-200 hover:shadow-md transition-all duration-300 text-sm font-medium py-3.5 px-5 min-h-[44px]';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900">
@@ -358,39 +358,39 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                 </div>
                 
                 {/* Quick actions pills */}
-                <div className="px-5 sm:px-7 py-5 border-t border-slate-100 bg-slate-50/50">
-                  <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar">
+                <div className="px-5 sm:px-8 py-6 border-t border-slate-100/80 bg-gradient-to-b from-slate-50/80 to-white/50">
+                  <div className="flex flex-wrap items-center justify-center gap-3">
                     <button 
-                      className={`${buttonBase} min-w-[120px] sm:min-w-[0] flex-1 sm:flex-none`} 
+                      className={`${buttonBase} shadow-sm hover:scale-105 active:scale-95`} 
                       onClick={onGoToImage} 
                       title="Create Image"
                     >
-                      <ImageIcon className="h-5 w-5 text-indigo-600" />
-                      <span className="text-slate-900">Image</span>
+                      <ImageIcon className="h-[18px] w-[18px] text-indigo-600" strokeWidth={2.5} />
+                      <span className="text-slate-900 font-semibold">Image</span>
                     </button>
                     <button 
-                      className={`${buttonBase} min-w-[120px] sm:min-w-[0] flex-1 sm:flex-none`} 
+                      className={`${buttonBase} shadow-sm hover:scale-105 active:scale-95`} 
                       onClick={onGoToVideo} 
                       title="Create Video"
                     >
-                      <Video className="h-5 w-5 text-purple-600" />
-                      <span className="text-slate-900">Video</span>
+                      <Video className="h-[18px] w-[18px] text-purple-600" strokeWidth={2.5} />
+                      <span className="text-slate-900 font-semibold">Video</span>
                     </button>
                     <button 
-                      className={`${buttonBase} min-w-[120px] sm:min-w-[0] flex-1 sm:flex-none`} 
+                      className={`${buttonBase} shadow-sm hover:scale-105 active:scale-95`} 
                       onClick={onGoToWebsite} 
                       title="Create Website"
                     >
-                      <Globe2 className="h-5 w-5 text-blue-600" />
-                      <span className="text-slate-900">Website</span>
+                      <Globe2 className="h-[18px] w-[18px] text-blue-600" strokeWidth={2.5} />
+                      <span className="text-slate-900 font-semibold">Website</span>
                     </button>
                     <button 
-                      className={`${buttonBase} min-w-[120px] sm:min-w-[0] flex-1 sm:flex-none`} 
+                      className={`${buttonBase} shadow-sm hover:scale-105 active:scale-95`} 
                       onClick={onGoToAudio} 
                       title="Create Audio"
                     >
-                      <Mic2 className="h-5 w-5 text-pink-600" />
-                      <span className="text-slate-900">Audio</span>
+                      <Mic2 className="h-[18px] w-[18px] text-pink-600" strokeWidth={2.5} />
+                      <span className="text-slate-900 font-semibold">Audio</span>
                     </button>
                   </div>
                 </div>
