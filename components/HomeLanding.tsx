@@ -378,7 +378,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                         }}
                         onKeyDown={handleKeyDown}
                         placeholder={isRecording ? (isTranscribing ? "Listening..." : "Speak now...") : "Describe your vision..."}
-                        className="h-[56px] w-full rounded-xl bg-slate-50/60 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2 focus:ring-offset-white text-[16px] sm:text-lg font-medium transition-all duration-300 pl-14 pr-14"
+                        className="h-[56px] w-full rounded-xl bg-slate-50/60 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2 focus:ring-offset-white text-[16px] sm:text-lg font-medium transition-all duration-300 pl-14 pr-14 text-center placeholder:text-center"
                         style={{ WebkitAppearance: 'none' }}
                       />
                       
