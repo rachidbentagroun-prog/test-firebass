@@ -1498,23 +1498,49 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
               {imageHistory.slice(0, 18).map((img) => (
                 <div 
                   key={img.id} 
-                  onClick={() => { setResultImage(img); setPreviewZoom(1); }}
-                  className="group aspect-square bg-dark-900 border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 hover:-translate-y-1 transition-all cursor-pointer relative shadow-lg"
+                  className="group aspect-square bg-dark-900 border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 hover:-translate-y-1 transition-all relative shadow-lg"
                 >
-                  <img src={img.url} alt="Generated" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="absolute bottom-3 left-3 right-3">
-                      <p className="text-white text-[9px] font-medium line-clamp-2 mb-2">{img.prompt}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[8px] text-gray-400">{new Date(img.createdAt).toLocaleDateString()}</span>
-                        <Eye className="w-4 h-4 text-white" />
+                  <div 
+                    onClick={() => { setResultImage(img); setPreviewZoom(1); }}
+                    className="w-full h-full cursor-pointer"
+                  >
+                    <img src={img.url} alt="Generated" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute bottom-3 left-3 right-3">
+                        <p className="text-white text-[9px] font-medium line-clamp-2 mb-2">{img.prompt}</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[8px] text-gray-400">{new Date(img.createdAt).toLocaleDateString()}</span>
+                          <Eye className="w-4 h-4 text-white" />
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="px-2 py-1 bg-indigo-600/90 backdrop-blur-sm rounded-lg">
-                      <span className="text-[8px] font-black text-white uppercase">View</span>
-                    </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <a
+                      href={img.url}
+                      download={`imaginai-${img.id}.png`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="p-1.5 bg-green-600/90 hover:bg-green-500 backdrop-blur-sm rounded-lg transition-colors"
+                      title="Download"
+                    >
+                      <Download className="w-3.5 h-3.5 text-white" />
+                    </a>
+                    {user && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm('Delete this image?')) {
+                            handleDeleteGeneratedImage(img.id);
+                          }
+                        }}
+                        className="p-1.5 bg-red-600/90 hover:bg-red-500 backdrop-blur-sm rounded-lg transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-white" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
