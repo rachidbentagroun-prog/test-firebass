@@ -1,30 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Navbar } from './components/Navbar.tsx';
 import { Hero } from './components/Hero.tsx';
 import { HomeLanding } from './components/HomeLanding.tsx';
-import { Pricing } from './components/Pricing.tsx';
-import { PricingLanding } from './components/PricingLanding.tsx';
-import { Generator } from './components/Generator.tsx';
-import { VideoLabLanding } from './components/VideoLabLanding.tsx';
-import { VideoGenerator } from './components/VideoGenerator.tsx';
-import { TTSGenerator } from './components/TTSGenerator.tsx';
-import { TTSLanding } from './components/TTSLanding.tsx';
-import { ChatLanding } from './components/ChatLanding.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
 import { UpgradeModal } from './components/UpgradeModal.tsx';
 import { LanguageProvider } from './utils/i18n';
-import { Gallery } from './components/Gallery.tsx';
-import { AdminDashboard } from './components/AdminDashboard.tsx';
-import { UserProfile } from './components/UserProfile.tsx';
-import { UpgradePage } from './components/UpgradePage.tsx';
-import { Showcase } from './components/Showcase.tsx';
-import { ExplorePage } from './components/ExplorePage.tsx';
-import { MultimodalSection } from './components/MultimodalSection.tsx';
-import { ContactPanel } from './components/ContactPanel.tsx';
 import { ChatWidget } from './components/ChatWidget.tsx';
 import { WhatsAppWidget } from './components/WhatsAppWidget.tsx';
-import SignUp from './components/SignUp.tsx';
-import PostVerify from './components/PostVerify';
+import { ContactPanel } from './components/ContactPanel.tsx';
+
+// Lazy load heavy components for better performance
+const Pricing = lazy(() => import('./components/Pricing.tsx').then(m => ({ default: m.Pricing })));
+const PricingLanding = lazy(() => import('./components/PricingLanding.tsx').then(m => ({ default: m.PricingLanding })));
+const Generator = lazy(() => import('./components/Generator.tsx').then(m => ({ default: m.Generator })));
+const VideoLabLanding = lazy(() => import('./components/VideoLabLanding.tsx').then(m => ({ default: m.VideoLabLanding })));
+const VideoGenerator = lazy(() => import('./components/VideoGenerator.tsx').then(m => ({ default: m.VideoGenerator })));
+const TTSGenerator = lazy(() => import('./components/TTSGenerator.tsx').then(m => ({ default: m.TTSGenerator })));
+const TTSLanding = lazy(() => import('./components/TTSLanding.tsx').then(m => ({ default: m.TTSLanding })));
+const ChatLanding = lazy(() => import('./components/ChatLanding.tsx').then(m => ({ default: m.ChatLanding })));
+const Gallery = lazy(() => import('./components/Gallery.tsx').then(m => ({ default: m.Gallery })));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard.tsx').then(m => ({ default: m.AdminDashboard })));
+const UserProfile = lazy(() => import('./components/UserProfile.tsx').then(m => ({ default: m.UserProfile })));
+const UpgradePage = lazy(() => import('./components/UpgradePage.tsx').then(m => ({ default: m.UpgradePage })));
+const Showcase = lazy(() => import('./components/Showcase.tsx').then(m => ({ default: m.Showcase })));
+const ExplorePage = lazy(() => import('./components/ExplorePage.tsx').then(m => ({ default: m.ExplorePage })));
+const MultimodalSection = lazy(() => import('./components/MultimodalSection.tsx').then(m => ({ default: m.MultimodalSection })));
+const SignUp = lazy(() => import('./components/SignUp.tsx'));
+const PostVerify = lazy(() => import('./components/PostVerify'));
 import { User, GeneratedImage, GeneratedVideo, GeneratedAudio, SiteConfig, Plan } from './types.ts';
 import { supabase } from './services/supabase.ts';
 import { 
@@ -1098,7 +1100,13 @@ const App: React.FC = () => {
         onOpenInbox={() => setOpenInboxFromDropdown(true)}
       />
       <main className={`pt-16 ${currentPage === 'admin' ? 'bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 min-h-screen' : ''}`}>
-        {renderPage()}
+        <Suspense fallback={
+          <div className="min-h-screen flex items-center justify-center">
+            <Sparkles className="w-12 h-12 text-indigo-500 animate-spin" />
+          </div>
+        }>
+          {renderPage()}
+        </Suspense>
       </main>
 
       {/* Contact Panel - WhatsApp + Support Chat */}

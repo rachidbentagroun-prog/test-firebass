@@ -535,7 +535,23 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       sourcemap: false,
-      target: 'esnext'
+      target: 'esnext',
+      minify: 'esbuild',
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom'],
+            'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+            'vendor-ui': ['lucide-react'],
+          },
+          chunkFileNames: 'assets/[name]-[hash].js',
+          entryFileNames: 'assets/[name]-[hash].js',
+          assetFileNames: 'assets/[name]-[hash].[ext]'
+        }
+      },
+      chunkSizeWarningLimit: 1000,
+      reportCompressedSize: false,
+      cssCodeSplit: true
     },
     server: {
       port: 3000,
