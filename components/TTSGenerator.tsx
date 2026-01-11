@@ -1024,8 +1024,8 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                             </div>
                             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                               <a 
-                                href={item.url} 
-                                download={`imaginai-audio-${item.id}.wav`}
+                                href={item.base64Audio} 
+                                download={`imaginai-audio-${item.id}.${item.mimeType?.includes('wav') ? 'wav' : 'mp3'}`}
                                 onClick={(e) => e.stopPropagation()}
                                 className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-300 hover:text-white"
                               >
@@ -1051,8 +1051,8 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                             <p className="text-[8px] text-gray-500 line-clamp-1 italic">"{currentAudio.text}"</p>
                           </div>
                           <a 
-                            href={currentAudio.url} 
-                            download={`imaginai-audio-${currentAudio.id}.wav`}
+                            href={currentAudio.base64Audio} 
+                            download={`imaginai-audio-${currentAudio.id}.${currentAudio.mimeType?.includes('wav') ? 'wav' : 'mp3'}`}
                             onClick={(e) => e.stopPropagation()}
                             className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-all"
                           >
@@ -1209,7 +1209,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                        </div>
                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                          <button onClick={() => playFromList(item)} className="p-2 text-gray-600 hover:text-white"><Play className="w-4 h-4" /></button>
-                         <a href={item.url} download className="p-2 text-gray-600 hover:text-white"><Download className="w-4 h-4" /></a>
+                         <a href={item.base64Audio} download={`imaginai-audio-${item.id}.${item.mimeType?.includes('wav') ? 'wav' : 'mp3'}`} className="p-2 text-gray-600 hover:text-white"><Download className="w-4 h-4" /></a>
                          {user && (<button onClick={() => deleteFromList(item.id)} className="p-2 text-gray-600 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>)}
                        </div>
                     </div>
