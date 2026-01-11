@@ -719,7 +719,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
 
       saveToHistory(prompt);
       setResultImage(newImage);
-      setImageHistory(prev => [newImage, ...prev].slice(0, 8));
+      setImageHistory(prev => [newImage, ...prev].slice(0, 50));
       
       // AUTO-SAVE LOGIC: Persistence triggers immediately on success
       if (user) {
@@ -1495,7 +1495,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
               </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
-              {imageHistory.slice(0, 18).map((img) => (
+              {imageHistory.slice(0, 24).map((img) => (
                 <div 
                   key={img.id} 
                   className="group aspect-square bg-dark-900 border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 hover:-translate-y-1 transition-all relative shadow-lg"
