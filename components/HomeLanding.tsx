@@ -265,76 +265,77 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                 
                 {/* Input section */}
                 <div className="flex flex-col gap-3 p-5 sm:p-8">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <div className="flex items-center gap-3 w-full">
-                      <button 
-                        onClick={() => fileInputRef.current?.click()} 
-                        className={`flex-shrink-0 h-12 w-12 sm:h-[52px] sm:w-[52px] rounded-xl p-3 transition-all duration-300 hover:scale-105 active:scale-95 ${selectedFile ? 'bg-indigo-100 text-indigo-600 shadow-md ring-2 ring-indigo-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`} 
-                        title="Upload file" 
-                        type="button"
-                      >
-                        <Upload className="h-5 w-5" />
+                  {/* Selected file indicator (shown above input on mobile, inline on desktop) */}
+                  {selectedFile && (
+                    <div className="flex items-center gap-2 rounded-xl bg-indigo-50 px-4 py-2.5 border border-indigo-200 animate-fade-in">
+                      <span className="text-sm font-medium text-slate-900 truncate">{selectedFile.name}</span>
+                      <button onClick={removeFile} className="text-slate-500 hover:text-red-500 transition-colors flex-shrink-0 hover:scale-110" type="button">
+                        <X className="h-4 w-4" />
                       </button>
-                      <input ref={fileInputRef} type="file" onChange={handleFileSelect} className="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx" />
-                      
-                      <div className="relative flex-1 min-w-0">
-                        <input 
-                          value={prompt}
-                          onChange={(e) => {
-                            setPrompt(e.target.value);
-                            // Update detected intent as user types
-                            if (e.target.value.trim()) {
-                              setDetectedIntent(detectPromptIntent(e.target.value));
-                            } else {
-                              setDetectedIntent(null);
-                            }
-                          }}
-                          onKeyDown={handleKeyDown}
-                          placeholder={isRecording ? (isTranscribing ? "Listening..." : "Speak now...") : "Describe your vision..."}
-                          className="h-[56px] w-full rounded-xl bg-slate-50/60 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2 focus:ring-offset-white text-[16px] sm:text-lg font-medium transition-all duration-300 px-4 pr-14"
-                          style={{ WebkitAppearance: 'none' }}
-                        />
-                        
-                        {/* Microphone button for speech-to-text */}
-                        <div className="pointer-events-auto absolute inset-y-1 right-1 flex items-center">
-                          <button
-                            onClick={toggleRecording}
-                            className={`relative flex h-11 w-11 items-center justify-center rounded-lg transition-all duration-300 hover:scale-105 active:scale-95 ${
-                              isRecording 
-                                ? 'bg-red-500 text-white shadow-lg shadow-red-200' 
-                                : 'bg-white text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'
-                            }`}
-                            title={isRecording ? 'Stop recording' : 'Click to speak'}
-                            type="button"
-                            aria-label={isRecording ? 'Stop recording' : 'Start voice input'}
-                          >
-                            <Mic className="h-[20px] w-[20px]" />
-                            {/* Recording pulse animation */}
-                            {isRecording && (
-                              <>
-                                <span className="absolute inset-0 rounded-lg bg-red-500 animate-ping opacity-60"></span>
-                                <span className="absolute inset-0 rounded-lg bg-red-400 animate-pulse"></span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </div>
                     </div>
-
-                    {selectedFile && (
-                      <div className="flex items-center gap-2 rounded-xl bg-indigo-50 px-4 py-2.5 border border-indigo-200 animate-fade-in">
-                        <span className="text-sm font-medium text-slate-900 truncate">{selectedFile.name}</span>
-                        <button onClick={removeFile} className="text-slate-500 hover:text-red-500 transition-colors flex-shrink-0 hover:scale-110" type="button">
-                          <X className="h-4 w-4" />
+                  )}
+                  
+                  {/* Main input row with upload button, input field, and generate button */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    {/* Upload button */}
+                    <button 
+                      onClick={() => fileInputRef.current?.click()} 
+                      className={`flex-shrink-0 h-[56px] w-[56px] rounded-xl p-3 transition-all duration-300 hover:scale-105 active:scale-95 ${selectedFile ? 'bg-indigo-100 text-indigo-600 shadow-md ring-2 ring-indigo-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`} 
+                      title="Upload file" 
+                      type="button"
+                    >
+                      <Upload className="h-6 w-6" />
+                    </button>
+                    <input ref={fileInputRef} type="file" onChange={handleFileSelect} className="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx" />
+                    
+                    {/* Input field with microphone */}
+                    <div className="relative flex-1 min-w-0">
+                      <input 
+                        value={prompt}
+                        onChange={(e) => {
+                          setPrompt(e.target.value);
+                          // Update detected intent as user types
+                          if (e.target.value.trim()) {
+                            setDetectedIntent(detectPromptIntent(e.target.value));
+                          } else {
+                            setDetectedIntent(null);
+                          }
+                        }}
+                        onKeyDown={handleKeyDown}
+                        placeholder={isRecording ? (isTranscribing ? "Listening..." : "Speak now...") : "Describe your vision..."}
+                        className="h-[56px] w-full rounded-xl bg-slate-50/60 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2 focus:ring-offset-white text-[16px] sm:text-lg font-medium transition-all duration-300 px-4 pr-14"
+                        style={{ WebkitAppearance: 'none' }}
+                      />
+                      
+                      {/* Microphone button for speech-to-text */}
+                      <div className="pointer-events-auto absolute inset-y-1 right-1 flex items-center">
+                        <button
+                          onClick={toggleRecording}
+                          className={`relative flex h-11 w-11 items-center justify-center rounded-lg transition-all duration-300 hover:scale-105 active:scale-95 ${
+                            isRecording 
+                              ? 'bg-red-500 text-white shadow-lg shadow-red-200' 
+                              : 'bg-white text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'
+                          }`}
+                          title={isRecording ? 'Stop recording' : 'Click to speak'}
+                          type="button"
+                          aria-label={isRecording ? 'Stop recording' : 'Start voice input'}
+                        >
+                          <Mic className="h-[20px] w-[20px]" />
+                          {/* Recording pulse animation */}
+                          {isRecording && (
+                            <>
+                              <span className="absolute inset-0 rounded-lg bg-red-500 animate-ping opacity-60"></span>
+                              <span className="absolute inset-0 rounded-lg bg-red-400 animate-pulse"></span>
+                            </>
+                          )}
                         </button>
                       </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    </div>
+                    
+                    {/* Generate button - aligned with input */}
                     <button 
                       onClick={handleSubmit} 
-                      className="relative w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold px-6 py-3.5 sm:py-3 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.01] active:scale-95"
+                      className="relative h-[56px] flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold px-8 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-95 flex-shrink-0"
                     >
                       Generate 
                       <ArrowRight className="h-5 w-5 transition-transform duration-300" />
