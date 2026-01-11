@@ -209,8 +209,9 @@ const App: React.FC = () => {
   const getPageFromPath = (pathname: string): string => {
     const p = pathname.toLowerCase();
     const pathMap: Record<string, string> = {
-      '/dashboard': 'dashboard',
+      '/aiimage': 'dashboard',
       '/ai-image': 'dashboard',
+      '/dashboard': 'dashboard', // Keep for backwards compatibility
       '/ai-video': 'video-generator',
       '/ai-voice': 'tts-generator',
       '/ai-chat': 'chat-landing',
@@ -229,7 +230,7 @@ const App: React.FC = () => {
 
   const getPathFromPage = (page: string): string => {
     const pageMap: Record<string, string> = {
-      'dashboard': '/dashboard',
+      'dashboard': '/aiimage',
       'video-generator': '/AI-Video',
       'tts-generator': '/AI-Voice',
       'chat-landing': '/AI-Chat',
@@ -333,7 +334,7 @@ const App: React.FC = () => {
 
           // Update URL to dashboard
           try {
-            const newPath = '/dashboard';
+            const newPath = '/aiimage';
             if (window.location.pathname !== newPath) {
               console.log('🔄 Updating URL to', newPath);
               window.history.replaceState({}, '', newPath);
@@ -365,11 +366,11 @@ const App: React.FC = () => {
       const fbUser = auth.currentUser;
       // Only auto-redirect to dashboard if user just logged in and is still on home page
       if (fbUser && currentPage === 'home') {
-        console.log('✅ Session detected on home page, routing to /dashboard');
+        console.log('✅ Session detected on home page, routing to /aiimage');
         setCurrentPage('dashboard');
         try {
-          if (window.location.pathname !== '/dashboard') {
-            window.history.replaceState({}, '', '/dashboard');
+          if (window.location.pathname !== '/aiimage') {
+            window.history.replaceState({}, '', '/aiimage');
           }
         } catch (e) { console.warn('Failed to update URL after session restore', e); }
       }
@@ -504,8 +505,8 @@ const App: React.FC = () => {
               console.log('🎯 Auth listener navigating to dashboard (just logged in or on public page)');
               setTimeout(() => setCurrentPage('dashboard'), 100);
               try {
-                if (window.location.pathname !== '/dashboard') {
-                  window.history.replaceState({}, '', '/dashboard');
+                if (window.location.pathname !== '/aiimage') {
+                  window.history.replaceState({}, '', '/aiimage');
                 }
               } catch (_) {}
               // Clear the flags after redirect
