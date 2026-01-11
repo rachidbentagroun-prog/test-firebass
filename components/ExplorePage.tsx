@@ -226,14 +226,14 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
             </div>
             <h2 className="text-2xl md:text-3xl font-black text-white italic">Temporal Sequences</h2>
           </div>
-          <button onClick={() => onNavigate('video-lab-landing')} className="text-sm font-bold text-indigo-400 hover:text-white transition-colors">Open Video Lab →</button>
+          <button onClick={() => onNavigate('video-generator')} className="text-sm font-bold text-indigo-400 hover:text-white transition-colors">Create AI Video →</button>
         </div>
         
-        {/* Featured Videos Slideshow - 9:16 Portrait */}
+        {/* Featured Videos Slideshow - 9:16 Portrait - Click to go to AI VIDEO */}
         <div className="relative overflow-hidden rounded-2xl border border-white/5 mb-16">
           <div className="marquee-track">
             {[...featuredVideos, ...featuredVideos].map((vid, i) => (
-              <div key={`featured_${i}`} className="w-[280px] mr-4 rounded-xl overflow-hidden bg-black/40 border border-white/5 hover:border-purple-500/30 transition-all group cursor-pointer" onClick={() => onNavigate('video-lab-landing')}>
+              <div key={`featured_${i}`} className="w-[280px] mr-4 rounded-xl overflow-hidden bg-black/40 border border-white/5 hover:border-purple-500/30 transition-all group cursor-pointer" onClick={() => onNavigate('video-generator')}>
                 <div className="aspect-[9/16] relative">
                   <video
                     ref={(el) => { videoRefs.current[`featured_${i}_${vid.id}`] = el; }}
@@ -249,10 +249,14 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
                   <div className="absolute top-3 left-3">
                     <span className="px-2 py-1 rounded-full text-[8px] font-black tracking-widest bg-purple-600/30 border border-purple-500/30 text-purple-200 uppercase backdrop-blur-sm">Featured</span>
                   </div>
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/10">
-                      <Play className="w-5 h-5 text-white fill-white" />
-                    </div>
+                  {/* Clickable Play Button - Navigate to AI VIDEO */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); onNavigate('video-generator'); }}
+                      className="p-4 bg-white/20 backdrop-blur-md rounded-full border-2 border-white/30 hover:bg-white/30 hover:border-white/50 hover:scale-110 transition-all group-hover:opacity-100 opacity-60"
+                    >
+                      <Play className="w-6 h-6 text-white fill-white" />
+                    </button>
                   </div>
                   <div className="absolute bottom-3 left-3 right-3">
                     <p className="text-white text-[10px] font-black uppercase tracking-wider truncate">{vid.title}</p>
@@ -262,93 +266,6 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
             ))}
           </div>
         </div>
-      </div>
-
-      {/* Videos Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <VideoIcon className="w-4 h-4 text-purple-400" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">User Generated</span>
-            </div>
-            <h2 className="text-2xl md:text-3xl font-black text-white italic">Community Videos</h2>
-          </div>
-          <button onClick={() => onNavigate('video-lab-landing')} className="text-sm font-bold text-indigo-400 hover:text-white transition-colors">Open Video Lab →</button>
-        </div>
-        {displayVideos.length === 0 ? (
-          <div className="text-gray-600 text-sm">No videos to display.</div>
-        ) : (
-          <>
-          {/* Auto-playing hero strip */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 mb-10">
-            {validVideos.slice(0, 6).map((v, idx) => (
-              <div key={v.id} className="group relative rounded-[2rem] overflow-hidden bg-dark-900 border border-white/5 shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 cursor-pointer" onClick={() => onNavigate('video-lab-landing')}>
-                <div className="aspect-video relative overflow-hidden">
-                  <video
-                    ref={(el) => { videoRefs.current[`grid_${v.id}`] = el; }}
-                    src={v.url}
-                    className="w-full h-full object-cover opacity-90 transition-opacity duration-300"
-                    loop muted playsInline autoPlay crossOrigin="anonymous"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="absolute top-4 left-4">
-                    <span className="px-3 py-1 rounded-full text-[9px] font-black tracking-widest bg-white/10 border border-white/10 text-gray-300 uppercase">Veo Engine</span>
-                  </div>
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="p-4 bg-white/10 backdrop-blur-md rounded-full border border-white/10 group-hover:opacity-0 transition-opacity duration-300"><Play className="w-6 h-6 text-white fill-white" /></div>
-                  </div>
-                </div>
-                <div className="p-6 flex items-center justify-between">
-                  <p className="text-gray-400 text-xs italic truncate">{v.prompt || 'Cinematic AI preview'}</p>
-                  <button onClick={() => onNavigate('video-lab-landing')} className="p-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all"><Maximize2 className="w-4 h-4" /></button>
-                </div>
-              </div>
-            ))}
-          </div>
-          {/* Continuous marquee of video thumbnails */}
-          <div className="relative overflow-hidden rounded-2xl border border-white/5 mb-10">
-            <div className="marquee-track">
-              {[...validVideos, ...validVideos].slice(0, 12).map((v, i) => (
-                <div key={`mv_${i}`} className="w-[320px] mr-4 rounded-xl overflow-hidden bg-black/40 border border-white/5">
-                  <div className="aspect-video">
-                    <video
-                      ref={(el) => { videoRefs.current[`mq_${i}_${v.id}`] = el; }}
-                      src={v.url}
-                      loop muted playsInline autoPlay crossOrigin="anonymous"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Official AI Reels (YouTube embeds) */}
-          <div className="relative overflow-hidden rounded-2xl border border-white/5">
-            <div className="marquee-track">
-              {[...curatedEmbeds, ...curatedEmbeds].slice(0, 12).map((em, i) => (
-                <div key={`me_${i}`} className="w-[360px] mr-4 rounded-xl overflow-hidden bg-black/40 border border-white/5">
-                  <div className="aspect-video relative">
-                    <iframe
-                      ref={(el) => { iframeRefs.current[`em_${i}_${em.id}`] = el; }}
-                      data-src={em.embedUrl}
-                      title={`${em.vendor} • ${em.title}`}
-                      className="w-full h-full"
-                      frameBorder="0"
-                      allow="autoplay; encrypted-media; picture-in-picture"
-                      allowFullScreen
-                    />
-                    <div className="absolute top-2 left-2 px-2 py-1 rounded bg-black/50 text-white text-[9px] font-black uppercase tracking-widest">
-                      {em.vendor}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          </>
-        )}
       </div>
 
       {/* Images Section */}
