@@ -6,8 +6,19 @@ export default async function handler(req, res) {
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
+  
+  // Debug logging (will appear in Vercel logs)
+  console.log('[dalle3] Environment check:', {
+    hasKey: !!apiKey,
+    keyPrefix: apiKey ? apiKey.substring(0, 7) : 'none',
+    allEnvKeys: Object.keys(process.env).filter(k => k.includes('API') || k.includes('OPENAI'))
+  });
+  
   if (!apiKey) {
-    return res.status(401).json({ error: 'Missing OPENAI_API_KEY on server' });
+    return res.status(401).json({ 
+      error: 'DALL·E 3 API key missing or invalid on backend proxy.',
+      hint: 'Add OPENAI_API_KEY to Vercel Environment Variables'
+    });
   }
 
   const { prompt, size = '1024x1024', quality = 'standard', style = 'vivid' } = req.body || {};
