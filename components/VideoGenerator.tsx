@@ -1043,120 +1043,164 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
         </section>
       )}
 
-      {/* Explore Ideas Section */}
+      {/* Explore Ideas Section - Featured Videos from Explore Page */}
       <div className="max-w-[1400px] mx-auto px-4 py-16 mt-12">
         <div className="text-center mb-12">
-          <h2 className="text-xs sm:text-sm font-black text-indigo-400 uppercase tracking-[0.4em] mb-3 sm:mb-4">Video Examples</h2>
+          <h2 className="text-xs sm:text-sm font-black text-indigo-400 uppercase tracking-[0.4em] mb-3 sm:mb-4">Featured Examples</h2>
           <h3 className="text-3xl sm:text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter">Explore AI Video Ideas</h3>
-          <p className="text-gray-400 mt-4 max-w-2xl mx-auto">Discover stunning AI-generated videos across different styles and prompts</p>
+          <p className="text-gray-400 mt-4 max-w-2xl mx-auto">Discover stunning AI-generated videos - Temporal Sequences</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Example 1 - Nature Scene */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Featured Video 1 */}
           <div className="group relative bg-dark-900/60 backdrop-blur-lg border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 transition-all duration-300">
             <div className="aspect-video relative overflow-hidden bg-black">
               <video 
-                src="https://player.vimeo.com/progressive_redirect/playback/992199875/rendition/1080p/file.mp4?loc=external&signature=41f334a5d1e80b5ec4a7abae04238932b6d2ce32af85ac98a6c1bc08e37c0036" 
+                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" 
                 autoPlay 
                 loop 
                 muted 
                 playsInline
+                crossOrigin="anonymous"
                 className="w-full h-full object-cover"
               />
             </div>
             <div className="p-4">
-              <p className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-2">Cinematic Nature</p>
-              <p className="text-sm text-gray-300">"A serene forest landscape with sunlight filtering through trees, gentle camera movement"</p>
+              <p className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-2">Temporal Sequence 1</p>
+              <p className="text-sm text-gray-300">"Cinematic video generation with stunning visual effects"</p>
             </div>
           </div>
 
-          {/* Example 2 - Urban Scene */}
+          {/* Featured Video 2 */}
           <div className="group relative bg-dark-900/60 backdrop-blur-lg border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 transition-all duration-300">
             <div className="aspect-video relative overflow-hidden bg-black">
               <video 
-                src="https://player.vimeo.com/progressive_redirect/playback/992199923/rendition/1080p/file.mp4?loc=external&signature=4e6e0d67e0c86c3f28e4de4094b7f8b7e9f4c5f3e2e1c6b5a4d3c2b1a0b9c8d7" 
+                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4" 
                 autoPlay 
                 loop 
                 muted 
                 playsInline
+                crossOrigin="anonymous"
                 className="w-full h-full object-cover"
               />
             </div>
             <div className="p-4">
-              <p className="text-xs font-black text-purple-400 uppercase tracking-widest mb-2">Urban Cityscape</p>
-              <p className="text-sm text-gray-300">"Modern city at night with neon lights reflecting on wet streets, slow motion"</p>
+              <p className="text-xs font-black text-purple-400 uppercase tracking-widest mb-2">Temporal Sequence 2</p>
+              <p className="text-sm text-gray-300">"Dynamic motion and creative transitions"</p>
             </div>
           </div>
 
-          {/* Example 3 - Abstract */}
+          {/* Featured Video 3 */}
           <div className="group relative bg-dark-900/60 backdrop-blur-lg border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 transition-all duration-300">
             <div className="aspect-video relative overflow-hidden bg-black">
               <video 
-                src="https://player.vimeo.com/progressive_redirect/playback/992200010/rendition/1080p/file.mp4?loc=external&signature=8f7e6d5c4b3a2918e7f6e5d4c3b2a190f8e7d6c5b4a3928f7e6d5c4b3a2918f7" 
+                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4" 
                 autoPlay 
                 loop 
                 muted 
                 playsInline
+                crossOrigin="anonymous"
                 className="w-full h-full object-cover"
               />
             </div>
             <div className="p-4">
-              <p className="text-xs font-black text-pink-400 uppercase tracking-widest mb-2">Abstract Motion</p>
-              <p className="text-sm text-gray-300">"Colorful abstract patterns flowing and morphing, vibrant colors, hypnotic movement"</p>
+              <p className="text-xs font-black text-pink-400 uppercase tracking-widest mb-2">Temporal Sequence 3</p>
+              <p className="text-sm text-gray-300">"High-quality AI-generated video sequences"</p>
             </div>
           </div>
 
-          {/* Example 4 - Ocean Waves */}
+          {/* Featured Video 4 */}
           <div className="group relative bg-dark-900/60 backdrop-blur-lg border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 transition-all duration-300">
             <div className="aspect-video relative overflow-hidden bg-black">
               <video 
-                src="https://cdn.pixabay.com/video/2020/05/17/40742-423033758_large.mp4" 
+                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4" 
                 autoPlay 
                 loop 
                 muted 
                 playsInline
+                crossOrigin="anonymous"
                 className="w-full h-full object-cover"
               />
             </div>
             <div className="p-4">
-              <p className="text-xs font-black text-blue-400 uppercase tracking-widest mb-2">Ocean Serenity</p>
-              <p className="text-sm text-gray-300">"Calm ocean waves at sunset, golden hour lighting, peaceful atmosphere"</p>
+              <p className="text-xs font-black text-blue-400 uppercase tracking-widest mb-2">Temporal Sequence 4</p>
+              <p className="text-sm text-gray-300">"Professional video generation with AI"</p>
             </div>
           </div>
 
-          {/* Example 5 - Space */}
+          {/* Featured Video 5 */}
           <div className="group relative bg-dark-900/60 backdrop-blur-lg border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 transition-all duration-300">
             <div className="aspect-video relative overflow-hidden bg-black">
               <video 
-                src="https://cdn.pixabay.com/video/2021/08/10/84944-591189040_large.mp4" 
+                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4" 
                 autoPlay 
                 loop 
                 muted 
                 playsInline
+                crossOrigin="anonymous"
                 className="w-full h-full object-cover"
               />
             </div>
             <div className="p-4">
-              <p className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-2">Space Journey</p>
-              <p className="text-sm text-gray-300">"Journey through space with stars and nebula, slow camera pan through cosmos"</p>
+              <p className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-2">Temporal Sequence 5</p>
+              <p className="text-sm text-gray-300">"Stunning temporal effects and motion"</p>
             </div>
           </div>
 
-          {/* Example 6 - Nature Timelapse */}
+          {/* Featured Video 6 */}
           <div className="group relative bg-dark-900/60 backdrop-blur-lg border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 transition-all duration-300">
             <div className="aspect-video relative overflow-hidden bg-black">
               <video 
-                src="https://cdn.pixabay.com/video/2022/11/07/138620-770015996_large.mp4" 
+                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4" 
                 autoPlay 
                 loop 
                 muted 
                 playsInline
+                crossOrigin="anonymous"
                 className="w-full h-full object-cover"
               />
             </div>
             <div className="p-4">
-              <p className="text-xs font-black text-green-400 uppercase tracking-widest mb-2">Nature Timelapse</p>
-              <p className="text-sm text-gray-300">"Clouds moving over mountains, timelapse effect, dramatic sky changes"</p>
+              <p className="text-xs font-black text-green-400 uppercase tracking-widest mb-2">Temporal Sequence 6</p>
+              <p className="text-sm text-gray-300">"Advanced AI video generation capabilities"</p>
+            </div>
+          </div>
+
+          {/* Featured Video 7 */}
+          <div className="group relative bg-dark-900/60 backdrop-blur-lg border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 transition-all duration-300">
+            <div className="aspect-video relative overflow-hidden bg-black">
+              <video 
+                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4" 
+                autoPlay 
+                loop 
+                muted 
+                playsInline
+                crossOrigin="anonymous"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="p-4">
+              <p className="text-xs font-black text-purple-400 uppercase tracking-widest mb-2">Temporal Sequence 7</p>
+              <p className="text-sm text-gray-300">"Realistic motion and camera movements"</p>
+            </div>
+          </div>
+
+          {/* Featured Video 8 */}
+          <div className="group relative bg-dark-900/60 backdrop-blur-lg border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 transition-all duration-300">
+            <div className="aspect-video relative overflow-hidden bg-black">
+              <video 
+                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4" 
+                autoPlay 
+                loop 
+                muted 
+                playsInline
+                crossOrigin="anonymous"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="p-4">
+              <p className="text-xs font-black text-pink-400 uppercase tracking-widest mb-2">Temporal Sequence 8</p>
+              <p className="text-sm text-gray-300">"Cinematic quality AI video generation"</p>
             </div>
           </div>
         </div>
