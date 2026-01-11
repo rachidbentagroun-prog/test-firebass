@@ -109,6 +109,8 @@ export const contactAdmin = async (
  */
 export const saveImageToDB = async (image: GeneratedImage, userId: string): Promise<void> => {
   try {
+    console.log('💾 Saving image to Supabase:', { id: image.id, userId });
+    
     const { error } = await supabase
       .from('assets')
       .insert([{ 
@@ -121,9 +123,15 @@ export const saveImageToDB = async (image: GeneratedImage, userId: string): Prom
         metadata: { source: 'TTI' }
       }]);
     
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Supabase save error:', error);
+      throw error;
+    }
+    
+    console.log('✅ Image saved to Supabase successfully:', image.id);
   } catch (e: any) {
-    console.warn("Failed to archive visual asset to database:", e.message || e);
+    console.error("❌ Failed to archive visual asset to database:", e.message || e);
+    throw e; // Re-throw so caller knows it failed
   }
 };
 
@@ -132,6 +140,8 @@ export const saveImageToDB = async (image: GeneratedImage, userId: string): Prom
  */
 export const getImagesFromDB = async (userId: string): Promise<GeneratedImage[]> => {
   try {
+    console.log('📥 Loading images from Supabase for user:', userId);
+    
     const { data, error } = await supabase
       .from('assets')
       .select('*')
@@ -140,14 +150,18 @@ export const getImagesFromDB = async (userId: string): Promise<GeneratedImage[]>
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return (data || []).map(item => ({
+    
+    const images = (data || []).map(item => ({
       id: item.id,
       url: item.url,
       prompt: item.prompt,
       createdAt: new Date(item.created_at).getTime()
     }));
+    
+    console.log('✅ Loaded', images.length, 'images from Supabase');
+    return images;
   } catch (e: any) {
-    console.error("Database fetch failure (Images):", e.message || e);
+    console.error("❌ Database fetch failure (Images):", e.message || e);
     return [];
   }
 };

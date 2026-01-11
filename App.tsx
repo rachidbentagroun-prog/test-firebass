@@ -559,6 +559,8 @@ const App: React.FC = () => {
                 const { getImagesFromDB, getVideosFromDB, getAudioFromDB } = await import('./services/dbService');
                 const { getImagesFromFirebase, getVideosFromFirebase, getAudioFromFirebase } = await import('./services/firebase');
                 
+                console.log('🔄 Loading galleries for user:', fbUser.uid);
+                
                 const [supaImages, supaVideos, supaAudios, fbImages, fbVideos, fbAudios] = await Promise.all([
                   getImagesFromDB(fbUser.uid),
                   getVideosFromDB(fbUser.uid),
@@ -568,6 +570,11 @@ const App: React.FC = () => {
                   getAudioFromFirebase(fbUser.uid)
                 ]);
 
+                console.log('📊 Loaded images:', { 
+                  supabase: supaImages.length, 
+                  firebase: fbImages.length 
+                });
+
                 // Merge unique items from both sources
                 const mergeUnique = <T extends { id: string }>(arr1: T[], arr2: T[]) => {
                   const map = new Map<string, T>();
@@ -575,11 +582,14 @@ const App: React.FC = () => {
                   return Array.from(map.values()).sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
                 };
 
-                setGallery(mergeUnique(supaImages, fbImages));
+                const mergedImages = mergeUnique(supaImages, fbImages);
+                console.log('✅ Merged images total:', mergedImages.length);
+                
+                setGallery(mergedImages);
                 setVideoGallery(mergeUnique(supaVideos, fbVideos));
                 setAudioGallery(mergeUnique(supaAudios, fbAudios));
               } catch (err) {
-                console.warn('Failed to load galleries:', err);
+                console.error('❌ Failed to load galleries:', err);
               }
 
               // Admins: fetch all users but don't block UI
@@ -988,7 +998,12 @@ const App: React.FC = () => {
             gallery={gallery} 
             onCreditUsed={handleCreditUsed} 
             onUpgradeRequired={() => setCurrentPage('upgrade')} 
-            onImageGenerated={(img) => { setGallery(p => [img, ...p]); if (user?.id) saveImageToDB(img, user.id); }} 
+            onImageGenerated={(img) => { 
+              setGallery(p => [img, ...p]); 
+              if (user?.id) {
+                saveImageToDB(img, user.id).catch(err => console.error('Failed to save to Supabase:', err));
+              }
+            }} 
             initialPrompt={initialPrompt} 
             hasApiKey={hasApiKey} 
             onSelectKey={() => {}} 

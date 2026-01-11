@@ -723,12 +723,21 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
       
       // AUTO-SAVE LOGIC: Persistence triggers immediately on success
       if (user) {
+        // First, notify parent to update Gallery state and save to Supabase
         onImageGenerated(newImage);
+        
         // Deduct 3 credits for all image generations
         onCreditUsed();
         onCreditUsed();
         onCreditUsed();
-        try { await saveImageToFirebase(newImage, user.id); } catch {}
+        
+        // Also save to Firebase for redundancy
+        try { 
+          await saveImageToFirebase(newImage, user.id);
+          console.log('✅ Image saved to Firebase:', newImage.id);
+        } catch (err) {
+          console.error('❌ Failed to save image to Firebase:', err);
+        }
       }
     } catch (err: any) {
       setError(err.message || "Neural synthesis failure. Check API logs for link status.");
