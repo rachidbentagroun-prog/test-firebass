@@ -82,9 +82,8 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
       return;
     }
 
-    // Check if blocked before sending
+    // Check if blocked before sending - button already shows in UI
     if (isBlocked) {
-      setShowUpgradeModal(true);
       return;
     }
 
@@ -151,9 +150,9 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
             await updateUserCredits(user.id, newCredits);
             console.log(`✅ Deducted 1 credit. New balance: ${newCredits}`);
             
-            // If credits hit 0, show upgrade modal
+            // Credits hit 0 - inline button will show automatically
             if (newCredits === 0) {
-              setTimeout(() => setShowUpgradeModal(true), 1000);
+              console.log('⚠️ User out of credits - buy credits button will display');
             }
           } catch (err) {
             console.error('❌ Failed to deduct credits:', err);
@@ -275,6 +274,36 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
             <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 max-w-2xl mx-auto">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
               <span>{error}</span>
+            </div>
+          )}
+
+          {/* Blocked Message with Buy Credit Button */}
+          {isBlocked && user && (
+            <div className="max-w-2xl mx-auto mt-8">
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-3xl p-8 text-center space-y-4 shadow-lg">
+                <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center mx-auto">
+                  <MessageSquare className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-black text-slate-900">
+                  {isFreePlan ? 'Free Plan Limit Reached' : 'No Credits Remaining'}
+                </h3>
+                <p className="text-slate-600">
+                  {isFreePlan 
+                    ? "You've used your 2 free messages. Get more credits to continue chatting with GPT-5.2!"
+                    : "Your credits have run out. Purchase more credits to continue your conversation."}
+                </p>
+                <button
+                  onClick={() => {
+                    const message = isFreePlan 
+                      ? 'Hello! I want to buy credits to continue using GPT-5.2 chat. I am currently on the free plan.'
+                      : 'Hello! I need to buy more credits to continue using GPT-5.2 chat.';
+                    window.open(`https://wa.me/212630961392?text=${encodeURIComponent(message)}`, '_blank');
+                  }}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-black uppercase tracking-wide shadow-lg shadow-green-500/30 transition-all transform hover:scale-105"
+                >
+                  💰 Buy Credits to Continue
+                </button>
+              </div>
             </div>
           )}
 
