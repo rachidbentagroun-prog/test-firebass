@@ -275,21 +275,26 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                     </div>
                   )}
                   
-                  {/* Main input row with upload button, input field, and generate button */}
+                  {/* Main input row with input field and generate button */}
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                    {/* Upload button */}
-                    <button 
-                      onClick={() => fileInputRef.current?.click()} 
-                      className={`flex-shrink-0 h-[56px] w-[56px] rounded-xl p-3 transition-all duration-300 hover:scale-105 active:scale-95 ${selectedFile ? 'bg-indigo-100 text-indigo-600 shadow-md ring-2 ring-indigo-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`} 
-                      title="Upload file" 
-                      type="button"
-                    >
-                      <Upload className="h-6 w-6" />
-                    </button>
+                    {/* Hidden file input */}
                     <input ref={fileInputRef} type="file" onChange={handleFileSelect} className="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx" />
                     
-                    {/* Input field with microphone */}
+                    {/* Input field with upload icon on left and microphone on right */}
                     <div className="relative flex-1 min-w-0">
+                      {/* Upload icon button - positioned inside input on left */}
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`absolute left-3 top-1/2 -translate-y-1/2 z-10 transition-all duration-300 hover:scale-110 active:scale-95 ${
+                          selectedFile ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'
+                        }`}
+                        title="Upload file"
+                        type="button"
+                        aria-label="Upload file"
+                      >
+                        <Upload className="h-5 w-5" />
+                      </button>
+                      
                       <input 
                         value={prompt}
                         onChange={(e) => {
@@ -303,11 +308,11 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                         }}
                         onKeyDown={handleKeyDown}
                         placeholder={isRecording ? (isTranscribing ? "Listening..." : "Speak now...") : "Describe your vision..."}
-                        className="h-[56px] w-full rounded-xl bg-slate-50/60 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2 focus:ring-offset-white text-[16px] sm:text-lg font-medium transition-all duration-300 px-4 pr-14"
+                        className="h-[56px] w-full rounded-xl bg-slate-50/60 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2 focus:ring-offset-white text-[16px] sm:text-lg font-medium transition-all duration-300 pl-11 pr-14"
                         style={{ WebkitAppearance: 'none' }}
                       />
                       
-                      {/* Microphone button for speech-to-text */}
+                      {/* Microphone button for speech-to-text - positioned inside input on right */}
                       <div className="pointer-events-auto absolute inset-y-1 right-1 flex items-center">
                         <button
                           onClick={toggleRecording}
