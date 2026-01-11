@@ -359,25 +359,7 @@ const App: React.FC = () => {
     return () => { isMounted = false; };
   }, []);
 
-  // After initialization, if we just logged in and are on home page, redirect to dashboard
-  useEffect(() => {
-    if (isInitializing) return;
-    try {
-      const fbUser = auth.currentUser;
-      // Only auto-redirect to dashboard if user just logged in and is still on home page
-      if (fbUser && currentPage === 'home') {
-        console.log('✅ Session detected on home page, routing to /aiimage');
-        setCurrentPage('dashboard');
-        try {
-          if (window.location.pathname !== '/aiimage') {
-            window.history.replaceState({}, '', '/aiimage');
-          }
-        } catch (e) { console.warn('Failed to update URL after session restore', e); }
-      }
-    } catch (e) {
-      console.warn('Post-init session route check failed', e);
-    }
-  }, [isInitializing]);
+  // Removed auto-redirect to /aiimage - users can navigate manually from home page
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authPrefillEmail, setAuthPrefillEmail] = useState<string | undefined>(undefined);
@@ -492,29 +474,10 @@ const App: React.FC = () => {
           console.log('   Next: Dashboard should render or onLoginSuccess will navigate');
 
           // Auto-redirect to dashboard only if user just logged in
-          // Check if user is on a public page (home, signup) or has login flags set
+          // Clear any login flags but don't auto-redirect - let users navigate manually
           try {
-            const justLoggedIn = localStorage.getItem('google_signin_completed') === 'true' || localStorage.getItem('post_login_target') === 'dashboard';
-            const onPublicPage = currentPage === 'home' || currentPage === 'signup';
-            
-            // Navigate to dashboard if:
-            // 1. Just completed Google sign-in (flag set) OR
-            // 2. User is on public landing/signup pages
-            // BUT NOT if user is already on app pages (dashboard, gallery, video-generator, etc.)
-            if (justLoggedIn || onPublicPage) {
-              console.log('🎯 Auth listener navigating to dashboard (just logged in or on public page)');
-              setTimeout(() => setCurrentPage('dashboard'), 100);
-              try {
-                if (window.location.pathname !== '/aiimage') {
-                  window.history.replaceState({}, '', '/aiimage');
-                }
-              } catch (_) {}
-              // Clear the flags after redirect
-              try {
-                localStorage.removeItem('google_signin_completed');
-                localStorage.removeItem('post_login_target');
-              } catch (_) {}
-            }
+            localStorage.removeItem('google_signin_completed');
+            localStorage.removeItem('post_login_target');
           } catch (_) {}
 
           // Perform heavier profile/entitlements fetches in the background and update the user when ready
