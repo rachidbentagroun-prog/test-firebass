@@ -27,16 +27,34 @@ export const Gallery: React.FC<GalleryProps> = ({ images, videos = [], audioGall
   }, [previewAsset]);
 
   const handlePlayAudio = (audio: GeneratedAudio) => {
-    if (playingAudioId === audio.id) {
-      audioRef.current?.pause();
+    try {
+      if (playingAudioId === audio.id) {
+        audioRef.current?.pause();
+        setPlayingAudioId(null);
+      } else {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.src = '';
+        }
+        const newAudio = new Audio(audio.url);
+        audioRef.current = newAudio;
+        newAudio.onended = () => {
+          setPlayingAudioId(null);
+          newAudio.src = '';
+        };
+        newAudio.onerror = (e) => {
+          console.error('❌ Gallery audio playback error:', e);
+          setPlayingAudioId(null);
+        };
+        newAudio.play().catch(err => {
+          console.error('❌ Gallery audio play failed:', err);
+          setPlayingAudioId(null);
+        });
+        setPlayingAudioId(audio.id);
+      }
+    } catch (err) {
+      console.error('❌ Gallery handlePlayAudio error:', err);
       setPlayingAudioId(null);
-    } else {
-      if (audioRef.current) audioRef.current.pause();
-      const newAudio = new Audio(audio.url);
-      audioRef.current = newAudio;
-      newAudio.onended = () => setPlayingAudioId(null);
-      newAudio.play();
-      setPlayingAudioId(audio.id);
     }
   };
 

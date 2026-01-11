@@ -257,24 +257,11 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
     }
   }, [user, mode, text, negativePrompt, engine, selectedVoice, selectedLanguage, selectedElevenlabsVoice, selectedElevenlabsLanguage, songGenre, songBpm, songMood, songKey, songStyle, songStability, songSimilarityBoost, songUseSpeakerBoost, songModel]);
 
-  // Auto-play audio when generated and cleanup old Object URLs
+  // Auto-play handled by Plyr component, cleanup old Object URLs
   useEffect(() => {
-    if (currentAudio && mainAudioRef.current) {
-      console.log('🎵 New audio generated, attempting auto-play');
+    if (currentAudio) {
+      console.log('🎵 New audio generated');
       console.log('Audio URL:', currentAudio.url);
-      console.log('Audio element src:', mainAudioRef.current.src);
-      
-      const playPromise = mainAudioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            console.log('✅ Audio auto-play started successfully');
-          })
-          .catch((error) => {
-            console.warn('⚠️ Auto-play failed (browser may require user interaction):', error);
-            // This is expected in some browsers - user needs to click play button
-          });
-      }
     }
     
     // Cleanup: revoke old object URLs when component unmounts or audio changes
@@ -400,15 +387,12 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
 
   const playFromList = async (item: GeneratedAudio) => {
     try {
+      console.log('▶️ Playing from list:', item.id);
       setCurrentAudio(item);
-      setTimeout(() => {
-        if (mainAudioRef.current) {
-          mainAudioRef.current.currentTime = 0;
-          mainAudioRef.current.play();
-        }
-      }, 0);
       setListPlayingId(item.id);
-    } catch { /* noop */ }
+    } catch (err) { 
+      console.error('❌ Play from list error:', err);
+    }
   };
 
   const deleteFromList = async (id: string) => {
@@ -1155,68 +1139,6 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                              <Download className="w-6 h-6" />
                           </a>
                        </div>
-                       
-                       {/* Seek Bar */}
-                       {audioDuration > 0 && (
-                         <div className="mt-8 w-full max-w-md">
-                           <input 
-                             type="range" 
-                             min="0" 
-                             max={audioDuration} 
-                             value={audioProgress} 
-                             onChange={(e) => {
-                               if (mainAudioRef.current) {
-                                 mainAudioRef.current.currentTime = Number(e.target.value);
-                               }
-                             }}
-                             className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                           />
-                           <div className="flex justify-between mt-2 text-[9px] font-bold text-gray-500 uppercase">
-                             <span>{Math.floor(audioProgress / 60)}:{String(Math.floor(audioProgress % 60)).padStart(2, '0')}</span>
-                             <span>{Math.floor(audioDuration / 60)}:{String(Math.floor(audioDuration % 60)).padStart(2, '0')}</span>
-                           </div>
-                         </div>
-                       )}
-                       
-                       <audio 
-                         ref={mainAudioRef} 
-                         src={currentAudio.url} 
-                         onEnded={() => {
-                           console.log('🎵 Audio playback ended');
-                           setIsPlaying(false);
-                         }} 
-                         onPlay={() => {
-                           console.log('🎵 Audio playback started');
-                           setIsPlaying(true);
-                         }} 
-                         onPause={() => {
-                           console.log('🎵 Audio playback paused');
-                           setIsPlaying(false);
-                         }}
-                         onLoadedMetadata={(e) => {
-                           console.log('🎵 Audio metadata loaded, duration:', e.currentTarget.duration);
-                           setAudioDuration(e.currentTarget.duration);
-                         }}
-                         onTimeUpdate={(e) => setAudioProgress(e.currentTarget.currentTime)}
-                         onError={(e) => {
-                           console.error('❌ Audio playback error:', e);
-                           const audioEl = e.currentTarget;
-                           console.error('Audio error details:', {
-                             error: audioEl.error,
-                             code: audioEl.error?.code,
-                             message: audioEl.error?.message,
-                             src: audioEl.src,
-                             currentSrc: audioEl.currentSrc,
-                             networkState: audioEl.networkState,
-                             readyState: audioEl.readyState
-                           });
-                         }}
-                         onCanPlay={() => console.log('✅ Audio can play')}
-                         onCanPlayThrough={() => console.log('✅ Audio can play through')}
-                         onLoadStart={() => console.log('🎵 Audio load started')}
-                         onLoadedData={() => console.log('🎵 Audio data loaded')}
-                         className="hidden" 
-                       />
                     </div>
                  </div>
                ) : (
