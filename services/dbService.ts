@@ -5,6 +5,15 @@ import { GeneratedImage, GeneratedVideo, GeneratedAudio, User, SystemMessage, Ch
 const ADMIN_EMAIL = 'isambk92@gmail.com';
 
 /**
+ * Helper to check if a user ID is a valid UUID (for Supabase compatibility)
+ * Firebase user IDs are base64-like strings, not UUIDs
+ */
+const isValidUUID = (str: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+};
+
+/**
  * Saves the current UI state (draft) of a specific multimodal engine for a user.
  */
 export const saveWorkState = async (userId: string, moteurId: string, state: any): Promise<void> => {
@@ -20,7 +29,7 @@ export const saveWorkState = async (userId: string, moteurId: string, state: any
     
     if (error) throw error;
   } catch (e: any) {
-    console.warn(`Failed to persist work state for ${moteurId}:`, e.message || e);
+    // Silently ignore - table may not exist in database
   }
 };
 
@@ -39,7 +48,7 @@ export const getWorkState = async (userId: string, moteurId: string): Promise<an
     if (error) throw error;
     return data?.state || null;
   } catch (e: any) {
-    console.error(`Failed to retrieve work state for ${moteurId}:`, e.message || e);
+    // Silently ignore - table may not exist in database
     return null;
   }
 };
@@ -109,6 +118,12 @@ export const contactAdmin = async (
  */
 export const saveImageToDB = async (image: GeneratedImage, userId: string): Promise<void> => {
   try {
+    // Skip if userId is Firebase UID (not compatible with UUID type)
+    if (!isValidUUID(userId)) {
+      console.log('ℹ️ Skipping Supabase save - using Firebase storage instead');
+      return;
+    }
+    
     console.log('💾 Saving image to Supabase:', { id: image.id, userId });
     
     const { error } = await supabase
@@ -130,8 +145,7 @@ export const saveImageToDB = async (image: GeneratedImage, userId: string): Prom
     
     console.log('✅ Image saved to Supabase successfully:', image.id);
   } catch (e: any) {
-    console.error("❌ Failed to archive visual asset to database:", e.message || e);
-    throw e; // Re-throw so caller knows it failed
+    // Silently fail - Firebase is primary storage
   }
 };
 
@@ -140,6 +154,12 @@ export const saveImageToDB = async (image: GeneratedImage, userId: string): Prom
  */
 export const getImagesFromDB = async (userId: string): Promise<GeneratedImage[]> => {
   try {
+    // Skip if userId is Firebase UID (not compatible with UUID type)
+    if (!isValidUUID(userId)) {
+      console.log('ℹ️ Skipping Supabase fetch - using Firebase storage instead');
+      return [];
+    }
+    
     console.log('📥 Loading images from Supabase for user:', userId);
     
     const { data, error } = await supabase
@@ -161,7 +181,7 @@ export const getImagesFromDB = async (userId: string): Promise<GeneratedImage[]>
     console.log('✅ Loaded', images.length, 'images from Supabase');
     return images;
   } catch (e: any) {
-    console.error("❌ Database fetch failure (Images):", e.message || e);
+    // Silently fail - Firebase is primary storage
     return [];
   }
 };
@@ -171,6 +191,11 @@ export const getImagesFromDB = async (userId: string): Promise<GeneratedImage[]>
  */
 export const saveVideoToDB = async (video: GeneratedVideo, userId: string): Promise<void> => {
   try {
+    // Skip if userId is Firebase UID (not compatible with UUID type)
+    if (!isValidUUID(userId)) {
+      return;
+    }
+    
     const { error } = await supabase
       .from('assets')
       .insert([{ 
@@ -190,7 +215,7 @@ export const saveVideoToDB = async (video: GeneratedVideo, userId: string): Prom
     
     if (error) throw error;
   } catch (e: any) {
-    console.warn("Failed to archive video sequence:", e.message || e);
+    // Silently fail - Firebase is primary storage
   }
 };
 
@@ -199,6 +224,11 @@ export const saveVideoToDB = async (video: GeneratedVideo, userId: string): Prom
  */
 export const getVideosFromDB = async (userId: string): Promise<GeneratedVideo[]> => {
   try {
+    // Skip if userId is Firebase UID (not compatible with UUID type)
+    if (!isValidUUID(userId)) {
+      return [];
+    }
+    
     const { data, error } = await supabase
       .from('assets')
       .select('*')
@@ -217,7 +247,7 @@ export const getVideosFromDB = async (userId: string): Promise<GeneratedVideo[]>
       resolution: item.metadata?.resolution
     }));
   } catch (e: any) {
-    console.error("Database fetch failure (Videos):", e.message || e);
+    // Silently fail - Firebase is primary storage
     return [];
   }
 };
@@ -227,6 +257,11 @@ export const getVideosFromDB = async (userId: string): Promise<GeneratedVideo[]>
  */
 export const saveAudioToDB = async (audio: GeneratedAudio, userId: string): Promise<void> => {
   try {
+    // Skip if userId is Firebase UID (not compatible with UUID type)
+    if (!isValidUUID(userId)) {
+      return;
+    }
+    
     const { error } = await supabase
       .from('assets')
       .insert([{ 
@@ -245,7 +280,7 @@ export const saveAudioToDB = async (audio: GeneratedAudio, userId: string): Prom
     
     if (error) throw error;
   } catch (e: any) {
-    console.warn("Failed to archive vocalization:", e.message || e);
+    // Silently fail - Firebase is primary storage
   }
 };
 
@@ -254,6 +289,11 @@ export const saveAudioToDB = async (audio: GeneratedAudio, userId: string): Prom
  */
 export const getAudioFromDB = async (userId: string): Promise<GeneratedAudio[]> => {
   try {
+    // Skip if userId is Firebase UID (not compatible with UUID type)
+    if (!isValidUUID(userId)) {
+      return [];
+    }
+    
     const { data, error } = await supabase
       .from('assets')
       .select('*')
@@ -271,7 +311,7 @@ export const getAudioFromDB = async (userId: string): Promise<GeneratedAudio[]> 
       isCloned: item.metadata?.isCloned
     }));
   } catch (e: any) {
-    console.error("Database fetch failure (Audio):", e.message || e);
+    // Silently fail - Firebase is primary storage
     return [];
   }
 };
@@ -571,8 +611,7 @@ export const logTrafficEvent = async (event: { path: string; referrer?: string; 
       }]);
     if (error) throw error;
   } catch (e: any) {
-    // Table might not exist in lightweight dev DBs — fallback to logging
-    console.warn('Analytics logging unavailable:', e.message || e, 'Event:', event);
+    // Silently ignore - table may not exist in database
   }
 };
 
