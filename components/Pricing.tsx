@@ -10,7 +10,7 @@ interface PricingProps {
 }
 
 export const Pricing: React.FC<PricingProps> = ({ onSelectPlan, plans }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   
   const handlePlanClick = (plan: Plan) => {
     // Pass the plan to the parent to decide whether to open Auth, Upgrade, or External Link
@@ -19,32 +19,40 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPlan, plans }) => {
 
   // Helper function to get translated plan name
   const getPlanName = (planId: string) => {
-    const translations: Record<string, string> = {
-      'free': t('pricing.plans.free.name'),
-      'test': t('pricing.plans.test.name'),
-      'basic': t('pricing.plans.basic.name'),
-      'premium': t('pricing.plans.premium.name')
-    };
-    return translations[planId] || planId;
+    try {
+      const translationKey = `pricing.plans.${planId}.name`;
+      const translated = t(translationKey);
+      return translated;
+    } catch {
+      return planId;
+    }
   };
 
   // Helper function to get translated features
-  const getPlanFeatures = (planId: string, defaultFeatures: string[]) => {
-    const featureKeys: Record<string, string[]> = {
-      'free': ['feature1', 'feature2', 'feature3', 'feature4', 'feature5', 'feature6', 'feature7', 'feature8', 'feature9'],
-      'test': ['feature1', 'feature2', 'feature3', 'feature4', 'feature5', 'feature6', 'feature7', 'feature8', 'feature9', 'feature10'],
-      'basic': ['feature1', 'feature2', 'feature3', 'feature4', 'feature5', 'feature6', 'feature7', 'feature8', 'feature9', 'feature10'],
-      'premium': ['feature1', 'feature2', 'feature3', 'feature4', 'feature5', 'feature6', 'feature7', 'feature8', 'feature9', 'feature10']
+  const getPlanFeatures = (planId: string) => {
+    const featureKeys: Record<string, number> = {
+      'free': 9,
+      'test': 10,
+      'basic': 10,
+      'premium': 10
     };
 
-    const keys = featureKeys[planId];
-    if (!keys) return defaultFeatures;
-
-    return keys.map((key, idx) => {
-      const translation = t(`pricing.plans.${planId}.${key}`);
-      // If translation key doesn't exist, fall back to original feature
-      return translation.includes('pricing.plans') ? (defaultFeatures[idx] || '') : translation;
-    }).filter(Boolean);
+    const numFeatures = featureKeys[planId] || 10;
+    const features: string[] = [];
+    
+    for (let i = 1; i <= numFeatures; i++) {
+      try {
+        const translationKey = `pricing.plans.${planId}.feature${i}`;
+        const translated = t(translationKey);
+        if (translated && !translated.includes('pricing.plans')) {
+          features.push(translated);
+        }
+      } catch {
+        // Skip if translation doesn't exist
+      }
+    }
+    
+    return features;
   };
 
   return (
@@ -58,7 +66,7 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPlan, plans }) => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           {plans.map((plan) => {
-            const translatedFeatures = getPlanFeatures(plan.id, plan.features);
+            const translatedFeatures = getPlanFeatures(plan.id);
             
             return (
               <div 
