@@ -212,7 +212,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* === RIGHT ACTIONS === */}
         <div className="nav-actions">
           {/* Language Selector - Always visible */}
-          <div ref={languageRef} style={{ position: 'relative' }}>
+          <div ref={languageRef} style={{ position: 'relative' }} className="desktop-language-selector">
             <button
               onClick={() => setIsLanguageDropdownOpen(!isLanguageDropdownOpen)}
               className="btn-secondary"
@@ -247,7 +247,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   borderRadius: '12px',
                   boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
                   minWidth: '160px',
-                  zIndex: 1000,
+                  zIndex: 2147483648,
                   overflow: 'hidden',
                 }}
               >

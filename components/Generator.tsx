@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Image as ImageIcon, Sparkles, Upload, X, Download, RefreshCw, AlertCircle, 
@@ -38,28 +38,28 @@ interface GeneratorProps {
   onLoginClick?: () => void;
 }
 
-const ASPECT_RATIOS: { id: string, label: string, icon: any }[] = [
-  { id: '1:1', label: '1:1 (Square)', icon: Square },
-  { id: '9:16', label: '9:16 (Portrait)', icon: RectangleVertical },
-  { id: '1:2', label: '1:2 (Slim)', icon: RectangleVertical },
-  { id: '3:4', label: '3:4 (Tall)', icon: RectangleVertical },
+const ASPECT_RATIOS_BASE: { id: string, labelKey: string, icon: any }[] = [
+  { id: '1:1', labelKey: 'generator.aspectRatios.square', icon: Square },
+  { id: '9:16', labelKey: 'generator.aspectRatios.portrait', icon: RectangleVertical },
+  { id: '1:2', labelKey: 'generator.aspectRatios.slim', icon: RectangleVertical },
+  { id: '3:4', labelKey: 'generator.aspectRatios.tall', icon: RectangleVertical },
 ];
 
-const STYLES = [
-  { id: 'none', label: 'None', modifier: '' },
-  { id: 'photorealistic', label: 'Realistic', modifier: 'photorealistic, 8k, highly detailed, realistic lighting, photography' },
-  { id: 'anime', label: 'Anime', modifier: 'anime style, studio ghibli, vibrant colors, cel shaded' },
-  { id: '3d-model', label: '3D Render', modifier: '3d render, unreal engine 5, octane render, ray tracing, high fidelity' },
-  { id: 'pixel-art', label: 'Pixel Art', modifier: 'pixel art, 16-bit, retro game style, dithering' },
-  { id: 'cyberpunk', label: 'Cyberpunk', modifier: 'cyberpunk, neon lights, futuristic, high tech, synthwave' },
-  { id: 'cinematic', label: 'Cinematic', modifier: 'cinematic lighting, movie scene, dramatic, 4k, wide angle, depth of field, blockbuster' },
-  { id: 'fantasy', label: 'Fantasy', modifier: 'fantasy art, magical, ethereal, highly detailed, concept art, dungeons and dragons style' },
+const STYLES_BASE = [
+  { id: 'none', labelKey: 'generator.styles.none', modifier: '' },
+  { id: 'photorealistic', labelKey: 'generator.styles.realistic', modifier: 'photorealistic, 8k, highly detailed, realistic lighting, photography' },
+  { id: 'anime', labelKey: 'generator.styles.anime', modifier: 'anime style, studio ghibli, vibrant colors, cel shaded' },
+  { id: '3d-model', labelKey: 'generator.styles.3dRender', modifier: '3d render, unreal engine 5, octane render, ray tracing, high fidelity' },
+  { id: 'pixel-art', labelKey: 'generator.styles.pixelArt', modifier: 'pixel art, 16-bit, retro game style, dithering' },
+  { id: 'cyberpunk', labelKey: 'generator.styles.cyberpunk', modifier: 'cyberpunk, neon lights, futuristic, high tech, synthwave' },
+  { id: 'cinematic', labelKey: 'generator.styles.cinematic', modifier: 'cinematic lighting, movie scene, dramatic, 4k, wide angle, depth of field, blockbuster' },
+  { id: 'fantasy', labelKey: 'generator.styles.fantasy', modifier: 'fantasy art, magical, ethereal, highly detailed, concept art, dungeons and dragons style' },
 ];
 
-const NEGATIVE_PRESETS = [
-  { id: 'quality', label: 'Low quality / blur', value: 'blurry, low resolution, pixelated, compression artifacts, noisy, distorted details, watermark' },
-  { id: 'anatomy', label: 'Bad anatomy', value: 'bad anatomy, extra fingers, deformed hands, malformed limbs, distorted faces, asymmetry' },
-  { id: 'content', label: 'NSFW / violence', value: 'nsfw, nudity, gore, blood, violence, offensive, hateful, copyrighted logos' },
+const NEGATIVE_PRESETS_BASE = [
+  { id: 'quality', labelKey: 'generator.negativePresetLabels.lowQuality', value: 'blurry, low resolution, pixelated, compression artifacts, noisy, distorted details, watermark' },
+  { id: 'anatomy', labelKey: 'generator.negativePresetLabels.badAnatomy', value: 'bad anatomy, extra fingers, deformed hands, malformed limbs, distorted faces, asymmetry' },
+  { id: 'content', labelKey: 'generator.negativePresetLabels.nsfwViolence', value: 'nsfw, nudity, gore, blood, violence, offensive, hateful, copyrighted logos' },
 ];
 
 const IMAGE_IDEAS = [
@@ -78,7 +78,7 @@ const QUICK_IDEAS = [
 const PROMPT_HISTORY_KEY = 'imaginai_prompt_history';
 
 export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUsed, onUpgradeRequired, onImageGenerated, onDeleteImage, onUpdateUser, initialPrompt, hasApiKey, onSelectKey, onLoginClick }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [genMode, setGenMode] = useState<'tti' | 'iti'>('tti');
   const [imageEngine, setImageEngine] = useState<'klingai' | 'gemini' | 'deapi' | 'runware' | 'seedream' | 'seedream40' | 'dalle3'>('runware');
   const [prompt, setPrompt] = useState(initialPrompt || '');
@@ -108,6 +108,22 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
   const [imageHistory, setImageHistory] = useState<GeneratedImage[]>([]);
 
   const [showIdentityCheck, setShowIdentityCheck] = useState(false);
+
+  // Translated constants
+  const ASPECT_RATIOS = useMemo(() => ASPECT_RATIOS_BASE.map(ratio => ({
+    ...ratio,
+    label: t(ratio.labelKey)
+  })), [language, t]);
+
+  const STYLES = useMemo(() => STYLES_BASE.map(style => ({
+    ...style,
+    label: t(style.labelKey)
+  })), [language, t]);
+
+  const NEGATIVE_PRESETS = useMemo(() => NEGATIVE_PRESETS_BASE.map(preset => ({
+    ...preset,
+    label: t(preset.labelKey)
+  })), [language, t]);
 
   useEffect(() => {
     try {
@@ -1042,7 +1058,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                   <div className="animate-fade-in">
                       <div className="flex justify-between mb-2">
                       <label className="form-label text-[10px] tracking-[0.18em]">
-                        {genMode === 'tti' ? 'Directorial Script' : 'Transformation Script'}
+                        {genMode === 'tti' ? t('generator.directorialScript') : t('generator.transformationScript')}
                       </label>
                       <div className="flex gap-2">
                         {promptHistory.length > 0 && (
@@ -1051,7 +1067,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                               onClick={() => setShowPromptHistory(!showPromptHistory)}
                               className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest hover:text-indigo-300"
                             >
-                              History
+                              {t('generator.history')}
                             </button>
                             {showPromptHistory && (
                               <div className="absolute right-0 top-full mt-2 w-72 bg-dark-900 border border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden animate-scale-in">
@@ -1075,7 +1091,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                           disabled={isEnhancing || !prompt.trim()}
                           className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest hover:text-indigo-300 disabled:opacity-50"
                         >
-                          {isEnhancing ? 'Optimizing...' : 'Enhance'}
+                          {isEnhancing ? t('generator.optimizing') : t('generator.enhance')}
                         </button>
                       </div>
                     </div>
@@ -1091,7 +1107,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                   {imageEngine === 'seedream' && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-2 sm:col-span-2">
-                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Model ID (optional - defaults to doubao-image-1)</label>
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('generator.modelId')}</label>
                         <input
                           type="text"
                           value={seedreamModel}
@@ -1101,7 +1117,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Seedream Resolution</label>
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('generator.seedreamResolution')}</label>
                         <select
                           value={seedreamResolution}
                           onChange={(e) => setSeedreamResolution(e.target.value)}
@@ -1113,7 +1129,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Quality</label>
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('generator.quality')}</label>
                         <select
                           value={seedreamQuality}
                           onChange={(e) => setSeedreamQuality(e.target.value as any)}
@@ -1125,7 +1141,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Guidance</label>
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('generator.guidance')}</label>
                         <input
                           type="range"
                           min={1}
@@ -1137,12 +1153,12 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                         <div className="text-[9px] text-gray-500 ml-1">CFG: {seedreamGuidance}</div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Seed (optional)</label>
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('generator.seed')}</label>
                         <input
                           type="number"
                           value={seedreamSeed ?? ''}
                           onChange={(e) => setSeedreamSeed(e.target.value ? Number(e.target.value) : undefined)}
-                          placeholder="random"
+                          placeholder={t('generator.random')}
                           className="w-full px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white tracking-widest"
                         />
                       </div>
@@ -1153,7 +1169,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                   {imageEngine === 'dalle3' && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-fade-in">
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Resolution</label>
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('generator.resolution')}</label>
                         <button
                           ref={dalleResolutionButtonRef}
                           onClick={() => setIsDalleResolutionMenuOpen(!isDalleResolutionMenuOpen)}
@@ -1163,10 +1179,10 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                           <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform ${isDalleResolutionMenuOpen ? 'rotate-180' : ''}`} />
                         </button>
                         {dalleResolutionMenuPortal}
-                        <p className="text-[9px] text-gray-500 ml-1">Fixed square output from DALL·E 3.</p>
+                        <p className="text-[9px] text-gray-500 ml-1">{t('generator.fixedSquare')}</p>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Quality</label>
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('generator.quality')}</label>
                         <button
                           ref={dalleQualityButtonRef}
                           onClick={() => setIsDalleQualityMenuOpen(!isDalleQualityMenuOpen)}
@@ -1178,24 +1194,24 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                         {dalleQualityMenuPortal}
                       </div>
                       <div className="space-y-2 sm:col-span-2">
-                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Style</label>
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('generator.dalleStyle')}</label>
                         <div className="grid grid-cols-2 gap-2">
                           <button
                             type="button"
                             onClick={() => setDalleStyle('vivid')}
                             className={`px-3 py-3 rounded-xl border text-[9px] font-black uppercase tracking-widest ${dalleStyle === 'vivid' ? 'border-indigo-400 bg-indigo-500/10 text-white' : 'border-white/10 text-gray-400 hover:border-white/20'}`}
                           >
-                            Vivid
+                            {t('generator.vivid')}
                           </button>
                           <button
                             type="button"
                             onClick={() => setDalleStyle('natural')}
                             className={`px-3 py-3 rounded-xl border text-[9px] font-black uppercase tracking-widest ${dalleStyle === 'natural' ? 'border-indigo-400 bg-indigo-500/10 text-white' : 'border-white/10 text-gray-400 hover:border-white/20'}`}
                           >
-                            Natural
+                            {t('generator.natural')}
                           </button>
                         </div>
-                        <p className="text-[9px] text-gray-500 ml-1">OpenAI presets: vivid = richer colors, natural = realistic.</p>
+                        <p className="text-[9px] text-gray-500 ml-1">{t('generator.dalleStyleDesc')}</p>
                       </div>
                     </div>
                   )}
@@ -1206,9 +1222,9 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                       <div>
                         <div className="flex items-center gap-2 ml-1">
                           <Ban className="w-3.5 h-3.5 text-pink-400" />
-                          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Negative Prompt</span>
+                          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{t('generator.negativePrompt')}</span>
                         </div>
-                        <p className="text-[9px] text-gray-600 uppercase tracking-widest ml-1">Clean up results across all engines</p>
+                        <p className="text-[9px] text-gray-600 uppercase tracking-widest ml-1">{t('generator.negativeDescription')}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         {negativePrompt && (
@@ -1216,7 +1232,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                             onClick={() => setNegativePrompt('')}
                             className="px-3 py-1 text-[9px] font-black uppercase tracking-widest bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:border-white/25"
                           >
-                            Clear
+                            {t('generator.clear')}
                           </button>
                         )}
                         <button 
@@ -1224,13 +1240,13 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                           onClick={() => setIsNegativeMenuOpen(!isNegativeMenuOpen)}
                           className="px-3 py-1.5 text-[9px] font-bold text-pink-300 uppercase tracking-widest bg-black/50 border border-white/10 rounded-lg hover:border-white/25"
                         >
-                          Presets
+                          {t('generator.presets')}
                         </button>
                       </div>
                     </div>
                     {negativeMenuPortal}
                     <textarea 
-                      placeholder="Things you want to avoid (e.g., blurry, watermarks, distorted hands)"
+                      placeholder={t('generator.negativePromptPlaceholder')}
                       className="w-full h-16 bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm outline-none focus:ring-2 focus:ring-pink-500/40 resize-none"
                       value={negativePrompt}
                       onChange={(e) => setNegativePrompt(e.target.value)}
@@ -1241,7 +1257,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                   <div className="grid grid-cols-2 gap-3">
                     {/* Aspect Ratio */}
                     <div className="space-y-2 relative" ref={aspectRatioMenuRef}>
-                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Dimension</label>
+                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('generator.dimension')}</label>
                       <button ref={aspectRatioButtonRef} onClick={() => setIsAspectRatioMenuOpen(!isAspectRatioMenuOpen)} className="w-full flex items-center justify-between px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all group">
                         <div className="flex items-center gap-1.5 truncate">
                           {currentRatioOption && <currentRatioOption.icon className="w-3.5 h-3.5 text-indigo-400 shrink-0 group-hover:scale-110 transition-transform" />}
@@ -1254,7 +1270,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
 
                     {/* Style */}
                     <div className="space-y-2 relative" ref={styleMenuRef}>
-                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Style</label>
+                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('generator.style')}</label>
                       <button ref={styleButtonRef} onClick={() => setIsStyleMenuOpen(!isStyleMenuOpen)} className="w-full flex items-center justify-between px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
                         <span className="truncate">{currentStyleOption?.label || 'None'}</span>
                         <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform shrink-0 ${isStyleMenuOpen ? 'rotate-180' : ''}`} />
@@ -1266,14 +1282,14 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                   {/* Pro Mode Toggle */}
                   <div className="flex items-center justify-between p-4 bg-black/40 border border-white/10 rounded-xl">
                     <div>
-                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Ultra HD 3.0</label>
-                      <p className="text-[8px] text-gray-600 mt-0.5">Enhanced quality mode</p>
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{t('generator.ultraHD')}</label>
+                      <p className="text-[8px] text-gray-600 mt-0.5">{t('generator.enhancedQuality')}</p>
                     </div>
                     <button 
                       onClick={() => setIsProMode(!isProMode)}
                       className={`px-4 py-2 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all flex items-center gap-2 ${isProMode ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg' : 'bg-transparent border-white/10 text-gray-500'}`}
                     >
-                      <Gem className="w-3 h-3" /> {isProMode ? 'ON' : 'OFF'}
+                      <Gem className="w-3 h-3" /> {isProMode ? t('generator.on') : t('generator.off')}
                     </button>
                   </div>
 
@@ -1286,7 +1302,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 group-hover:animate-shimmer"></div>
                     {isGenerating ? <RefreshCw className="w-6 h-6 animate-spin relative z-10" /> : <Zap className="w-6 h-6 fill-white drop-shadow-[0_2px_8px_rgba(255,255,255,0.5)] relative z-10" />}
-                    <span className="relative z-10">{isGenerating ? 'SYNTHESIZING...' : (showIdentityCheck ? 'VERIFY EMAIL FIRST' : (imageEngine === 'dalle3' ? 'GENERATE IMAGE NOW (3 CREDITS)' : 'GENERATE IMAGE NOW (3 CREDIT)'))}</span>
+                    <span className="relative z-10">{isGenerating ? t('generator.synthesizing') : (showIdentityCheck ? t('generator.verifyEmailFirst') : t('generator.generateImageNow').replace('{credits}', '3'))}</span>
                   </button>
                 </div>
               </div>
@@ -1401,7 +1417,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                             </div>
                           </div>
                           <div className="absolute -bottom-6 sm:-bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                            <span className="text-[8px] sm:text-xs font-black text-purple-400 uppercase tracking-wider">Generated Image</span>
+                            <span className="text-[8px] sm:text-xs font-black text-purple-400 uppercase tracking-wider">{t('generator.generatedImage')}</span>
                           </div>
                         </div>
                       </div>
@@ -1410,14 +1426,14 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                     {/* Title & Description */}
                     <div className="mt-4 sm:mt-6 md:mt-8">
                       <h4 className="text-lg sm:text-xl md:text-2xl font-black uppercase italic tracking-tighter mb-2 sm:mb-3 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                        AI Image Generator
+                        {t('generator.aiImageGenerator')}
                       </h4>
                       <p className="text-gray-400 text-[11px] sm:text-xs md:text-sm max-w-sm mx-auto font-medium leading-relaxed mb-2 sm:mb-3">
-                        Transform your text prompts into stunning images using advanced AI models
+                        {t('generator.transformPrompts')}
                       </p>
                       <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-[8px] sm:text-[10px] text-gray-500 uppercase tracking-widest">
                         <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500" />
-                        <span>Write a prompt & click Generate</span>
+                        <span>{t('generator.writePromptGenerate')}</span>
                         <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500" />
                       </div>
                     </div>
@@ -1426,15 +1442,15 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                     <div className="flex flex-wrap gap-2 sm:gap-3 mt-4 sm:mt-6 justify-center">
                       <div className="px-2 sm:px-3 py-1 sm:py-1.5 bg-indigo-600/10 border border-indigo-500/20 rounded-full text-[8px] sm:text-[10px] font-black text-indigo-400 uppercase tracking-wider">
                         <span className="inline-block w-1.5 h-1.5 bg-indigo-400 rounded-full mr-1 animate-pulse" />
-                        Fast
+                        {t('generator.fast')}
                       </div>
                       <div className="px-2 sm:px-3 py-1 sm:py-1.5 bg-purple-600/10 border border-purple-500/20 rounded-full text-[8px] sm:text-[10px] font-black text-purple-400 uppercase tracking-wider">
                         <span className="inline-block w-1.5 h-1.5 bg-purple-400 rounded-full mr-1 animate-pulse" style={{ animationDelay: '0.3s' }} />
-                        HD
+                        {t('generator.hd')}
                       </div>
                       <div className="px-2 sm:px-3 py-1 sm:py-1.5 bg-pink-600/10 border border-pink-500/20 rounded-full text-[8px] sm:text-[10px] font-black text-pink-400 uppercase tracking-wider">
                         <span className="inline-block w-1.5 h-1.5 bg-pink-400 rounded-full mr-1 animate-pulse" style={{ animationDelay: '0.6s' }} />
-                        Multi-Engine
+                        {t('generator.multiEngine')}
                       </div>
                     </div>
                   </div>
@@ -1458,8 +1474,8 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
         <section className="py-16 bg-dark-900/20">
           <div className="max-w-[1400px] mx-auto px-4">
             <div className="text-center mb-12">
-              <h3 className="text-sm font-black text-indigo-400 uppercase tracking-[0.4em] mb-3">Quick Start</h3>
-              <h4 className="text-3xl md:text-4xl font-black text-white uppercase italic tracking-tighter">Trending Ideas</h4>
+              <h3 className="text-sm font-black text-indigo-400 uppercase tracking-[0.4em] mb-3">{t('generator.quickStart')}</h3>
+              <h4 className="text-3xl md:text-4xl font-black text-white uppercase italic tracking-tighter">{t('generator.trendingIdeas')}</h4>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {IMAGE_IDEAS.map((idea, idx) => (
@@ -1497,12 +1513,12 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
               <div>
                 <h3 className="text-sm font-black text-indigo-400 uppercase tracking-[0.4em] mb-3 flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
-                  Your Creations
+                  {t('generator.yourCreations')}
                 </h3>
-                <h4 className="text-3xl md:text-4xl font-black text-white uppercase italic tracking-tighter">Recently Generated</h4>
+                <h4 className="text-3xl md:text-4xl font-black text-white uppercase italic tracking-tighter">{t('generator.recentlyGenerated')}</h4>
               </div>
               <div className="text-xs font-black text-gray-600 uppercase tracking-widest px-4 py-2 bg-indigo-600/10 border border-indigo-500/20 rounded-full">
-                {imageHistory.length} {imageHistory.length === 1 ? 'Image' : 'Images'}
+                {imageHistory.length} {imageHistory.length === 1 ? t('generator.image') : t('generator.images')}
               </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
@@ -1534,7 +1550,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                       download={`imaginai-${img.id}.png`}
                       onClick={(e) => e.stopPropagation()}
                       className="p-1.5 bg-green-600/90 hover:bg-green-500 backdrop-blur-sm rounded-lg transition-colors"
-                      title="Download"
+                      title={t('generator.download')}
                     >
                       <Download className="w-3.5 h-3.5 text-white" />
                     </a>
@@ -1542,12 +1558,12 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (confirm('Delete this image?')) {
+                          if (confirm(t('generator.deleteImage'))) {
                             handleDeleteGeneratedImage(img.id);
                           }
                         }}
                         className="p-1.5 bg-red-600/90 hover:bg-red-500 backdrop-blur-sm rounded-lg transition-colors"
-                        title="Delete"
+                        title={t('generator.delete')}
                       >
                         <Trash2 className="w-3.5 h-3.5 text-white" />
                       </button>
@@ -1559,7 +1575,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
             {user && (
               <div className="mt-8 text-center">
                 <p className="text-xs text-gray-500 font-medium">
-                  Your generated images are automatically saved and synced with Gallery
+                  {t('generator.autoSaved')}
                 </p>
               </div>
             )}

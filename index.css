@@ -2418,6 +2418,11 @@ body.theme-dark .navbar-modern .nav-divider,
     margin-left: 1rem;
   }
 
+  /* Hide desktop language selector on mobile */
+  .navbar-modern .desktop-language-selector {
+    display: none !important;
+  }
+
   .navbar-modern .mobile-menu-btn {
     display: flex;
   }
