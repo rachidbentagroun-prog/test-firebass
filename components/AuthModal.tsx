@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Mail, Lock, User, AlertCircle, RefreshCw, Sparkles, ArrowLeft, Loader2, SendHorizontal, Inbox } from 'lucide-react';
 import { auth, signUpWithFirebase, grantDefaultEntitlements, signInWithGoogle } from '../services/firebase';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, signOut } from 'firebase/auth';
+import { trackLogin, trackSignup } from '../services/posthog';
 import { useLanguage } from '../utils/i18n';
 
 interface AuthModalProps {
@@ -63,6 +64,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           localStorage.removeItem('post_login_target');
         } catch {}
         return;
+      
+      // Track Google login/signup in PostHog
+      if (res?.user) {
+        if (res.isNew) {
+          trackSignup(res.user.uid, {
+            email: res.user.email || 'unknown',
+            name: res.user.displayName || 'unknown',
+            plan: 'free',
+            signup_method: 'google',
+            is_new_user: true,
+          });
+        } else {
+          trackLogin(res.user.uid, {
+            email: res.user.email || 'unknown',
+            name: res.user.displayName || 'unknown',
+            login_method: 'google',
+          });
+        }
+      }
+      
       }
       console.log('✅ Google Sign-In completed, waiting for auth state to propagate...');
       
@@ -111,6 +132,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           return;
         }
 
+        // Track email login in PostHog
+        trackLogin(userCredential.user.uid, {
+          email: userCredential.user.email || 'unknown',
+          name: userCredential.user.displayName || 'unknown',
+          login_method: 'email',
+        });
+
         onLoginSuccess();
         onClose();
       } else {
@@ -118,6 +146,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         const res = await signUpWithFirebase(email.toLowerCase().trim(), password, name.trim());
         const cred = res?.userCredential;
         if (cred?.user) {
+          // Track signup in PostHog
+          trackSignup(cred.user.uid, {
+            email: email,
+            name: name,
+            plan: 'free',
+            signup_method: 'email',
+          });
+          
           // Store pending verification info in localStorage for UX persistence (no password stored)
           try {
             localStorage.setItem('pending_verification', JSON.stringify({ uid: cred.user.uid, email: cred.user.email, name: name.trim() }));

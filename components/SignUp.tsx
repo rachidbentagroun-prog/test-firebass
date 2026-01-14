@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { signUpWithFirebase, signInWithGoogle } from '../services/firebase';
+import { trackSignup } from '../services/posthog';
 import { Sparkles, User, Mail, Lock } from 'lucide-react';
 import { useLanguage } from '../utils/i18n';
 
@@ -24,6 +25,14 @@ export default function SignUp() {
       const res = await signUpWithFirebase(email, password, name);
       const cred = res?.userCredential;
       if (cred?.user) {
+        // Track signup in PostHog
+        trackSignup(cred.user.uid, {
+          email: email,
+          name: name,
+          plan: 'free',
+          signup_method: 'email',
+        });
+        
         if (res?.emailSent) {
           setSuccess('Account created — check your email for a verification link.');
         } else {
@@ -63,7 +72,16 @@ export default function SignUp() {
                 const res = await signInWithGoogle();
                 if (res?.error) {
                   setError('Google sign-in failed: ' + res.error);
-                } else {
+                } else if (res?.user) {
+                  // Track Google signup/signin in PostHog
+                  trackSignup(res.user.uid, {
+                    email: res.user.email || 'unknown',
+                    name: res.user.displayName || 'unknown',
+                    plan: 'free',
+                    signup_method: 'google',
+                    is_new_user: res.isNew,
+                  });
+                  
                   setSuccess('Signed in with Google — redirecting...');
                   // Redirect to dashboard or home where the app will handle auth state
                   window.location.href = '/?goto=dashboard';

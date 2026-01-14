@@ -39,6 +39,10 @@ import {
   getAdminAuditLogs,
   getAbuseDetectionLogs
 } from '../services/firebase';
+import { 
+  isPostHogAvailable,
+  getPostHogDashboardURL 
+} from '../services/posthogAdmin';
 
 interface AdminDashboardProps {
   users: User[];
@@ -147,7 +151,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [planOverrideFilter, setPlanOverrideFilter] = useState<string>('image');
   const [savingPlanOverrides, setSavingPlanOverrides] = useState(false);
 
+  // PostHog Analytics state
+  const [posthogAvailable, setPosthogAvailable] = useState(false);
+  const [posthogDashboardUrl, setPosthogDashboardUrl] = useState('');
+
   useEffect(() => { setLocalConfig(siteConfig); }, [siteConfig]);
+
+  // Check PostHog availability on mount
+  useEffect(() => {
+    const available = isPostHogAvailable();
+    setPosthogAvailable(available);
+    if (available) {
+      setPosthogDashboardUrl(getPostHogDashboardURL());
+    }
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'support') {
@@ -1108,6 +1125,232 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               )}
            </div>
+
+           {/* PostHog Analytics Integration */}
+           {posthogAvailable && (
+             <div className="bg-dark-900 border border-white/10 rounded-[3rem] p-10 shadow-2xl">
+               <div className="flex items-center justify-between mb-10">
+                 <div>
+                   <h3 className="text-xl font-black text-white uppercase italic flex items-center gap-3">
+                     <TrendingUp className="w-6 h-6 text-purple-400" /> PostHog Analytics
+                   </h3>
+                   <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest mt-1">
+                     Traffic Attribution & User Journey Tracking
+                   </p>
+                 </div>
+                 <a 
+                   href={posthogDashboardUrl}
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   className="px-4 py-2 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-600/20 rounded-xl text-xs font-bold text-purple-400 transition-all flex items-center gap-2"
+                 >
+                   <Globe className="w-4 h-4" />
+                   Open PostHog Dashboard
+                 </a>
+               </div>
+
+               {/* PostHog Quick Stats */}
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                 <div className="bg-black/20 rounded-2xl p-6 border border-white/5">
+                   <div className="flex items-center gap-3 mb-3">
+                     <div className="p-2 bg-purple-600/20 rounded-xl">
+                       <Users className="w-5 h-5 text-purple-400" />
+                     </div>
+                     <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Active Users</div>
+                   </div>
+                   <div className="text-3xl font-black text-white">Live</div>
+                   <div className="text-[10px] text-gray-600 mt-2">Real-time tracking</div>
+                 </div>
+                 
+                 <div className="bg-black/20 rounded-2xl p-6 border border-white/5">
+                   <div className="flex items-center gap-3 mb-3">
+                     <div className="p-2 bg-green-600/20 rounded-xl">
+                       <UserCheck className="w-5 h-5 text-green-400" />
+                     </div>
+                     <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Signups Tracked</div>
+                   </div>
+                   <div className="text-3xl font-black text-white">100%</div>
+                   <div className="text-[10px] text-gray-600 mt-2">Email & Google OAuth</div>
+                 </div>
+                 
+                 <div className="bg-black/20 rounded-2xl p-6 border border-white/5">
+                   <div className="flex items-center gap-3 mb-3">
+                     <div className="p-2 bg-blue-600/20 rounded-xl">
+                       <MapPin className="w-5 h-5 text-blue-400" />
+                     </div>
+                     <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Traffic Sources</div>
+                   </div>
+                   <div className="text-3xl font-black text-white">8+</div>
+                   <div className="text-[10px] text-gray-600 mt-2">Auto-categorized</div>
+                 </div>
+                 
+                 <div className="bg-black/20 rounded-2xl p-6 border border-white/5">
+                   <div className="flex items-center gap-3 mb-3">
+                     <div className="p-2 bg-amber-600/20 rounded-xl">
+                       <Activity className="w-5 h-5 text-amber-400" />
+                     </div>
+                     <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Page Views</div>
+                   </div>
+                   <div className="text-3xl font-black text-white">Auto</div>
+                   <div className="text-[10px] text-gray-600 mt-2">Every navigation</div>
+                 </div>
+               </div>
+
+               {/* What's Being Tracked */}
+               <div className="bg-black/20 border border-purple-600/20 rounded-2xl p-6 mb-8">
+                 <h4 className="text-sm font-black text-white uppercase tracking-widest mb-6 flex items-center gap-2">
+                   <Check className="w-4 h-4 text-green-400" />
+                   Currently Tracking
+                 </h4>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div className="space-y-3">
+                     <div className="flex items-start gap-3">
+                       <div className="w-1.5 h-1.5 rounded-full bg-purple-400 mt-1.5" />
+                       <div>
+                         <div className="text-sm font-bold text-white">Traffic Attribution</div>
+                         <div className="text-xs text-gray-400 mt-1">
+                           UTM parameters, referrer detection, landing pages
+                         </div>
+                       </div>
+                     </div>
+                     <div className="flex items-start gap-3">
+                       <div className="w-1.5 h-1.5 rounded-full bg-green-400 mt-1.5" />
+                       <div>
+                         <div className="text-sm font-bold text-white">Signup Events</div>
+                         <div className="text-xs text-gray-400 mt-1">
+                           Email signups, Google OAuth, user properties
+                         </div>
+                       </div>
+                     </div>
+                     <div className="flex items-start gap-3">
+                       <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5" />
+                       <div>
+                         <div className="text-sm font-bold text-white">Login Events</div>
+                         <div className="text-xs text-gray-400 mt-1">
+                           Both email and Google login methods tracked
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+                   <div className="space-y-3">
+                     <div className="flex items-start gap-3">
+                       <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5" />
+                       <div>
+                         <div className="text-sm font-bold text-white">Page Views</div>
+                         <div className="text-xs text-gray-400 mt-1">
+                           Automatic navigation tracking with user context
+                         </div>
+                       </div>
+                     </div>
+                     <div className="flex items-start gap-3">
+                       <div className="w-1.5 h-1.5 rounded-full bg-pink-400 mt-1.5" />
+                       <div>
+                         <div className="text-sm font-bold text-white">User Journey</div>
+                         <div className="text-xs text-gray-400 mt-1">
+                           Complete path from landing to conversion
+                         </div>
+                       </div>
+                     </div>
+                     <div className="flex items-start gap-3">
+                       <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1.5" />
+                       <div>
+                         <div className="text-sm font-bold text-white">User Identification</div>
+                         <div className="text-xs text-gray-400 mt-1">
+                           Firebase UID, email, plan, role, verification status
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+
+               {/* Traffic Sources Auto-Detected */}
+               <div className="bg-black/20 border border-white/5 rounded-2xl p-6">
+                 <h4 className="text-sm font-black text-white uppercase tracking-widest mb-6">
+                   Traffic Sources Auto-Detected
+                 </h4>
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                   {[
+                     { name: 'YouTube', icon: '📺', color: 'text-red-400' },
+                     { name: 'TikTok', icon: '🎵', color: 'text-pink-400' },
+                     { name: 'Facebook', icon: '👥', color: 'text-blue-400' },
+                     { name: 'Google', icon: '🔍', color: 'text-green-400' },
+                     { name: 'Instagram', icon: '📷', color: 'text-purple-400' },
+                     { name: 'Twitter/X', icon: '🐦', color: 'text-blue-300' },
+                     { name: 'LinkedIn', icon: '💼', color: 'text-blue-500' },
+                     { name: 'Direct', icon: '🔗', color: 'text-gray-400' },
+                   ].map((source) => (
+                     <div key={source.name} className="bg-white/5 rounded-xl p-4 text-center">
+                       <div className="text-2xl mb-2">{source.icon}</div>
+                       <div className={`text-xs font-bold ${source.color}`}>{source.name}</div>
+                     </div>
+                   ))}
+                 </div>
+               </div>
+
+               {/* Call to Action */}
+               <div className="mt-8 bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-600/30 rounded-2xl p-6">
+                 <div className="flex items-center justify-between">
+                   <div>
+                     <h4 className="text-lg font-black text-white mb-2">View Detailed Analytics</h4>
+                     <p className="text-sm text-gray-300">
+                       See traffic sources, conversion funnels, user journeys, and session replays in your PostHog dashboard
+                     </p>
+                   </div>
+                   <a 
+                     href={posthogDashboardUrl}
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold transition-all flex items-center gap-2 whitespace-nowrap"
+                   >
+                     Open Dashboard
+                     <ChevronRight className="w-4 h-4" />
+                   </a>
+                 </div>
+               </div>
+             </div>
+           )}
+
+           {/* Show message if PostHog is not configured */}
+           {!posthogAvailable && (
+             <div className="bg-dark-900 border border-white/10 rounded-[3rem] p-10 shadow-2xl">
+               <div className="flex items-center justify-between mb-6">
+                 <div>
+                   <h3 className="text-xl font-black text-white uppercase italic flex items-center gap-3">
+                     <TrendingUp className="w-6 h-6 text-purple-400" /> PostHog Analytics
+                   </h3>
+                   <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest mt-1">
+                     Advanced Traffic Attribution & User Journey
+                   </p>
+                 </div>
+               </div>
+               
+               <div className="bg-amber-600/10 border border-amber-600/20 rounded-2xl p-8 text-center">
+                 <AlertCircle className="w-12 h-12 text-amber-400 mx-auto mb-4" />
+                 <h4 className="text-lg font-bold text-white mb-3">PostHog Not Configured</h4>
+                 <p className="text-sm text-gray-300 mb-6 max-w-2xl mx-auto">
+                   Add your PostHog API key to environment variables to enable advanced analytics tracking.
+                   Track where users come from, how they sign up, and their complete journey through your platform.
+                 </p>
+                 <div className="bg-black/40 border border-white/10 rounded-xl p-4 text-left max-w-2xl mx-auto mb-6">
+                   <div className="text-xs font-mono text-gray-400 mb-2">Add to .env.local or Vercel:</div>
+                   <div className="text-sm font-mono text-purple-300">
+                     VITE_POSTHOG_KEY=phc_your_key_here<br />
+                     VITE_POSTHOG_HOST=https://app.posthog.com
+                   </div>
+                 </div>
+                 <a 
+                   href="https://posthog.com"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold transition-all"
+                 >
+                   Get PostHog API Key
+                   <Globe className="w-4 h-4" />
+                 </a>
+               </div>
+             </div>
+           )}
 
            {/* Generations Live */}
            <div className="bg-dark-900 border border-white/10 rounded-[3rem] p-10 shadow-2xl">

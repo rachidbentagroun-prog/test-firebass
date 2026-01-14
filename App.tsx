@@ -8,6 +8,7 @@ import { LanguageProvider } from './utils/i18n';
 import { ChatWidget } from './components/ChatWidget.tsx';
 import { WhatsAppWidget } from './components/WhatsAppWidget.tsx';
 import { ContactPanel } from './components/ContactPanel.tsx';
+import { trackPageView as trackPostHogPageView, identifyUser, resetPostHogIdentity } from './services/posthog';
 
 // Lazy load heavy components for better performance
 const Pricing = lazy(() => import('./components/Pricing.tsx').then(m => ({ default: m.Pricing })));
@@ -294,10 +295,18 @@ const App: React.FC = () => {
       if (window.location.pathname !== newPath) {
         window.history.pushState({}, '', newPath);
       }
+      
+      // Track page view in PostHog
+      trackPostHogPageView(newPath, {
+        page_name: currentPage,
+        user_id: user?.id,
+        user_email: user?.email,
+        is_registered: user?.isRegistered,
+      });
     } catch (e) {
       console.warn('Failed to update URL:', e);
     }
-  }, [currentPage]);
+  }, [currentPage, user]);
 
   // Handle browser back/forward buttons
   useEffect(() => {
@@ -435,6 +444,8 @@ const App: React.FC = () => {
             setGallery([]);
             setVideoGallery([]);
             setAudioGallery([]);
+            // Reset PostHog identity on logout
+            resetPostHogIdentity();
             safeSetInitFalse();
             return;
           }
@@ -484,6 +495,16 @@ const App: React.FC = () => {
 
           // Perform heavier profile/entitlements fetches in the background and update the user when ready
           (async () => {
+          // Identify user in PostHog
+          identifyUser(fbUser.uid, {
+            email: fbUser.email || 'unknown',
+            name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Creator',
+            isVerified: quickUser.isVerified,
+            plan: quickUser.plan,
+            role: quickUser.role,
+            provider: fbUser.providerData?.map(p => p.providerId).join(', ') || 'unknown',
+          });
+
             try {
               const profile = await getUserProfile(fbUser.uid);
 

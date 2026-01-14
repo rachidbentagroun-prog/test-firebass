@@ -4,6 +4,10 @@ import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 import { Analytics } from '@vercel/analytics/react';
 import { initAllAnimations } from './animations.js';
+import { initPostHog } from './services/posthog';
+
+// Initialize PostHog analytics
+initPostHog();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
