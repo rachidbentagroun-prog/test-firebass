@@ -18,7 +18,8 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <App />
-    <Analytics />
+    {/* Only load Vercel Analytics in production to prevent dev console errors */}
+    {import.meta.env.PROD && <Analytics />}
   </React.StrictMode>
 );
 

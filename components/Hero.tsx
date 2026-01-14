@@ -15,7 +15,7 @@ interface HeroProps {
 export const Hero: React.FC<HeroProps> = ({ 
   onGetStarted, 
   onGenerate,
-  title = "Turn your imagination into Visual Reality",
+  title = "Create your UGC Ads with Ai in 5 Seconds",
   subtitle = "Create stunning, unique images in seconds using advanced AI. Describe your vision, and watch it come to life. Join today and get 3 free generations.",
   slideshowImages = [],
   promptPlaceholder = "Describe what you want to imagine..."
@@ -95,7 +95,7 @@ export const Hero: React.FC<HeroProps> = ({
           <span className="text-[10px] sm:text-xs md:text-sm text-gray-300 font-medium">{t('hero.poweredBy')}</span>
         </div>
 
-        {title === "Turn your imagination into Visual Reality" ? (
+        {title === "Create your UGC Ads with Ai in 5 Seconds" ? (
              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black tracking-tight text-white mb-4 sm:mb-6 md:mb-8 px-1 sm:px-0 leading-tight">
               {t('hero.title').split('Visual Reality')[0]} <br className="hidden sm:block" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">

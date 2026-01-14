@@ -29,7 +29,16 @@ export const saveWorkState = async (userId: string, moteurId: string, state: any
     
     if (error) throw error;
   } catch (e: any) {
-    // Silently ignore - table may not exist in database
+    // Silently ignore - table may not exist in database (optional feature)
+    // To create table, run in Supabase SQL editor:
+    // CREATE TABLE user_work_states (
+    //   user_id TEXT NOT NULL,
+    //   moteur_id TEXT NOT NULL,
+    //   state JSONB,
+    //   updated_at TIMESTAMPTZ DEFAULT NOW(),
+    //   PRIMARY KEY (user_id, moteur_id)
+    // );
+    console.debug('[dbService] user_work_states table not available (optional feature)');
   }
 };
 
@@ -48,7 +57,8 @@ export const getWorkState = async (userId: string, moteurId: string): Promise<an
     if (error) throw error;
     return data?.state || null;
   } catch (e: any) {
-    // Silently ignore - table may not exist in database
+    // Silently ignore - table may not exist in database (optional feature)
+    console.debug('[dbService] user_work_states table not available (optional feature)');
     return null;
   }
 };

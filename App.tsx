@@ -42,8 +42,8 @@ const CONFIG_KEY = 'imaginai_site_config';
 const SUPER_ADMIN_EMAIL = 'isambk92@gmail.com';
 
 const DEFAULT_CONFIG: SiteConfig = {
-  heroTitle: "Turn your imagination into Visual Reality",
-  heroSubtitle: "Create stunning, unique images and cinematic videos in seconds using advanced AI. Describe your vision, and watch it come to life. Join today and get 3 free generations.",
+  heroTitle: "Create your UGC Ads with Ai in 5 Seconds",
+  heroSubtitle: "Create best conversion UGC ads in seconds using advanced AI , describe your product and watch it come to life. Join today and get 3 free generations.",
   promptPlaceholder: "Describe what you want to imagine...",
   maintenanceMode: false,
   slideshow: [

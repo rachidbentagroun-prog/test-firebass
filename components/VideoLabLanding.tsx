@@ -53,6 +53,8 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
   const [isDimMenuOpen, setIsDimMenuOpen] = useState(false);
   const [isQualityMenuOpen, setIsQualityMenuOpen] = useState(false);
   const [showIdentityCheck, setShowIdentityCheck] = useState(false);
+  const [showVideoPopup, setShowVideoPopup] = useState(true);
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
 
   const dimMenuRef = useRef<HTMLDivElement>(null);
   const qualityMenuRef = useRef<HTMLDivElement>(null);
@@ -172,6 +174,9 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
       }
       
       if (url && typeof url === 'string') {
+        // Store generated video URL for viewport display
+        setGeneratedVideoUrl(url);
+        
         const engineName = videoEngine === 'sora' ? 'Sora' : 'KlingAI';
         alert(t('videoLanding.alertGenerationStarted').replace('{engine}', engineName).replace('{url}', url));
         window.open(url, '_blank', 'noopener');
@@ -192,6 +197,33 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
 
   return (
     <div className="bg-dark-950 text-white min-h-screen font-sans selection:bg-pink-500/30">
+      {/* Video Popup Modal */}
+      {showVideoPopup && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md animate-fade-in">
+          <div className="relative w-[95vw] max-w-7xl mx-auto">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowVideoPopup(false)}
+              className="absolute -top-12 right-0 sm:-right-12 sm:top-0 w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full transition-all group z-50"
+              aria-label="Close video"
+            >
+              <X className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+            </button>
+            
+            {/* Video Container with 9:1 aspect ratio */}
+            <div className="relative w-full bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10" style={{ aspectRatio: '9/1' }}>
+              <iframe
+                src="https://drive.google.com/file/d/1d-CCQZFQ4wdMjsCFHVu57evgdbQ0TyLl/preview"
+                className="absolute inset-0 w-full h-full"
+                allow="autoplay"
+                allowFullScreen
+                title="Tutorial Video"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* 1. Cinematic Hero Section */}
       <section className="relative min-h-[95vh] flex items-center justify-center overflow-hidden border-b border-white/5">
         <div className="absolute inset-0 z-0">
@@ -356,16 +388,78 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                  </div>
               </div>
 
-              {/* Viewport Column */}
+              {/* Viewport Column - AI Video Preview */}
               <div className="md:col-span-1 lg:col-span-7 bg-black/40 border border-white/5 rounded-[3rem] p-2.5 min-h-[500px] flex flex-col relative overflow-hidden\">
                 <div className="flex-1 rounded-[2.5rem] overflow-hidden bg-dark-950 flex flex-col items-center justify-center relative group/viewport">
-                   <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-indigo-600/5 via-transparent to-purple-600/5 pointer-events-none" />
-                   <video autoPlay muted loop playsInline src={scriptToCinema.videoUrl} className="max-h-full w-auto opacity-50 grayscale group-hover/viewport:opacity-100 group-hover/viewport:grayscale-0 transition-all duration-700" />
-                   <div className="absolute inset-0 bg-dark-950/40 backdrop-blur-[2px] flex flex-col items-center justify-center text-center p-12 group-hover/viewport:opacity-0 transition-opacity pointer-events-none">
-                      <div className="w-20 h-20 bg-indigo-600 rounded-full flex items-center justify-center shadow-2xl mb-6"><MonitorPlay className="w-10 h-10 text-white" /></div>
-                      <h4 className="text-2xl font-black uppercase italic tracking-tighter mb-2">{t('videoLanding.cinemaViewport')}</h4>
-                      <p className="text-gray-500 text-sm max-w-xs font-medium leading-relaxed uppercase tracking-widest">{t('videoLanding.viewportDesc')}</p>
-                   </div>
+                   {/* Gradient Overlay */}
+                   <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-indigo-600/5 via-transparent to-purple-600/5 pointer-events-none z-10" />
+                   
+                   {/* Video Preview - Demo or Generated */}
+                   {generatedVideoUrl ? (
+                     /* User's Generated Video */
+                     <video 
+                       key={generatedVideoUrl}
+                       autoPlay 
+                       muted 
+                       loop 
+                       playsInline
+                       controls
+                       src={generatedVideoUrl} 
+                       className="w-full h-full object-contain"
+                       onError={(e) => {
+                         console.error('Generated video failed to load:', generatedVideoUrl);
+                         // Fallback to demo if generated video fails
+                         setGeneratedVideoUrl(null);
+                       }}
+                     />
+                   ) : (
+                     /* Demo AI Video Preview */
+                     <>
+                       <video 
+                         autoPlay 
+                         muted 
+                         loop 
+                         playsInline
+                         preload="auto"
+                         src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" 
+                         className="max-h-full w-auto opacity-60 group-hover/viewport:opacity-90 transition-all duration-700"
+                         onError={(e) => {
+                           console.warn('[VideoLabLanding] Demo video failed to load, replacing with fallback');
+                           const videoElement = e.currentTarget;
+                           if (videoElement.src !== 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4') {
+                             videoElement.src = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+                           }
+                         }}
+                       />
+                       
+                       {/* AI Generated Example Badge */}
+                       <div className="absolute top-6 right-6 z-20">
+                         <div className="bg-gradient-to-r from-indigo-600/90 to-purple-600/90 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 shadow-2xl flex items-center gap-2 animate-fade-in">
+                           <Sparkles className="w-4 h-4 text-white" />
+                           <span className="text-white text-xs font-bold uppercase tracking-wider">AI Generated Example</span>
+                         </div>
+                       </div>
+                       
+                       {/* Info Overlay - Shows on initial load, fades on hover */}
+                       <div className="absolute inset-0 bg-dark-950/40 backdrop-blur-[2px] flex flex-col items-center justify-center text-center p-12 group-hover/viewport:opacity-0 transition-opacity pointer-events-none z-10">
+                          <div className="w-20 h-20 bg-indigo-600 rounded-full flex items-center justify-center shadow-2xl mb-6">
+                            <MonitorPlay className="w-10 h-10 text-white" />
+                          </div>
+                          <h4 className="text-2xl font-black uppercase italic tracking-tighter mb-2">{t('videoLanding.cinemaViewport')}</h4>
+                          <p className="text-gray-500 text-sm max-w-xs font-medium leading-relaxed uppercase tracking-widest">{t('videoLanding.viewportDesc')}</p>
+                       </div>
+                     </>
+                   )}
+                   
+                   {/* Generation Status Badge */}
+                   {generatedVideoUrl && (
+                     <div className="absolute top-6 right-6 z-20">
+                       <div className="bg-gradient-to-r from-green-600/90 to-emerald-600/90 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 shadow-2xl flex items-center gap-2 animate-fade-in">
+                         <Check className="w-4 h-4 text-white" />
+                         <span className="text-white text-xs font-bold uppercase tracking-wider">Your Generated Video</span>
+                       </div>
+                     </div>
+                   )}
                 </div>
               </div>
            </div>
