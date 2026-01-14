@@ -28,6 +28,7 @@ import {
   generateClonedSpeechWithElevenLabs
 } from '../services/elevenlabsService';
 import { User, GeneratedAudio } from '../types';
+import { useLanguage } from '../utils/i18n';
 import { saveWorkState, getWorkState } from '../services/dbService';
 import { saveAudioToFirebase, getAudioFromFirebase, deleteAudioFromFirebase } from '../services/firebase';
 
@@ -131,6 +132,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
   user, onCreditUsed, onUpgradeRequired, onAudioGenerated, audioHistory = [], 
   hasApiKey, onSelectKey, onResetKey 
 }) => {
+  const { t } = useLanguage();
   const [text, setText] = useState('');
   const [mode, setMode] = useState<'narrator' | 'clone' | 'stt' | 'song'>('narrator');
   const [engine, setEngine] = useState<'gemini' | 'elevenlabs'>('gemini');

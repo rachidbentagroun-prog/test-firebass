@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Image as ImageIcon, Video, Mic2, Globe2, ArrowRight, Upload, X, Play, Pause, Mic, ChevronLeft, ChevronRight } from 'lucide-react';
 import VideoCarousel from './VideoCarousel';
+import { useLanguage } from '../utils/i18n';
 
 interface HomeLandingProps {
   onSubmitPrompt: (prompt: string) => void;
@@ -25,32 +26,35 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
   const [isTranscribing, setIsTranscribing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // Get translation function
+  const { t } = useLanguage();
+  
   // Video slideshow state
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   
-  // AI Video Examples
+  // UGC Style Product Videos
   const videoExamples = [
     {
       url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-      title: 'Product Showcase',
-      description: 'Cinematic product demo'
+      title: 'Skincare Morning Routine',
+      description: 'Authentic unboxing & first impressions'
     },
     {
       url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-      title: 'Social Media Ad',
-      description: 'Engaging short-form content'
+      title: 'Tech Gadget Review',
+      description: 'Real user experience & honest feedback'
     },
     {
       url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-      title: 'UGC Style Video',
-      description: 'Authentic user-generated feel'
+      title: 'Fashion Haul Video',
+      description: 'Try-on session with styling tips'
     },
     {
       url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
-      title: 'Brand Story',
-      description: 'Compelling narrative video'
+      title: 'Coffee Product Demo',
+      description: 'Day-in-life with product integration'
     }
   ];
 
@@ -301,20 +305,13 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
               <span className="absolute -top-2 -right-6 text-xl animate-sparkle" style={{ animationDelay: '600ms' }}>✨</span>
               
               <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-slate-900 leading-[1.1] tracking-tight">
-                What should we <br className="hidden sm:block" />
-                <span className="relative inline-block">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 animate-gradient-shift">
-                    build?
-                  </span>
-                  <span className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-full opacity-20 animate-gradient-shift"></span>
-                </span>
+                {t('homeLanding.heroTitle')}
               </h1>
             </div>
             
             {/* Subheadline with delay */}
             <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed animate-fade-in" style={{ animationDelay: '300ms' }}>
-              Create stunning images, videos, and more with AI. 
-              Just describe your vision and watch it come to life.
+              {t('homeLanding.heroSubtitle')}
             </p>
           </div>
 
@@ -357,9 +354,9 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                               ? 'bg-indigo-100 text-indigo-600 shadow-md ring-2 ring-indigo-200' 
                               : 'bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-slate-200'
                           }`}
-                          title="Upload file"
+                          title={t('homeLanding.uploadRef')}
                           type="button"
-                          aria-label="Upload file"
+                          aria-label={t('homeLanding.uploadRef')}
                         >
                           <Upload className="h-[20px] w-[20px]" />
                         </button>
@@ -377,7 +374,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                           }
                         }}
                         onKeyDown={handleKeyDown}
-                        placeholder={isRecording ? (isTranscribing ? "Listening..." : "Speak now...") : "Describe your vision..."}
+                        placeholder={isRecording ? (isTranscribing ? t('common.loading') : t('homeLanding.inputPlaceholder')) : t('homeLanding.inputPlaceholder')}
                         className="h-[56px] w-full rounded-xl bg-slate-50/60 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2 focus:ring-offset-white text-[16px] sm:text-lg font-medium transition-all duration-300 pl-14 pr-14 text-center placeholder:text-center"
                         style={{ WebkitAppearance: 'none' }}
                       />
@@ -412,7 +409,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                       onClick={handleSubmit} 
                       className="relative h-[56px] flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold px-8 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-95 flex-shrink-0"
                     >
-                      Generate 
+                      {t('homeLanding.generate')} 
                       <ArrowRight className="h-5 w-5 transition-transform duration-300" />
                       
                       {/* Smart routing indicator */}
@@ -436,7 +433,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                       title="Create Image"
                     >
                       <ImageIcon className="h-[18px] w-[18px] text-indigo-600" strokeWidth={2.5} />
-                      <span className="text-slate-900 font-semibold">Image</span>
+                      <span className="text-slate-900 font-semibold">{t('homeLanding.button.image')}</span>
                     </button>
                     <button 
                       className={`${buttonBase} shadow-sm hover:scale-105 active:scale-95`} 
@@ -444,7 +441,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                       title="Create Video"
                     >
                       <Video className="h-[18px] w-[18px] text-purple-600" strokeWidth={2.5} />
-                      <span className="text-slate-900 font-semibold">Video</span>
+                      <span className="text-slate-900 font-semibold">{t('homeLanding.button.video')}</span>
                     </button>
                     <button 
                       className={`${buttonBase} shadow-sm hover:scale-105 active:scale-95`} 
@@ -452,7 +449,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                       title="Create Website"
                     >
                       <Globe2 className="h-[18px] w-[18px] text-blue-600" strokeWidth={2.5} />
-                      <span className="text-slate-900 font-semibold">Website</span>
+                      <span className="text-slate-900 font-semibold">{t('homeLanding.button.website')}</span>
                     </button>
                     <button 
                       className={`${buttonBase} shadow-sm hover:scale-105 active:scale-95`} 
@@ -460,7 +457,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                       title="Create Audio"
                     >
                       <Mic2 className="h-[18px] w-[18px] text-pink-600" strokeWidth={2.5} />
-                      <span className="text-slate-900 font-semibold">Audio</span>
+                      <span className="text-slate-900 font-semibold">{t('homeLanding.button.audio')}</span>
                     </button>
                   </div>
                 </div>
@@ -497,17 +494,15 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
             {/* AI Video Examples Slideshow */}
             <div className="mt-16">
               <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">See What AI Can Create</h3>
-                <p className="text-slate-600">Watch real examples generated by our AI Video Engine</p>
+                <h3 className="text-2xl font-bold text-slate-900 mb-2">UGC Style Product Videos from Sora</h3>
+                <p className="text-slate-600">{t('homeLanding.watchExamples')}</p>
               </div>
               
               <div 
-                className="relative max-w-4xl mx-auto group"
-                onMouseEnter={() => setIsPaused(true)}
-                onMouseLeave={() => setIsPaused(false)}
+                className="relative max-w-md mx-auto group"
               >
-                {/* Video Container */}
-                <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl bg-slate-900">
+                {/* Video Container - 9:16 aspect ratio for vertical videos */}
+                <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-slate-900" style={{ aspectRatio: '9/16' }}>
                   {videoExamples.map((video, index) => (
                     <div
                       key={index}
@@ -516,7 +511,9 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                       }`}
                     >
                       <video
-                        ref={(el) => (videoRefs.current[index] = el)}
+                        ref={(el) => {
+                          videoRefs.current[index] = el;
+                        }}
                         src={video.url}
                         className="w-full h-full object-cover"
                         loop
@@ -532,23 +529,6 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                       </div>
                     </div>
                   ))}
-                  
-                  {/* Navigation Arrows - Desktop Only */}
-                  <button
-                    onClick={prevSlide}
-                    className="hidden sm:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 items-center justify-center w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110"
-                    aria-label="Previous video"
-                  >
-                    <ChevronLeft className="h-5 w-5 text-slate-900" />
-                  </button>
-                  
-                  <button
-                    onClick={nextSlide}
-                    className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 items-center justify-center w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110"
-                    aria-label="Next video"
-                  >
-                    <ChevronRight className="h-5 w-5 text-slate-900" />
-                  </button>
                 </div>
                 
                 {/* Dot Indicators */}
@@ -574,7 +554,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                     className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
                   >
                     <Video className="h-5 w-5" />
-                    <span>Create Your Own Video</span>
+                    <span>{t('homeLanding.createYourOwnVideo')}</span>
                     <ArrowRight className="h-5 w-5" />
                   </button>
                 </div>

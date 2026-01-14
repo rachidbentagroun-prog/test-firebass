@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { ImageIcon, Video, Mic2, ArrowRight, Sparkles, Zap, Headphones } from 'lucide-react';
+import { useLanguage } from '../utils/i18n';
 
 interface MultimodalSectionProps {
   onNavigate: (page: string) => void;
@@ -10,12 +11,14 @@ interface MultimodalSectionProps {
 }
 
 export const MultimodalSection: React.FC<MultimodalSectionProps> = ({ onNavigate, onLoginClick, isRegistered, isIdentityCheckActive = false }) => {
+  const { t } = useLanguage();
+  
   const services = [
     {
       id: 'image',
-      title: 'Ai Image',
-      subtitle: 'Synthesis Studio',
-      description: 'Generate stunning 4K visuals from text or reference images using Gemini 2.5 Image.',
+      title: t('multimodal.aiImage'),
+      subtitle: t('multimodal.imageSubtitle'),
+      description: t('multimodal.imageDesc'),
       icon: ImageIcon,
       color: 'indigo',
       page: 'dashboard',
@@ -24,9 +27,9 @@ export const MultimodalSection: React.FC<MultimodalSectionProps> = ({ onNavigate
     },
     {
       id: 'video',
-      title: 'Ai Video',
-      subtitle: 'Evolution Lab',
-      description: 'Create cinematic 1080p and 4K sequences with temporal consistency via Sora 2.',
+      title: t('multimodal.aiVideo'),
+      subtitle: t('multimodal.videoSubtitle'),
+      description: t('multimodal.videoDesc'),
       icon: Video,
       color: 'purple',
       page: 'video-lab-landing',
@@ -35,9 +38,9 @@ export const MultimodalSection: React.FC<MultimodalSectionProps> = ({ onNavigate
     },
     {
       id: 'voiceover',
-      title: 'Ai Voice & Audio',
-      subtitle: 'Neural Moteur',
-      description: 'Transform scripts into studio-quality narration with 10+ distinct neural personas.',
+      title: t('multimodal.aiVoice'),
+      subtitle: t('multimodal.voiceSubtitle'),
+      description: t('multimodal.voiceDesc'),
       icon: Mic2,
       color: 'pink',
       page: isRegistered ? 'tts-generator' : 'auth',
@@ -64,8 +67,8 @@ export const MultimodalSection: React.FC<MultimodalSectionProps> = ({ onNavigate
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center mb-8 sm:mb-12 md:mb-16 px-1">
-          <h2 className="text-[10px] sm:text-xs md:text-sm font-black text-indigo-400 uppercase tracking-[0.2em] sm:tracking-[0.3em] md:tracking-[0.4em] mb-3 sm:mb-4">The Multimodal Frontier</h2>
-          <h3 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white uppercase italic tracking-tighter leading-tight">Choose Your Creative Path</h3>
+          <h2 className="text-[10px] sm:text-xs md:text-sm font-black text-indigo-400 uppercase tracking-[0.2em] sm:tracking-[0.3em] md:tracking-[0.4em] mb-3 sm:mb-4">{t('multimodal.title')}</h2>
+          <h3 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white uppercase italic tracking-tighter leading-tight">{t('multimodal.subtitle')}</h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">

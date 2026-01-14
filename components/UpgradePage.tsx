@@ -3,6 +3,7 @@ import {
   Zap, Check, ArrowLeft, Sparkles, Crown, Rocket, 
   Star, Shield, TrendingUp, ExternalLink, Gift, Award
 } from 'lucide-react';
+import { useLanguage } from '../utils/i18n';
 
 interface UpgradePageProps {
   onBack: () => void;
@@ -10,22 +11,24 @@ interface UpgradePageProps {
 }
 
 export const UpgradePage: React.FC<UpgradePageProps> = ({ onBack, onContactUs }) => {
+  const { t } = useLanguage();
+  
   const plans = [
     {
       id: 'basic',
-      name: 'Basic Creator',
+      name: t('upgrade.basic'),
       price: '$9.9',
-      period: '/month',
-      description: 'Perfect for getting started with AI creation',
+      period: t('upgrade.perMonth'),
+      description: t('upgrade.basicDesc'),
       features: [
-        '100 Generations per month',
-        'Access to AI Image Generator',
-        'Access to AI Voice & Audio',
-        'Access to AI Video Generator',
-        'Private Gallery Storage',
-        'Standard Processing Speed',
-        'Email Support',
-        'Commercial License'
+        t('upgrade.feature1'),
+        t('upgrade.feature2'),
+        t('upgrade.feature3'),
+        t('upgrade.feature4'),
+        t('upgrade.feature5'),
+        t('upgrade.feature6'),
+        t('upgrade.feature7'),
+        t('upgrade.feature8')
       ],
       url: 'https://bentagroun.gumroad.com/l/huodf',
       recommended: true,
@@ -34,21 +37,21 @@ export const UpgradePage: React.FC<UpgradePageProps> = ({ onBack, onContactUs })
     },
     {
       id: 'premium',
-      name: 'Premium',
+      name: t('upgrade.premium'),
       price: '$20',
-      period: '/month',
-      description: 'Unlimited power for professional creators',
+      period: t('upgrade.perMonth'),
+      description: t('upgrade.premiumDesc'),
       features: [
-        '250 Generations per month',
-        'Priority Processing Speed',
-        'Early Access to New Features',
-        'Advanced AI Models',
-        'Extended Video Length',
-        'HD Audio Quality',
-        'Priority Support',
-        'Commercial License',
-        'API Access (Coming Soon)',
-        'Team Collaboration (Coming Soon)'
+        t('upgrade.premiumFeature1'),
+        t('upgrade.premiumFeature2'),
+        t('upgrade.premiumFeature3'),
+        t('upgrade.premiumFeature4'),
+        t('upgrade.premiumFeature5'),
+        t('upgrade.premiumFeature6'),
+        t('upgrade.premiumFeature7'),
+        t('upgrade.premiumFeature8'),
+        t('upgrade.premiumFeature9'),
+        t('upgrade.premiumFeature10')
       ],
       url: 'https://bentagroun.gumroad.com/l/zrgraz',
       recommended: false,
@@ -75,24 +78,24 @@ export const UpgradePage: React.FC<UpgradePageProps> = ({ onBack, onContactUs })
           <div className="p-2 rounded-full bg-white/5 group-hover:bg-white/10 transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </div>
-          <span className="font-medium uppercase tracking-widest text-[10px] font-black">Back to Profile</span>
+          <span className="font-medium uppercase tracking-widest text-[10px] font-black">{t('upgrade.backToProfile')}</span>
         </button>
 
         {/* Hero Section */}
         <div className="text-center mb-16 animate-fade-in">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 rounded-full mb-6">
             <Sparkles className="w-4 h-4 text-indigo-400" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-300">Premium Access</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-300">{t('upgrade.premiumAccess')}</span>
           </div>
           <h1 className="text-6xl md:text-7xl font-black text-white mb-6 uppercase italic tracking-tighter leading-none">
-            UNLOCK YOUR
+            {t('upgrade.unlockYour')}
             <br />
             <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              CREATIVE POWER
+              {t('upgrade.creativePower')}
             </span>
           </h1>
           <p className="text-xl text-gray-400 font-medium max-w-2xl mx-auto">
-            Choose the perfect plan to supercharge your AI creation workflow and bring your ideas to life
+            {t('upgrade.chooseplan')}
           </p>
         </div>
 

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Send, Loader2, AlertCircle, User as UserIcon, Bot, Paperclip, Mic, Trash2 } from 'lucide-react';
 import { User } from '../types';
 import { updateUserCredits, saveGPTMessage, loadGPTChatHistory, clearGPTChatHistory } from '../services/dbService';
+import { useLanguage } from '../utils/i18n';
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
@@ -16,6 +17,7 @@ interface ChatLandingProps {
 }
 
 export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onLoginClick }) => {
+  const { t } = useLanguage();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -190,7 +192,7 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
               className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all"
             >
               <Trash2 className="w-4 h-4" />
-              Clear Chat
+              {t('chat.clearChat')}
             </button>
           </div>
         </div>
@@ -204,16 +206,16 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
               <div className="inline-flex p-4 rounded-3xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100">
                 <Bot className="w-12 h-12 text-indigo-500" />
               </div>
-              <h2 className="text-2xl md:text-3xl font-black text-slate-900">Start a conversation</h2>
+              <h2 className="text-2xl md:text-3xl font-black text-slate-900">{t('chat.startConversation')}</h2>
               <p className="text-slate-600 max-w-md mx-auto">
-                Ask me anything! I'm GPT-5.2, ready to help with questions, ideas, coding, writing, and more.
+                {t('chat.askAnything')}
               </p>
               {!user && (
                 <button
                   onClick={onLoginClick}
                   className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-lg shadow-indigo-500/30 transition-all"
                 >
-                  Sign in to start chatting
+                  {t('chat.signInToChat')}
                 </button>
               )}
             </div>
@@ -333,7 +335,7 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={user ? (isBlocked ? "Upgrade to continue chatting..." : "Message GPT-5.2...") : "Sign in to start chatting"}
+                placeholder={user ? (isBlocked ? t('chat.upgradeToChat') : t('chat.placeholder')) : t('chat.signInToChat')}
                 disabled={!user || isLoading || isBlocked}
                 rows={1}
                 className="flex-1 bg-transparent resize-none outline-none text-slate-900 placeholder-slate-500 text-sm md:text-base py-2.5 max-h-32 disabled:opacity-50 disabled:cursor-not-allowed"

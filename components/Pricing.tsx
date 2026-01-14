@@ -2,6 +2,7 @@
 import React from 'react';
 import { Check, ExternalLink } from 'lucide-react';
 import { Plan } from '../types';
+import { useLanguage } from '../utils/i18n';
 
 interface PricingProps {
   onSelectPlan: (plan: Plan) => void;
@@ -9,6 +10,8 @@ interface PricingProps {
 }
 
 export const Pricing: React.FC<PricingProps> = ({ onSelectPlan, plans }) => {
+  const { t } = useLanguage();
+  
   const handlePlanClick = (plan: Plan) => {
     // Pass the plan to the parent to decide whether to open Auth, Upgrade, or External Link
     onSelectPlan(plan);
@@ -18,9 +21,9 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPlan, plans }) => {
     <div id="pricing-section" className="bg-white scroll-mt-16">
       <div className="page-shell" style={{ paddingTop: '3rem', paddingBottom: '3.5rem' }}>
         <div className="text-center mb-10 sm:mb-12 md:mb-14">
-          <span className="pill-badge" style={{ marginBottom: '0.75rem' }}>Transparent pricing</span>
-          <h2 className="headline-xl" style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>Plans built for teams</h2>
-          <p className="lead-text" style={{ maxWidth: '720px', margin: '0 auto' }}>Predictable credits, enterprise-grade controls, and support that scales with you.</p>
+          <span className="pill-badge" style={{ marginBottom: '0.75rem' }}>{t('pricing.title')}</span>
+          <h2 className="headline-xl" style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>{t('pricing.subtitle')}</h2>
+          <p className="lead-text" style={{ maxWidth: '720px', margin: '0 auto' }}>{t('pricing.features')}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
@@ -35,18 +38,18 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPlan, plans }) => {
             >
               {plan.recommended && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#3B5CCC] to-[#2F4FB5] text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg uppercase tracking-wide">
-                  Popular
+                  {t('pricing.popular')}
                 </div>
               )}
 
               <h3 className="text-lg sm:text-xl font-black text-slate-900 mb-2">{plan.name}</h3>
               <div className="flex items-baseline gap-1 mb-4 sm:mb-6">
                 <span className="text-3xl sm:text-4xl font-black text-slate-900">{plan.price}</span>
-                <span className="text-sm sm:text-base text-slate-500">/month</span>
+                <span className="text-sm sm:text-base text-slate-500">/{t('pricing.month')}</span>
               </div>
 
               <div className="mb-6 sm:mb-8 p-3 sm:p-4 rounded-xl bg-[#F3F6FB] border border-slate-200">
-                <span className="block text-xs sm:text-sm text-slate-600 mb-1">Monthly Credits</span>
+                <span className="block text-xs sm:text-sm text-slate-600 mb-1">{t('pricing.monthlyCredits')}</span>
                 <span className="text-xl sm:text-2xl font-black text-[#2F4FB5]">{plan.credits}</span>
               </div>
 
@@ -69,7 +72,7 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPlan, plans }) => {
                     : 'ghost-btn'
                 }`}
               >
-                {plan.price === '$0' ? 'Start Free Trial' : plan.price === '$1' ? 'Try for $1' : 'Upgrade Plan'}
+                {plan.price === '$0' ? t('pricing.startFree') : plan.price === '$1' ? t('pricing.tryOne') : t('pricing.upgrade')}
                 {plan.buttonUrl && <ExternalLink className="w-4 h-4" />}
               </button>
             </div>

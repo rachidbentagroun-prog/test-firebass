@@ -10,6 +10,7 @@ import { generateVideoWithSeedance } from '../services/seedanceService';
 import { User, GeneratedVideo } from '../types';
 import { saveVideoToFirebase, getVideosFromFirebase, deleteVideoFromFirebase } from '../services/firebase';
 import { saveWorkState, getWorkState } from '../services/dbService';
+import { useLanguage } from '../utils/i18n';
 
 interface VideoGeneratorProps {
   user: User | null;
@@ -77,6 +78,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
   user, onCreditUsed, onUpgradeRequired, onVideoGenerated, 
   hasApiKey, onSelectKey, onResetKey 
 }) => {
+  const { t } = useLanguage();
   const [mode, setMode] = useState<'text' | 'interpolation'>('text');
   const [prompt, setPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16'>('16:9');
@@ -337,7 +339,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
     if (!user) { onUpgradeRequired(); return; }
     if (!hasApiKey) { onSelectKey(); return; }
     if (isOutOfCredits) { onUpgradeRequired(); return; }
-    if (!prompt.trim() && mode !== 'interpolation') { setError("Please describe the cinematic sequence."); return; }
+    if (!prompt.trim() && mode !== 'interpolation') { setError(t('generator.cinematicSequence')); return; }
 
     setIsGenerating(true);
     setError(null);
@@ -546,7 +548,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                 <div className="p-1.5 sm:p-2.5 bg-indigo-600 rounded-lg sm:rounded-2xl shadow-xl">
                   <Video className="w-4 sm:w-5 md:w-6 h-4 sm:h-5 md:h-6 text-white" />
                 </div>
-                <span className="text-sm sm:text-base md:text-lg">Text to Video</span>
+                <span className="text-sm sm:text-base md:text-lg">{t('generator.textToVideo')}</span>
               </h2>
                {user && (
                  <div className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border text-[8px] sm:text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${isOutOfCredits ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-indigo-600/10 border-indigo-500/20 text-indigo-400'}`}>
@@ -555,20 +557,20 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                )}
             </div>
 
-            <p className="text-xs sm:text-sm text-gray-400 mb-3 sm:mb-4 relative z-10">Generate High-Quality Videos With Audio From Text Descriptions.</p>
+            <p className="text-xs sm:text-sm text-gray-400 mb-3 sm:mb-4 relative z-10">{t('generator.videoDescription')}</p>
 
             <div className="flex gap-1 sm:gap-1.5 bg-black/50 p-1 sm:p-1.5 rounded-lg sm:rounded-2xl mb-4 sm:mb-5 border border-white/5 relative z-10">
               <button 
                 onClick={() => setMode('text')} 
                 className={`flex-1 py-2 sm:py-2.5 md:py-3 rounded-lg text-[8px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${mode === 'text' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-300 hover:text-gray-100'}`}
               >
-                Text Video
+                {t('generator.textVideo')}
               </button>
               <button 
                 onClick={() => setMode('interpolation')} 
                 className={`flex-1 py-2 sm:py-2.5 md:py-3 rounded-lg text-[8px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${mode === 'interpolation' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-300 hover:text-gray-100'}`}
               >
-                Image Video
+                {t('generator.imageVideo')}
               </button>
             </div>
 

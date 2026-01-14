@@ -1,6 +1,7 @@
 import React from 'react';
 import { GeneratedImage, GeneratedVideo, SiteConfig, User } from '../types';
 import { Compass, Image as ImageIcon, Video as VideoIcon, Sparkles, Play, Maximize2 } from 'lucide-react';
+import { useLanguage } from '../utils/i18n';
 
 interface ExplorePageProps {
   user: User | null;
@@ -11,6 +12,7 @@ interface ExplorePageProps {
 }
 
 export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, siteConfig, onNavigate }) => {
+  const { t } = useLanguage();
   // Keep refs to videos so we can control playback reliably
   const videoRefs = React.useRef<Record<string, HTMLVideoElement | null>>({});
   const iframeRefs = React.useRef<Record<string, HTMLIFrameElement | null>>({});
@@ -200,17 +202,17 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400">Discovery Hub</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight italic">
-            Explore Our AI Engines
+            {t('explore.title')}
           </h1>
           <p className="mt-4 text-gray-400 max-w-2xl font-medium">
-            A living gallery showcasing the capabilities of our Image and Video engines. Hover to feel the motion. Click to dive deeper.
+            {t('explore.subtitle')}
           </p>
           <div className="mt-6 flex gap-3">
             <button onClick={() => onNavigate('dashboard')} className="px-5 py-3 rounded-xl bg-white text-dark-950 font-bold text-sm hover:bg-gray-100 transition-colors">
-              Start Creating
+              {t('explore.startCreating')}
             </button>
             <button onClick={() => onNavigate('pricing')} className="px-5 py-3 rounded-xl bg-white/5 text-white border border-white/10 font-bold text-sm hover:bg-white/10 transition-colors">
-              View Pricing
+              {t('explore.viewPricing')}
             </button>
           </div>
         </div>
@@ -222,11 +224,11 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
           <div>
             <div className="flex items-center gap-2 mb-2">
               <VideoIcon className="w-4 h-4 text-purple-400" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Featured Videos</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">{t('explore.featuredVideos')}</span>
             </div>
-            <h2 className="text-2xl md:text-3xl font-black text-white italic">Temporal Sequences</h2>
+            <h2 className="text-2xl md:text-3xl font-black text-white italic">{t('explore.temporalSequences')}</h2>
           </div>
-          <button onClick={() => onNavigate('video-generator')} className="text-sm font-bold text-indigo-400 hover:text-white transition-colors">Create AI Video →</button>
+          <button onClick={() => onNavigate('video-generator')} className="text-sm font-bold text-indigo-400 hover:text-white transition-colors">{t('explore.createVideo')} →</button>
         </div>
         
         {/* Featured Videos Slideshow - 9:16 Portrait - Click to go to AI VIDEO */}
@@ -247,7 +249,7 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="absolute top-3 left-3">
-                    <span className="px-2 py-1 rounded-full text-[8px] font-black tracking-widest bg-purple-600/30 border border-purple-500/30 text-purple-200 uppercase backdrop-blur-sm">Featured</span>
+                    <span className="px-2 py-1 rounded-full text-[8px] font-black tracking-widest bg-purple-600/30 border border-purple-500/30 text-purple-200 uppercase backdrop-blur-sm">{t('explore.featured')}</span>
                   </div>
                   {/* Clickable Play Button - Navigate to AI VIDEO */}
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -274,14 +276,14 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
           <div>
             <div className="flex items-center gap-2 mb-2">
               <ImageIcon className="w-4 h-4 text-indigo-400" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Featured Images</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">{t('explore.featuredImages')}</span>
             </div>
-            <h2 className="text-2xl md:text-3xl font-black text-white italic">Neural Renders</h2>
+            <h2 className="text-2xl md:text-3xl font-black text-white italic">{t('explore.neuralRenders')}</h2>
           </div>
-          <button onClick={() => onNavigate('home')} className="text-sm font-bold text-indigo-400 hover:text-white transition-colors">Open Image Lab →</button>
+          <button onClick={() => onNavigate('home')} className="text-sm font-bold text-indigo-400 hover:text-white transition-colors">{t('explore.openImageLab')} →</button>
         </div>
         {displayImages.length === 0 ? (
-          <div className="text-gray-600 text-sm">No images to display.</div>
+          <div className="text-gray-600 text-sm">{t('explore.noImages')}</div>
         ) : (
           <>
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 mb-10">
@@ -292,9 +294,9 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
                 <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="p-2 rounded-lg bg-white/10 border border-white/10"><ImageIcon className="w-3.5 h-3.5 text-indigo-300" /></div>
-                    <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">TTI Engine</span>
+                    <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">{t('explore.ttiEngine')}</span>
                   </div>
-                  <button onClick={() => onNavigate(user ? 'dashboard' : 'home')} className="px-2.5 py-1 rounded-lg bg-white/10 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white hover:bg-indigo-600/20">Create</button>
+                  <button onClick={() => onNavigate(user ? 'dashboard' : 'home')} className="px-2.5 py-1 rounded-lg bg-white/10 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white hover:bg-indigo-600/20">{t('explore.create')}</button>
                 </div>
               </div>
             ))}
@@ -319,13 +321,13 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-2xl bg-indigo-600/20 border border-indigo-500/30"><Sparkles className="w-6 h-6 text-indigo-400" /></div>
             <div>
-              <h3 className="text-white font-black text-2xl italic leading-tight">Ready to create your masterpiece?</h3>
-              <p className="text-gray-400">Join thousands of creators exploring new frontiers with AI.</p>
+              <h3 className="text-white font-black text-2xl italic leading-tight">{t('explore.readyToCreate')}</h3>
+              <p className="text-gray-400">{t('explore.joinCreators')}</p>
             </div>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => onNavigate(user ? 'video-generator' : 'signup')} className="px-5 py-3 rounded-xl bg-white text-dark-950 font-bold text-sm hover:bg-gray-100 transition-colors">{user ? 'Start Creating' : 'Get Started'}</button>
-            <button onClick={() => onNavigate('pricing')} className="px-5 py-3 rounded-xl bg-white/5 text-white border border-white/10 font-bold text-sm hover:bg-white/10 transition-colors">View Plans</button>
+            <button onClick={() => onNavigate(user ? 'video-generator' : 'signup')} className="px-5 py-3 rounded-xl bg-white text-dark-950 font-bold text-sm hover:bg-gray-100 transition-colors">{user ? t('explore.startCreating') : t('explore.getStarted')}</button>
+            <button onClick={() => onNavigate('pricing')} className="px-5 py-3 rounded-xl bg-white/5 text-white border border-white/10 font-bold text-sm hover:bg-white/10 transition-colors">{t('explore.viewPlans')}</button>
           </div>
         </div>
       </div>

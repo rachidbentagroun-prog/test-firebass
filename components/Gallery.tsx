@@ -6,6 +6,7 @@ import {
   ExternalLink, Calendar, Clock, Sparkles, ZoomIn, ZoomOut, RotateCcw, Eye
 } from 'lucide-react';
 import { GeneratedImage, GeneratedVideo, GeneratedAudio } from '../types';
+import { useLanguage } from '../utils/i18n';
 
 interface GalleryProps {
   images: GeneratedImage[];
@@ -15,6 +16,7 @@ interface GalleryProps {
 }
 
 export const Gallery: React.FC<GalleryProps> = ({ images, videos = [], audioGallery = [], onDelete }) => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'images' | 'videos' | 'audio'>('images');
   const [previewAsset, setPreviewAsset] = useState<{ type: 'image' | 'video'; url: string; prompt: string } | null>(null);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
@@ -69,7 +71,7 @@ export const Gallery: React.FC<GalleryProps> = ({ images, videos = [], audioGall
       {/* Header Area */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 sm:mb-12 gap-6 sm:gap-8">
         <div>
-          <h2 className="text-3xl sm:text-4xl font-black text-white uppercase italic tracking-tighter">Creation Vault</h2>
+          <h2 className="text-3xl sm:text-4xl font-black text-white uppercase italic tracking-tighter">{t('gallery.title')}</h2>
           <div className="flex items-center gap-2 mt-2">
             <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse" />
             <span className="text-gray-500 text-[10px] sm:text-xs font-bold uppercase tracking-widest">{currentCount} Authorized Nodes Synchronized</span>
@@ -78,9 +80,9 @@ export const Gallery: React.FC<GalleryProps> = ({ images, videos = [], audioGall
 
         <div className="flex bg-dark-900/50 p-1 sm:p-1.5 rounded-2xl sm:rounded-[1.5rem] border border-white/10 shadow-2xl backdrop-blur-md w-full md:w-auto overflow-x-auto no-scrollbar">
           {[
-            { id: 'images', icon: ImageIcon, label: 'Images' },
-            { id: 'videos', icon: VideoIcon, label: 'Videos' },
-            { id: 'audio', icon: Headphones, label: 'Audio' }
+            { id: 'images', icon: ImageIcon, label: t('gallery.images') },
+            { id: 'videos', icon: VideoIcon, label: t('gallery.videos') },
+            { id: 'audio', icon: Headphones, label: t('gallery.audio') }
           ].map((tab) => (
             <button 
               key={tab.id}

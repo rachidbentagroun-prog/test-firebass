@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Mail, Lock, User, AlertCircle, RefreshCw, Sparkles, ArrowLeft, Loader2, SendHorizontal, Inbox } from 'lucide-react';
 import { auth, signUpWithFirebase, grantDefaultEntitlements, signInWithGoogle } from '../services/firebase';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, signOut } from 'firebase/auth';
+import { useLanguage } from '../utils/i18n';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSuccess, initialStep = 'auth', initialEmail }) => {
+  const { t } = useLanguage();
   const [isLogin, setIsLogin] = useState(true);
   const [step, setStep] = useState<'auth' | 'check-email' | 'update-password'>(initialStep);
   const [name, setName] = useState('');
@@ -222,15 +224,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                   className="flex-1 bg-white/6 hover:bg-white/10 text-white py-2 rounded-lg flex items-center justify-center gap-2 border border-white/6"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M533.5 278.4c0-17.9-1.6-35-4.6-51.4H272v97.3h146.9c-6.3 34-25.8 62.8-54.7 82v68.1h88.4c51.6-47.5 81.9-117.6 81.9-196z"/><path fill="#34A853" d="M272 544.3c73.8 0 135.8-24.5 181.1-66.5l-88.4-68.1c-24.6 16.6-55.9 26.5-92.7 26.5-71 0-131.1-47.8-152.6-112.1H30.6v70.9C75.9 486 168 544.3 272 544.3z"/><path fill="#FBBC05" d="M119.4 324.1c-8.6-25.8-8.6-53.4 0-79.2V174.1H30.6c-36.6 72.8-36.6 158.1 0 230.9l88.8-80.9z"/><path fill="#EA4335" d="M272 108.9c38 0 72.2 13.4 99.2 39.6l74.4-74.4C407.7 24.4 345.7 0 272 0 168 0 75.9 58.3 30.6 153.3l88.8 70.9C140.9 156.7 201 108.9 272 108.9z"/></svg>
-                  <span className="text-sm font-medium">{isGoogleLoading ? 'Signing in…' : 'Continue with Google'}</span>
+                  <span className="text-sm font-medium">{isGoogleLoading ? t('auth.signingIn') : t('auth.continueWithGoogle')}</span>
                 </button>
               </div>
 
               <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">
-                {isLogin ? 'LOGIN' : 'SIGNUP'}
+                {isLogin ? t('auth.login') : t('auth.signup')}
               </h2>
               <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] mt-1">
-                {isLogin ? 'ACCESS THE NEURAL NETWORK' : 'INITIALIZE YOUR CREATOR NODE'}
+                {isLogin ? t('auth.accessNetwork') : t('auth.initializeNode')}
               </p>
             </div>
             
@@ -248,7 +250,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                   <input 
                     type="text" required value={name} onChange={e => setName(e.target.value)} 
                     className="w-full bg-black/40 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm font-medium placeholder:text-gray-600" 
-                    placeholder="Enter your name" 
+                    placeholder={t('auth.enterName')} 
                   />
                 </div>
               )}
@@ -258,7 +260,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                 <input 
                   type="email" required value={email} onChange={e => setEmail(e.target.value)} 
                   className="w-full bg-black/40 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm font-medium placeholder:text-gray-600" 
-                  placeholder="Enter your email" 
+                  placeholder={t('auth.enterEmail')} 
                 />
               </div>
               
@@ -267,7 +269,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                 <input 
                   type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} 
                   className="w-full bg-black/40 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm font-medium placeholder:text-gray-600" 
-                  placeholder="Enter your password" 
+                  placeholder={t('auth.enterPassword')} 
                 />
               </div>
               
@@ -275,7 +277,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                 type="submit" disabled={isLoading} 
                 className={`w-full py-5 rounded-2xl text-white font-black uppercase tracking-widest transition-all shadow-xl disabled:opacity-50 flex items-center justify-center gap-2 mt-4 ${isLogin ? 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20' : 'bg-pink-600 hover:bg-pink-500 shadow-pink-600/20'}`}
               >
-                {isLoading ? <RefreshCw className="w-5 h-5 animate-spin" /> : (isLogin ? 'AUTHORIZE ACCESS' : 'CREATE NODE')}
+                {isLoading ? <RefreshCw className="w-5 h-5 animate-spin" /> : (isLogin ? t('auth.authorizeAccess') : t('auth.createNode'))}
               </button>
             </form>
             

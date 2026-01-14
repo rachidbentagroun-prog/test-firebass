@@ -1,7 +1,8 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { Menu, X, User as UserIcon, LogOut, Settings, Home, Compass, MessageSquare, Sparkles, Video, Mic2, ImageIcon, CreditCard, Zap, Shield } from 'lucide-react';
+import { Menu, X, User as UserIcon, LogOut, Settings, Home, Compass, MessageSquare, Sparkles, Video, Mic2, ImageIcon, CreditCard, Zap, Shield, Globe } from 'lucide-react';
 import { User, NavItem } from '../types';
+import { useLanguage, Language } from '../utils/i18n';
 
 interface NavbarProps {
   user: User | null;
@@ -42,6 +43,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
   const [isCreditDropdownOpen, setIsCreditDropdownOpen] = React.useState(false);
+  const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
   const [dropdownPosition, setDropdownPosition] = React.useState<'below' | 'above'>('below');
   const [creditMenuPosition, setCreditMenuPosition] = React.useState<{ top: number; left: number; width: number } | null>(null);
@@ -49,7 +51,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   const creditRef = React.useRef<HTMLDivElement>(null);
   const creditButtonRef = React.useRef<HTMLButtonElement>(null);
   const creditPortalRef = React.useRef<HTMLDivElement>(null);
+  const languageRef = React.useRef<HTMLDivElement>(null);
   const [dropdownAlign, setDropdownAlign] = React.useState<'right' | 'left'>('right');
+  
+  // Language context
+  const { language, setLanguage, t } = useLanguage();
 
   // Position credit dropdown portal to match button
   React.useEffect(() => {
@@ -93,6 +99,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         if (navbar && !navbar.contains(event.target as Node)) {
           setIsMobileMenuOpen(false);
         }
+      }
+      
+      // Close language dropdown on outside click
+      if (isLanguageDropdownOpen && languageRef.current && !languageRef.current.contains(event.target as Node)) {
+        setIsLanguageDropdownOpen(false);
       }
       
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -170,20 +181,20 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* === DESKTOP NAVIGATION LINKS === */}
         <div className="nav-links">
-          <NavLink label="Home" page="home" icon={<Home size={16} strokeWidth={2} />} />
-          <NavLink label="Explore" page="explore" icon={<Compass size={16} strokeWidth={2} />} />
-          <NavLink label="AI Chat" page="chat-landing" icon={<MessageSquare size={16} strokeWidth={2} />} />
-          <NavLink label="AI Image" page="dashboard" icon={<Sparkles size={16} strokeWidth={2} />} />
-          <NavLink label="AI Video" page="video-generator" icon={<Video size={16} strokeWidth={2} />} />
-          <NavLink label="AI Voice" page="tts-generator" icon={<Mic2 size={16} strokeWidth={2} />} />
+          <NavLink label={t('nav.home')} page="home" icon={<Home size={16} strokeWidth={2} />} />
+          <NavLink label={t('nav.explore')} page="explore" icon={<Compass size={16} strokeWidth={2} />} />
+          <NavLink label={t('nav.aiChat')} page="chat-landing" icon={<MessageSquare size={16} strokeWidth={2} />} />
+          <NavLink label={t('nav.aiImage')} page="dashboard" icon={<Sparkles size={16} strokeWidth={2} />} />
+          <NavLink label={t('nav.aiVideo')} page="video-generator" icon={<Video size={16} strokeWidth={2} />} />
+          <NavLink label={t('nav.aiVoice')} page="tts-generator" icon={<Mic2 size={16} strokeWidth={2} />} />
 
           {user?.isRegistered && (
             <>
-              <NavLink label="Gallery" page="gallery" icon={<ImageIcon size={16} strokeWidth={2} />} />
+              <NavLink label={t('nav.gallery')} page="gallery" icon={<ImageIcon size={16} strokeWidth={2} />} />
             </>
           )}
 
-          {isAdminRole(user?.role) && <NavLink label="Admin" page="admin" icon={<Shield size={16} strokeWidth={2} />} />}
+          {isAdminRole(user?.role) && <NavLink label={t('nav.admin')} page="admin" icon={<Shield size={16} strokeWidth={2} />} />}
 
           {customMenu.map(item => (
             <NavLink
@@ -195,24 +206,172 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <div className="nav-divider" />
 
-          <NavLink label="Pricing" page="pricing" />
+          <NavLink label={t('nav.pricing')} page="pricing" />
         </div>
 
         {/* === RIGHT ACTIONS === */}
         <div className="nav-actions">
+          {/* Language Selector - Always visible */}
+          <div ref={languageRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setIsLanguageDropdownOpen(!isLanguageDropdownOpen)}
+              className="btn-secondary"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                minWidth: '44px',
+                justifyContent: 'center',
+              }}
+              title="Switch Language / تبديل اللغة / Changer de langue"
+            >
+              <Globe size={18} strokeWidth={2.5} />
+              <span className="language-code" style={{ 
+                fontSize: '0.75rem', 
+                fontWeight: '700',
+                textTransform: 'uppercase',
+              }}>
+                {language}
+              </span>
+            </button>
+            
+            {/* Language Dropdown */}
+            {isLanguageDropdownOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 8px)',
+                  right: 0,
+                  backgroundColor: '#000',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '12px',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+                  minWidth: '160px',
+                  zIndex: 1000,
+                  overflow: 'hidden',
+                }}
+              >
+                <button
+                  onClick={() => {
+                    setLanguage('en');
+                    setIsLanguageDropdownOpen(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    textAlign: 'left',
+                    backgroundColor: language === 'en' ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+                    color: language === 'en' ? '#818CF8' : '#fff',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: language === 'en' ? '600' : '400',
+                    transition: 'background-color 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (language !== 'en') {
+                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (language !== 'en') {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }
+                  }}
+                >
+                  <span style={{ fontSize: '18px' }}>🇬🇧</span>
+                  <span>English</span>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    setLanguage('ar');
+                    setIsLanguageDropdownOpen(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    textAlign: 'left',
+                    backgroundColor: language === 'ar' ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+                    color: language === 'ar' ? '#818CF8' : '#fff',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: language === 'ar' ? '600' : '400',
+                    transition: 'background-color 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (language !== 'ar') {
+                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (language !== 'ar') {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }
+                  }}
+                >
+                  <span style={{ fontSize: '18px' }}>🇸🇦</span>
+                  <span>العربية</span>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    setLanguage('fr');
+                    setIsLanguageDropdownOpen(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    textAlign: 'left',
+                    backgroundColor: language === 'fr' ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+                    color: language === 'fr' ? '#818CF8' : '#fff',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: language === 'fr' ? '600' : '400',
+                    transition: 'background-color 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (language !== 'fr') {
+                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (language !== 'fr') {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }
+                  }}
+                >
+                  <span style={{ fontSize: '18px' }}>🇫🇷</span>
+                  <span>Français</span>
+                </button>
+              </div>
+            )}
+          </div>
+
           {!user?.isRegistered ? (
             <>
               <button
                 onClick={onLoginClick}
                 className="btn-secondary"
               >
-                Sign In
+                {t('nav.signIn')}
               </button>
               <button
                 onClick={() => onNavigate('signup')}
                 className="btn-primary-cta"
               >
-                Get Started
+                {t('nav.getStarted')}
               </button>
             </>
           ) : (
@@ -229,10 +388,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                     alignItems: 'center',
                     gap: '0.5rem',
                   }}
-                  title="No credits available. Click to upgrade."
+                  title={t('credits.noCredits')}
                 >
                   <Zap size={16} strokeWidth={2.5} />
-                  Upgrade
+                  {t('plans.upgrade')}
                 </button>
               ) : (
                 <div ref={creditRef} style={{ position: 'relative' }}>
@@ -245,7 +404,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       alignItems: 'center',
                       gap: '0.5rem',
                     }}
-                    title={user.plan === 'premium' ? 'Unlimited credits' : `${user.credits} credits available`}
+                    title={user.plan === 'premium' ? t('profile.unlimited') : `${user.credits} ${t('credits.available')}`}
                   >
                     <CreditCard size={16} strokeWidth={2} />
                     {user.plan === 'premium' ? '∞' : `${user.credits}`}
@@ -278,21 +437,21 @@ export const Navbar: React.FC<NavbarProps> = ({
                           letterSpacing: '0.5px',
                           marginBottom: '0.5rem',
                         }}>
-                          Credits
+                          {t('credits.title')}
                         </div>
                         <div style={{
                           fontSize: '1.5rem',
                           fontWeight: '700',
                           color: '#000000',
                         }}>
-                          {user.plan === 'premium' ? 'Unlimited' : user.credits}
+                          {user.plan === 'premium' ? t('profile.unlimited') : user.credits}
                         </div>
                         <div style={{
                           fontSize: '0.85rem',
                           color: '#888888',
                           marginTop: '0.25rem',
                         }}>
-                          {user.plan === 'premium' ? 'Premium Plan' : 'Available credits'}
+                          {user.plan === 'premium' ? t('profile.premiumPlan') : t('profile.availableCredits')}
                         </div>
                       </div>
 
@@ -342,13 +501,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                         }}
                       >
                         {user.plan === 'premium' ? (
-                          'View Plans'
+                          t('plans.viewPlans')
                         ) : (
                           <>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                             </svg>
-                            Buy Credits
+                            {t('plans.buyCredits')}
                           </>
                         )}
                       </button>
@@ -427,8 +586,71 @@ export const Navbar: React.FC<NavbarProps> = ({
                       }}
                     >
                       <Settings size={16} strokeWidth={2} />
-                      Settings & Profile
+                      {t('nav.settings')}
                     </button>
+
+                    {/* Language Switcher */}
+                    <div className="dropdown-divider" style={{ margin: '0.5rem 0' }} />
+                    <div style={{ padding: '0.5rem 1rem' }}>
+                      <div style={{
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        color: '#888888',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: '0.5rem',
+                      }}>
+                        {t('profile.language')}
+                      </div>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: '0.5rem',
+                      }}>
+                        {[
+                          { code: 'en' as Language, label: 'EN', name: 'English' },
+                          { code: 'ar' as Language, label: 'AR', name: 'العربية' },
+                          { code: 'fr' as Language, label: 'FR', name: 'Français' },
+                        ].map((lang) => (
+                          <button
+                            key={lang.code}
+                            onClick={() => {
+                              setLanguage(lang.code);
+                              // Keep menu open to see the language change
+                            }}
+                            style={{
+                              padding: '0.5rem',
+                              background: language === lang.code ? '#000000' : '#F5F5F5',
+                              color: language === lang.code ? '#FFFFFF' : '#000000',
+                              border: 'none',
+                              borderRadius: '0.5rem',
+                              fontSize: '0.75rem',
+                              fontWeight: '700',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease-out',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (language !== lang.code) {
+                                e.currentTarget.style.background = '#E5E5E5';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (language !== lang.code) {
+                                e.currentTarget.style.background = '#F5F5F5';
+                              }
+                            }}
+                            title={lang.name}
+                          >
+                            <Globe size={14} strokeWidth={2} />
+                            <span>{lang.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
                     {/* Upgrade */}
                     {user.plan !== 'premium' && (
@@ -449,7 +671,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                           }}
                         >
                           <Zap size={16} strokeWidth={2.5} />
-                          Upgrade to Premium
+                          {t('nav.upgrade')}
                         </button>
                       </>
                     )}
@@ -471,7 +693,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       }}
                     >
                       <LogOut size={16} strokeWidth={2} />
-                      Sign Out
+                      {t('nav.logout')}
                     </button>
                   </div>
                 )}
@@ -503,24 +725,77 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* === MOBILE MENU === */}
       {isMobileMenuOpen && (
         <div className="mobile-menu open">
-          <button onClick={() => handleNavClick('home')} className="mobile-link">Home</button>
-          <button onClick={() => handleNavClick('explore')} className="mobile-link">Explore</button>
-          <button onClick={() => handleNavClick('chat-landing')} className="mobile-link">AI Chat</button>
-          <button onClick={() => handleNavClick('dashboard')} className="mobile-link">AI Image</button>
-          <button onClick={() => handleNavClick('video-generator')} className="mobile-link">AI Video</button>
-          <button onClick={() => handleNavClick('tts-generator')} className="mobile-link">AI Voice</button>
+          <button onClick={() => handleNavClick('home')} className="mobile-link">{t('nav.home')}</button>
+          <button onClick={() => handleNavClick('explore')} className="mobile-link">{t('nav.explore')}</button>
+          <button onClick={() => handleNavClick('chat-landing')} className="mobile-link">{t('nav.aiChat')}</button>
+          <button onClick={() => handleNavClick('dashboard')} className="mobile-link">{t('nav.aiImage')}</button>
+          <button onClick={() => handleNavClick('video-generator')} className="mobile-link">{t('nav.aiVideo')}</button>
+          <button onClick={() => handleNavClick('tts-generator')} className="mobile-link">{t('nav.aiVoice')}</button>
 
           {user?.isRegistered && (
             <>
-              <button onClick={() => handleNavClick('gallery')} className="mobile-link">Gallery</button>
+              <button onClick={() => handleNavClick('gallery')} className="mobile-link">{t('nav.gallery')}</button>
             </>
           )}
 
           {user?.role === 'admin' && (
-            <button onClick={() => handleNavClick('admin')} className="mobile-link">Admin</button>
+            <button onClick={() => handleNavClick('admin')} className="mobile-link">{t('nav.admin')}</button>
           )}
 
-          <button onClick={() => handleNavClick('pricing')} className="mobile-link">Pricing</button>
+          <button onClick={() => handleNavClick('pricing')} className="mobile-link">{t('nav.pricing')}</button>
+
+          {/* Language Switcher in Mobile Menu */}
+          <div style={{ borderTop: '1px solid #E5E5E5', margin: '1rem 0', paddingTop: '1rem' }}>
+            <div style={{
+              fontSize: '0.75rem',
+              fontWeight: '600',
+              color: '#888888',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              marginBottom: '0.75rem',
+              paddingLeft: '1rem',
+            }}>
+              {t('profile.language')}
+            </div>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '0.5rem',
+              padding: '0 1rem',
+            }}>
+              {[
+                { code: 'en' as Language, label: 'English', flag: '🇬🇧' },
+                { code: 'ar' as Language, label: 'العربية', flag: '🇸🇦' },
+                { code: 'fr' as Language, label: 'Français', flag: '🇫🇷' },
+              ].map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => {
+                    setLanguage(lang.code);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  style={{
+                    padding: '0.75rem 0.5rem',
+                    background: language === lang.code ? '#000000' : '#F5F5F5',
+                    color: language === lang.code ? '#FFFFFF' : '#000000',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease-out',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                  }}
+                >
+                  <span style={{ fontSize: '1.5rem' }}>{lang.flag}</span>
+                  <span>{lang.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {!user?.isRegistered && (
             <>
@@ -530,14 +805,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="mobile-link"
                 style={{ fontWeight: '600' }}
               >
-                Sign In
+                {t('nav.signIn')}
               </button>
               <button
                 onClick={() => handleNavClick('signup')}
                 className="btn-primary-cta"
                 style={{ width: '100%', marginTop: '0.5rem' }}
               >
-                Get Started
+                {t('nav.getStarted')}
               </button>
             </>
           )}

@@ -20,6 +20,7 @@ import { User, GeneratedImage } from '../types';
 import { saveImageToFirebase, getImagesFromFirebase, deleteImageFromFirebase } from '../services/firebase';
 import { ImageEditor } from './ImageEditor';
 import { saveWorkState, getWorkState } from '../services/dbService';
+import { useLanguage } from '../utils/i18n';
 
 interface GeneratorProps {
   user: User | null;
@@ -77,6 +78,7 @@ const QUICK_IDEAS = [
 const PROMPT_HISTORY_KEY = 'imaginai_prompt_history';
 
 export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUsed, onUpgradeRequired, onImageGenerated, onDeleteImage, onUpdateUser, initialPrompt, hasApiKey, onSelectKey, onLoginClick }) => {
+  const { t } = useLanguage();
   const [genMode, setGenMode] = useState<'tti' | 'iti'>('tti');
   const [imageEngine, setImageEngine] = useState<'klingai' | 'gemini' | 'deapi' | 'runware' | 'seedream' | 'seedream40' | 'dalle3'>('runware');
   const [prompt, setPrompt] = useState(initialPrompt || '');
@@ -497,7 +499,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.size > 10 * 1024 * 1024) {
-        setError("Image size too large. Max 10MB for reference images.");
+        setError(t('generator.imageTooLarge'));
         return;
       }
       setSelectedImage(file);
@@ -561,10 +563,10 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
       return;
     }
 
-    if (!prompt.trim()) { setError("Input a directorial script to begin synthesis."); return; }
+    if (!prompt.trim()) { setError(t('generator.noPrompt')); return; }
     
     if (genMode === 'iti' && !selectedImage && !previewUrl) { 
-      setError("Please upload a reference image for Image-to-Image mode."); 
+      setError(t('generator.noReference')); 
       return; 
     }
     
@@ -740,7 +742,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
         }
       }
     } catch (err: any) {
-      setError(err.message || "Neural synthesis failure. Check API logs for link status.");
+      setError(t('generator.generationFailed'));
       console.error("Critical Generation Disruption:", err);
     } finally { setIsGenerating(false); }
   };
@@ -945,7 +947,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
             <div className="max-w-2xl mx-auto mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-red-900/10 border border-red-500/20 text-center">
               <div className="flex items-center justify-center gap-2 sm:gap-3">
                 <AlertCircle className="w-4 sm:w-5 h-4 sm:h-5 text-red-300" />
-                <h4 className="text-[10px] sm:text-xs font-black uppercase text-red-300">ENGINE ERROR</h4>
+                <h4 className="text-[10px] sm:text-xs font-black uppercase text-red-300">{t('generator.engineError')}</h4>
               </div>
               <p className="text-red-200 text-xs sm:text-sm mt-2">{error}</p>
             </div>
@@ -955,9 +957,9 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
             <div className="max-w-2xl mx-auto mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-amber-900/10 border border-amber-500/10 text-center">
               <div className="flex items-center justify-center gap-2 sm:gap-3">
                 <AlertCircle className="w-4 sm:w-5 h-4 sm:h-5 text-amber-300" />
-                <h4 className="text-[10px] sm:text-xs font-black uppercase text-amber-300">IDENTITY CHECK</h4>
+                <h4 className="text-[10px] sm:text-xs font-black uppercase text-amber-300">{t('generator.identityCheck')}</h4>
               </div>
-              <p className="text-gray-300 text-xs sm:text-sm mt-2 px-2">A verification link was sent to your email. Access is restricted until you confirm your identity.</p>
+              <p className="text-gray-300 text-xs sm:text-sm mt-2 px-2">{t('generator.verificationMessage')}</p>
             </div>
           )}
 
@@ -970,7 +972,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                 
                 {/* AI Engine Selector */}
                 <div className="mb-3 sm:mb-4 relative z-[50]" ref={imageEngineMenuRef}>
-                  <label className="form-label text-[9px] sm:text-[10px] tracking-[0.18em]">AI Engine</label>
+                  <label className="form-label text-[9px] sm:text-[10px] tracking-[0.18em]">{t('generator.engineLabel')}</label>
                   <button 
                     ref={imageEngineButtonRef}
                     onClick={() => !isGenerating && setIsImageEngineMenuOpen(!isImageEngineMenuOpen)}
@@ -1000,13 +1002,13 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                     onClick={() => setGenMode('tti')}
                     className={`flex-1 py-2 sm:py-2.5 md:py-3 lg:py-4 rounded-lg text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 ${genMode === 'tti' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-300 hover:text-gray-100'}`}
                   >
-                    <Terminal className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" /> Text To Image
+                    <Terminal className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" /> {t('generator.textToImage')}
                   </button>
                   <button 
                     onClick={() => setGenMode('iti')}
                     className={`flex-1 py-2 sm:py-2.5 md:py-3 lg:py-4 rounded-lg text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 ${genMode === 'iti' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-300 hover:text-gray-100'}`}
                   >
-                    <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" /> Image To Image
+                    <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" /> {t('generator.imageToImage')}
                   </button>
                 </div>
 
@@ -1015,7 +1017,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                   {genMode === 'iti' && (
                     <div className="animate-fade-in">
                       <div className="flex justify-between mb-2">
-                        <label className="form-label text-[10px] tracking-[0.18em]">Image Anchor</label>
+                        <label className="form-label text-[10px] tracking-[0.18em]">{t('generator.imageAnchor')}</label>
                         {previewUrl && (
                           <button onClick={() => { setPreviewUrl(null); setSelectedImage(null); }} className="text-red-500 p-1 hover:bg-red-500/10 rounded-lg">
                             <X className="w-3.5 h-3.5" />
@@ -1028,7 +1030,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                         ) : (
                           <>
                             <Upload className="w-10 h-10 text-gray-600 mb-4 group-hover:text-purple-400 group-hover:scale-110 transition-all" />
-                            <p className="text-[10px] font-black text-gray-500 uppercase">Upload Reference Image</p>
+                            <p className="text-[10px] font-black text-gray-500 uppercase">{t('generator.uploadReference')}</p>
                           </>
                         )}
                         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
@@ -1078,7 +1080,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                       </div>
                     </div>
                     <textarea 
-                      placeholder={genMode === 'iti' ? "Describe how to transform the image..." : "Describe the cinematic composition, lighting, and textures..."}
+                      placeholder={genMode === 'iti' ? t('generator.promptPlaceholderITI') : t('generator.promptPlaceholder')}
                       className="w-full h-32 sm:h-40 lg:h-44 bg-black/40 border border-white/10 rounded-xl sm:rounded-[1.5rem] p-4 sm:p-6 text-white text-base sm:text-[15px] outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}

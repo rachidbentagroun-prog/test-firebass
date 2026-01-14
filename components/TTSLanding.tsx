@@ -1,4 +1,5 @@
 
+// TTSLanding Component - AI Voice & Audio Workstation with full multilingual support
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Mic2, Headphones, Sparkles, Volume2, Zap, ArrowRight,
@@ -11,6 +12,7 @@ import {
   Fingerprint, Copy, FileText, SkipBack, SkipForward
 } from 'lucide-react';
 import { TTSLabConfig, User, GeneratedAudio } from '../types';
+import { useLanguage } from '../utils/i18n';
 import { 
   generateSpeechWithGemini, 
   enhancePrompt,
@@ -39,6 +41,7 @@ interface TTSLandingProps {
 }
 
 const MODE_USES_KEY = 'imaginai_tts_mode_uses';
+const MAX_CHARS = 5000;
 
 // Gemini Voices
 const GEMINI_VOICES = [
@@ -143,6 +146,7 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
   user, config, onStartCreating, onCreditUsed, onUpgradeRequired, onLoginClick,
   onAudioGenerated, hasApiKey, onSelectKey, onResetKey
 }) => {
+  const { t, language } = useLanguage();
   const [text, setText] = useState('');
   const [selectedVoice, setSelectedVoice] = useState('Kore');
   const [selectedLanguage, setSelectedLanguage] = useState('en-US');
@@ -345,7 +349,7 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
     if (!file) return;
 
     if (file.size > 30 * 1024 * 1024) {
-      setError("Media file exceeds bandwidth. Max 30MB.");
+      setError(t('aiVoice.errorMediaTooLarge'));
       return;
     }
 
@@ -368,7 +372,7 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
         }
       }
     } catch (err: any) {
-      setError("Handshake failed. Ensure your API Key is linked.");
+      setError(t('aiVoice.errorHandshakeFailed'));
       console.error(err);
     } finally {
       setIsTranscoding(false);
@@ -421,9 +425,9 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
       return;
     }
 
-    if (!text.trim()) { setError("ENTER PROMPT TO START GENERATE."); return; }
-    if (text.length > MAX_CHARS) { setError(`SYNTHESIS FAILED. SCRIPT EXCEEDS ${MAX_CHARS} CHARACTERS.`); return; }
-    if (mode === 'clone' && !clonedVoiceData) { setError("Neural anchor missing. Upload a reference voice."); return; }
+    if (!text.trim()) { setError(t('aiVoice.errorEnterPrompt')); return; }
+    if (text.length > MAX_CHARS) { setError(t('aiVoice.errorScriptTooLong').replace('{0}', MAX_CHARS.toString())); return; }
+    if (mode === 'clone' && !clonedVoiceData) { setError(t('aiVoice.errorMissingAnchor')); return; }
 
     setIsSynthesizing(true);
     setAudioUrl(null);
@@ -493,9 +497,9 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
     } catch (e: any) {
       if (e.message?.includes("entity was not found")) {
         onResetKey();
-        setError("API Key session expired.");
+        setError(t('aiVoice.errorApiExpired'));
       } else {
-        setError("SYNTHESIS FAILED. TRY A SHORTER SCRIPT.");
+        setError(t('aiVoice.errorSynthesisFailed'));
       }
     } finally {
       setIsSynthesizing(false);
@@ -511,16 +515,16 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
       <section id="workstation" className="py-12 sm:py-16 md:py-24 pt-16 sm:pt-24 md:pt-32 relative overflow-hidden bg-dark-950">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
            <div className="text-center mb-10 sm:mb-12 md:mb-16">
-             <h3 className="text-2xl sm:text-3xl md:text-4xl font-black text-white uppercase italic tracking-tighter">Ai Voice & Audio Workstation</h3>
+             <h3 className="text-2xl sm:text-3xl md:text-4xl font-black text-white uppercase italic tracking-tighter">{t('aiVoice.workstationTitle')}</h3>
            </div>
 
           {showIdentityCheck && (
             <div className="max-w-2xl mx-auto mb-6 p-3 sm:p-4 rounded-2xl bg-amber-900/10 border border-amber-500/10 text-center">
               <div className="flex items-center justify-center gap-2 sm:gap-3">
                 <AlertCircle className="w-4 sm:w-5 h-4 sm:h-5 text-amber-300" />
-                <h4 className="text-xs sm:text-sm font-black uppercase text-amber-300">IDENTITY CHECK</h4>
+                <h4 className="text-xs sm:text-sm font-black uppercase text-amber-300">{t('aiVoice.identityCheck')}</h4>
               </div>
-              <p className="text-gray-300 text-xs sm:text-sm mt-2">A verification link was sent to your email. Access is strictly restricted until you confirm your identity via that link.</p>
+              <p className="text-gray-300 text-xs sm:text-sm mt-2">{t('aiVoice.verificationMessage')}</p>
             </div>
           )}
 
@@ -530,14 +534,14 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
                 <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-600/10 blur-[80px] rounded-full -mr-20 -mt-20 pointer-events-none" />
                 
                 <div className="flex bg-black/50 p-1.5 rounded-2xl mb-4 border border-white/5 relative z-10 overflow-x-auto no-scrollbar">
-                  <button onClick={() => setMode('narrator')} className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${mode === 'narrator' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}>Text To Speech</button>
-                  <button onClick={() => setMode('clone')} className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mode === 'clone' ? 'bg-pink-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}><Scissors className="w-3.5 h-3.5" /> Voice Clone</button>
-                  <button onClick={() => setMode('stt')} className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mode === 'stt' ? 'bg-emerald-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}><FileText className="w-3.5 h-3.5" /> Speech To Text</button>
+                  <button onClick={() => setMode('narrator')} className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${mode === 'narrator' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}>{t('aiVoice.textToSpeech')}</button>
+                  <button onClick={() => setMode('clone')} className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mode === 'clone' ? 'bg-pink-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}><Scissors className="w-3.5 h-3.5" /> {t('aiVoice.voiceClone')}</button>
+                  <button onClick={() => setMode('stt')} className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap ${mode === 'stt' ? 'bg-emerald-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}><FileText className="w-3.5 h-3.5" /> {t('aiVoice.speechToText')}</button>
                 </div>
 
                 {/* Engine Selector */}
                 <div className="space-y-2 relative z-10">
-                  <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">AI Engine</label>
+                  <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('aiVoice.aiEngine')}</label>
                   <div className="flex bg-black/50 p-1.5 rounded-xl border border-white/10">
                     <button 
                       onClick={() => setVoiceEngine('gemini')}
@@ -562,7 +566,7 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
                         <div className="grid grid-cols-2 gap-4">
                            {/* Global Language Dropdown */}
                            <div className="space-y-2 relative" ref={langMenuRef}>
-                              <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Language Output</label>
+                              <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('aiVoice.languageOutput')}</label>
                               <button 
                                 onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
                                 className="w-full flex items-center justify-between px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-[10px] font-bold text-white transition-all hover:border-white/20"
@@ -591,7 +595,7 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
 
                            {/* Global Narrator Dropdown */}
                            <div className="space-y-2 relative" ref={voiceMenuRef}>
-                              <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">NARRATOR</label>
+                              <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('aiVoice.narrator')}</label>
                               <button 
                                 onClick={() => setIsVoiceMenuOpen(!isVoiceMenuOpen)}
                                 className="w-full flex items-center justify-between px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-[10px] font-bold text-white transition-all hover:border-white/20"
@@ -633,7 +637,7 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
                       {/* Voice Clone neural anchor upload */}
                       {mode === 'clone' && (
                         <div className="space-y-2 animate-fade-in">
-                          <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Neural Anchor (Reference Voice)</label>
+                          <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('aiVoice.neuralAnchor')}</label>
                           <div 
                             onClick={() => !isLimitReached && !isTranscoding && cloneRefInputRef.current?.click()}
                             className={`p-6 bg-black/40 border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-pink-600/5 hover:border-pink-500/30 transition-all group ${isLimitReached ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -646,18 +650,18 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
                                 <div className="p-3 bg-pink-500/20 rounded-xl text-pink-400">
                                   <FileAudio className="w-6 h-6" />
                                 </div>
-                                <p className="text-[10px] font-bold text-white uppercase truncate max-w-[200px]">{clonedVoiceData.fileName || 'Reference Locked'}</p>
+                                <p className="text-[10px] font-bold text-white uppercase truncate max-w-[200px]">{clonedVoiceData.fileName || t('aiVoice.referenceLocked')}</p>
                                 <button 
                                   onClick={(e) => { e.stopPropagation(); setClonedVoiceData(null); }}
                                   className="text-[9px] font-black text-gray-500 hover:text-red-400 uppercase tracking-widest mt-2"
                                 >
-                                  Remove Anchor
+                                  {t('aiVoice.removeAnchor')}
                                 </button>
                               </div>
                             ) : (
                               <>
                                 <Upload className="w-6 h-6 text-pink-500 group-hover:scale-110 transition-transform mb-3" />
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Upload Identity Sample</p>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('aiVoice.uploadIdentitySample')}</p>
                               </>
                             )}
                           </div>
@@ -667,11 +671,11 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
                       <div className="space-y-4">
                         <div className="flex justify-between items-center px-1">
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                              <Zap className="w-3.5 h-3.5 text-indigo-500" /> {mode === 'clone' ? 'TARGET SCRIPT' : 'ENTER PROMPT'}
+                              <Zap className="w-3.5 h-3.5 text-indigo-500" /> {mode === 'clone' ? t('aiVoice.targetScript') : t('aiVoice.enterPrompt')}
                             </label>
                           <div className="flex gap-4 items-center">
                             <button onClick={handleEnhance} disabled={isEnhancing || !text.trim() || isLimitReached} className="text-[10px] font-bold text-indigo-400 hover:text-white flex items-center gap-1.5 transition-colors disabled:opacity-30">
-                              <Wand2 className={`w-3.5 h-3.5 ${isEnhancing ? 'animate-spin' : ''}`} /> Optimize
+                              <Wand2 className={`w-3.5 h-3.5 ${isEnhancing ? 'animate-spin' : ''}`} /> {t('aiVoice.optimize')}
                             </button>
                           </div>
                         </div>
@@ -679,7 +683,7 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
                         <textarea 
                           value={text} onChange={(e) => setText(e.target.value.slice(0, MAX_CHARS))}
                           dir="auto" disabled={isLimitReached}
-                          placeholder={mode === 'clone' ? "What should the neural anchor say?" : "Enter script for high-fidelity synthesis..."}
+                          placeholder={mode === 'clone' ? t('aiVoice.neuralAnchorPlaceholder') : t('aiVoice.scriptPlaceholder')}
                           className="w-full h-40 bg-black/40 border border-white/10 rounded-2xl p-6 text-white text-base outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none custom-scrollbar disabled:opacity-50"
                         />
                       </div>
@@ -696,7 +700,7 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
                         ) : (
                           <>
                             <Upload className="w-8 h-8 text-emerald-500 group-hover:scale-110 transition-transform mb-4" />
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Import Media Signal</p>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('aiVoice.importMediaSignal')}</p>
                           </>
                         )}
                       </div>
@@ -704,9 +708,9 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
                       {text && mode === 'stt' && (
                         <div className="animate-fade-in space-y-3">
                            <div className="flex items-center justify-between">
-                              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Extracted Payload</label>
-                              <button onClick={() => { navigator.clipboard.writeText(text); alert('Payload copied to clipboard.'); }} className="text-[9px] font-black text-emerald-400 hover:text-white uppercase tracking-widest flex items-center gap-1.5 transition-colors">
-                                 <Copy className="w-3 h-3" /> Copy Text
+                              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('aiVoice.extractedPayload')}</label>
+                              <button onClick={() => { navigator.clipboard.writeText(text); alert(t('aiVoice.payloadCopied')); }} className="text-[9px] font-black text-emerald-400 hover:text-white uppercase tracking-widest flex items-center gap-1.5 transition-colors">
+                                 <Copy className="w-3 h-3" /> {t('aiVoice.copyText')}
                               </button>
                            </div>
                            <div className="w-full bg-black/40 border border-white/10 rounded-2xl p-6 text-gray-300 text-sm leading-relaxed max-h-40 overflow-y-auto custom-scrollbar">
@@ -725,9 +729,9 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
                   )}
 
                   {mode !== 'stt' && (
-                    <button onClick={handleMoteurGenerate} disabled={isSynthesizing || isTranscoding || showIdentityCheck} className={`w-full py-6 rounded-2xl font-black text-lg flex items-center justify-center gap-4 transition-all shadow-2xl ${isSynthesizing ? 'bg-gray-800 text-gray-600' : (showIdentityCheck ? 'bg-white/5 opacity-60 cursor-not-allowed' : (isLimitReached ? 'bg-amber-600 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-white'))}`} title={showIdentityCheck ? 'A verification link was sent to your email. Please confirm your identity to proceed.' : undefined}>
+                    <button onClick={handleMoteurGenerate} disabled={isSynthesizing || isTranscoding || showIdentityCheck} className={`w-full py-6 rounded-2xl font-black text-lg flex items-center justify-center gap-4 transition-all shadow-2xl ${isSynthesizing ? 'bg-gray-800 text-gray-600' : (showIdentityCheck ? 'bg-white/5 opacity-60 cursor-not-allowed' : (isLimitReached ? 'bg-amber-600 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-white'))}`} title={showIdentityCheck ? t('aiVoice.verificationMessage') : undefined}>
                       {isSynthesizing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Zap className="w-6 h-6 fill-white" />}
-                      <span className="uppercase tracking-[0.2em] italic">{showIdentityCheck ? 'VERIFY EMAIL TO PROCEED' : 'START GENERATE NOW (1 CREDIT)'}</span>
+                      <span className="uppercase tracking-[0.2em] italic">{showIdentityCheck ? t('aiVoice.verifyEmail') : t('aiVoice.startGenerate')}</span>
                     </button>
                   )}
                   
@@ -735,7 +739,7 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
                   {!isLoadingHistory && localHistory.length > 0 && (
                     <div className="mt-8 pt-8 border-t border-white/5">
                       <h4 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <History className="w-4 h-4" /> Recently Run
+                        <History className="w-4 h-4" /> {t('aiVoice.recentlyRun')}
                       </h4>
                       <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
                         {localHistory.slice(0, 5).map((audio) => (
@@ -882,7 +886,7 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
                       {/* Recently Generated Audios */}
                       {localHistory.length > 0 && (
                         <div className="border-t border-white/5 p-8">
-                          <h4 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-6">Recently Generated</h4>
+                          <h4 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-6">{t('aiVoice.recentlyGenerated')}</h4>
                           <div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar">
                             {localHistory.slice(0, 5).map((audio) => (
                               <div key={audio.id} className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all group">
@@ -938,8 +942,8 @@ export const TTSLanding: React.FC<TTSLandingProps> = ({
                   ) : (
                     <div className="flex flex-col items-center justify-center opacity-30 px-12 text-center relative z-10">
                       <Music className="w-14 h-14 text-gray-700 mb-12" />
-                      <h3 className="text-4xl font-black uppercase tracking-[0.4em] text-white mb-6 italic leading-none">Voice Viewport</h3>
-                      <p className="text-gray-500 text-lg max-w-md font-medium leading-relaxed uppercase tracking-widest">Connect signal to begin synthesis.</p>
+                      <h3 className="text-4xl font-black uppercase tracking-[0.4em] text-white mb-6 italic leading-none">{t('aiVoice.voiceViewport')}</h3>
+                      <p className="text-gray-500 text-lg max-w-md font-medium leading-relaxed uppercase tracking-widest">{t('aiVoice.connectSignal')}</p>
                     </div>
                   )}
                </div>

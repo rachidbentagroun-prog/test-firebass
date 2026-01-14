@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowRight, Sparkles, Upload, X, Image as ImageIcon } from 'lucide-react';
+import { useLanguage } from '../utils/i18n';
 
 interface HeroProps {
   onGetStarted: () => void;
@@ -23,8 +24,9 @@ export const Hero: React.FC<HeroProps> = ({
   const [currentSlide, setCurrentSlide] = useState(0);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const fileInputRef = useRef<HTMLInputElement>(null);  
+  // Get translation function
+  const { t } = useLanguage();
   // Slideshow Logic
   useEffect(() => {
     if (slideshowImages && slideshowImages.length > 1) {
@@ -90,14 +92,14 @@ export const Hero: React.FC<HeroProps> = ({
       <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 text-center w-full">
         <div className="inline-flex items-center gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white/5 border border-white/10 mb-4 sm:mb-6 md:mb-8 text-center">
           <span className="flex h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-green-500 animate-pulse flex-shrink-0"></span>
-          <span className="text-[10px] sm:text-xs md:text-sm text-gray-300 font-medium">Powered by Gemini 2.5 Architecture</span>
+          <span className="text-[10px] sm:text-xs md:text-sm text-gray-300 font-medium">{t('hero.poweredBy')}</span>
         </div>
 
         {title === "Turn your imagination into Visual Reality" ? (
              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black tracking-tight text-white mb-4 sm:mb-6 md:mb-8 px-1 sm:px-0 leading-tight">
-              Turn your imagination into <br className="hidden sm:block" />
+              {t('hero.title').split('Visual Reality')[0]} <br className="hidden sm:block" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
-                Visual Reality
+                {t('hero.visualReality')}
               </span>
             </h1>
         ) : (
@@ -105,7 +107,7 @@ export const Hero: React.FC<HeroProps> = ({
         )}
 
         <p className="max-w-2xl mx-auto text-xs sm:text-sm md:text-base lg:text-lg text-gray-400 mb-6 sm:mb-8 md:mb-10 leading-relaxed px-2">
-          {subtitle}
+          {t('hero.subtitle')}
         </p>
 
         {/* Prompt Input Section with Multimodal Features */}
@@ -124,10 +126,10 @@ export const Hero: React.FC<HeroProps> = ({
                 <button 
                   onClick={() => fileInputRef.current?.click()}
                   className={`p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl transition-all flex items-center justify-center flex-shrink-0 ${selectedImage ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}
-                  title="Upload Image Reference"
+                  title={t('hero.uploadRef')}
                 >
                   <Upload className="w-3.5 sm:w-4 md:w-5 h-3.5 sm:h-4 md:h-5" />
-                  <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest hidden sm:inline ml-1">Ref</span>
+                  <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest hidden sm:inline ml-1">{t('hero.uploadRef')}</span>
                 </button>
                 <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*" />
               </div>
@@ -150,7 +152,7 @@ export const Hero: React.FC<HeroProps> = ({
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={promptPlaceholder}
+                  placeholder={t('hero.promptPlaceholder')}
                   className="flex-1 bg-transparent border-none text-xs sm:text-sm md:text-base text-white placeholder-gray-600 focus:ring-0 focus:outline-none py-3 sm:py-4 px-1"
                 />
               </div>
@@ -162,11 +164,11 @@ export const Hero: React.FC<HeroProps> = ({
               >
                 {(prompt.trim() || selectedImage) ? (
                   <>
-                    <span>Generate</span>
+                    <span>{t('hero.generate')}</span>
                     <ArrowRight className="w-2.5 sm:w-3 h-2.5 sm:h-3" />
                   </>
                 ) : (
-                  <>Try Free</>
+                  <>{t('hero.tryFree')}</>
                 )}
               </button>
             </div>
@@ -186,10 +188,10 @@ export const Hero: React.FC<HeroProps> = ({
                   <button 
                     onClick={() => fileInputRef.current?.click()}
                     className={`p-2.5 rounded-xl transition-all flex items-center justify-center flex-shrink-0 ${selectedImage ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}
-                    title="Upload Image Reference"
-                  >
-                    <Upload className="w-5 h-5" />
-                    <span className="text-[9px] font-black uppercase tracking-widest ml-1">Ref</span>
+                  title={t('hero.uploadRef')}
+                >
+                  <Upload className="w-5 h-5" />
+                  <span className="text-[9px] font-black uppercase tracking-widest ml-1">{t('hero.uploadRef')}</span>
                   </button>
                   <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*" />
                 </div>
@@ -212,7 +214,7 @@ export const Hero: React.FC<HeroProps> = ({
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder={promptPlaceholder}
+                    placeholder={t('hero.promptPlaceholder')}
                     className="flex-1 bg-transparent border-none text-base text-white placeholder-gray-600 focus:ring-0 focus:outline-none py-4 px-1"
                   />
                 </div>
@@ -226,11 +228,11 @@ export const Hero: React.FC<HeroProps> = ({
                 >
                   {(prompt.trim() || selectedImage) ? (
                     <>
-                      <span>Synthesize</span>
+                      <span>{t('hero.synthesize')}</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   ) : (
-                    <>Try Free</>
+                    <>{t('hero.tryFree')}</>
                   )}
                 </button>
               </div>
@@ -238,19 +240,19 @@ export const Hero: React.FC<HeroProps> = ({
           </div>
           
           <div className="mt-3 sm:mt-4 md:mt-6 flex flex-col gap-2 sm:gap-3">
-            <p className="text-[8px] sm:text-xs text-gray-500 font-black uppercase tracking-widest">Quick Ideas:</p>
+            <p className="text-[8px] sm:text-xs text-gray-500 font-black uppercase tracking-widest">{t('hero.quickIdeas')}</p>
             <div className="flex flex-wrap gap-2 justify-center">
               {[
-                { label: "Neon Samurai", prompt: "A holographic neon samurai in rainy Cyberpunk Tokyo, extreme detail" },
-                { label: "Cosmic Whale", prompt: "Bioluminescent whale flying through a vibrant nebula space clouds" },
-                { label: "Claymation Cat", prompt: "A cute fluffy cat made of colorful claymation, studio ghibli style" }
+                { key: "neonSamurai", prompt: "A holographic neon samurai in rainy Cyberpunk Tokyo, extreme detail" },
+                { key: "cosmicWhale", prompt: "Bioluminescent whale flying through a vibrant nebula space clouds" },
+                { key: "claymationCat", prompt: "A cute fluffy cat made of colorful claymation, studio ghibli style" }
               ].map((item) => (
                 <button 
-                  key={item.label}
+                  key={item.key}
                   onClick={() => setPrompt(item.prompt)} 
                   className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-white/5 border border-white/10 text-[8px] sm:text-[9px] font-bold text-gray-400 hover:text-white hover:border-indigo-500/50 transition-all uppercase tracking-tighter flex items-center min-h-[32px]"
                 >
-                  {item.label}
+                  {t(`hero.${item.key}`)}
                 </button>
               ))}
             </div>

@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import Cookies from 'js-cookie';
 
-export type Language = 'en' | 'ar' | 'fr' | 'de' | 'es';
+// Import translation files
+import enTranslations from '../locales/en.json';
+import arTranslations from '../locales/ar.json';
+import frTranslations from '../locales/fr.json';
+
+export type Language = 'en' | 'ar' | 'fr';
 
 interface LanguageContextValue {
   language: Language;
@@ -11,8 +17,30 @@ interface LanguageContextValue {
 const LanguageContext = createContext<LanguageContextValue | undefined>(undefined);
 
 const STORAGE_KEY = 'site_language';
+const COOKIE_KEY = 'NEXT_LOCALE';
 
-// Comprehensive translation dictionaries
+// Translation dictionary mapping
+const TRANSLATIONS: Record<Language, any> = {
+  en: enTranslations,
+  ar: arTranslations,
+  fr: frTranslations,
+};
+
+// Helper function to get nested translation
+const getNestedTranslation = (obj: any, path: string): string => {
+  const keys = path.split('.');
+  let result = obj;
+  for (const key of keys) {
+    if (result && typeof result === 'object' && key in result) {
+      result = result[key];
+    } else {
+      return path; // Return the key if not found
+    }
+  }
+  return typeof result === 'string' ? result : path;
+};
+
+// Legacy DICTS for backward compatibility with existing code
 const DICTS: Record<Language, Record<string, string>> = {
   en: {
     // Navigation
@@ -218,174 +246,108 @@ const DICTS: Record<Language, Record<string, string>> = {
     'common.download': 'Télécharger',
     'common.close': 'Fermer',
   },
-  de: {
-    // Navigation
-    'nav.home': 'Startseite',
-    'nav.features': 'Funktionen',
-    'nav.pricing': 'Preise',
-    'nav.login': 'Anmelden',
-    'nav.signup': 'Registrieren',
-    'nav.profile': 'Profil',
-    'nav.logout': 'Abmelden',
-    // Profile
-    'profile.title': 'Ersteller-Profil',
-    'profile.edit': 'Profil Bearbeiten',
-    'profile.save': 'Speichern',
-    'profile.cancel': 'Abbrechen',
-    'profile.email': 'E-Mail',
-    'profile.language': 'Sprache',
-    'profile.contactUs': 'Kontaktieren Sie Uns',
-    'profile.viewPlans': 'Pläne Anzeigen',
-    'profile.credits': 'Verbleibende Credits',
-    'profile.plan': 'Zugewiesenes Protokoll',
-    'profile.status': 'Status',
-    'profile.joined': 'Protokoll Beigetreten',
-    'profile.archiveSize': 'Archivgröße',
-    'profile.assets': 'Assets',
-    'profile.active': 'Aktiv',
-    'profile.backToStation': 'Zurück zur Station',
-    // Tabs
-    'tabs.profile': 'Ersteller-Profil',
-    'tabs.history': 'Generierungsverlauf',
-    'tabs.inbox': 'Posteingang',
-    // History
-    'history.title': 'ALLE IHRE AUDIO- UND VIDEOGENERIERUNGEN',
-    'history.empty': 'Tresor Leer',
-    'history.emptyDesc': 'Initialisieren Sie die Produktion, um Ihr Kreationsarchiv zu füllen',
-    // Messages
-    'messages.title': 'Systemübertragungen',
-    'messages.from': 'Von',
-    'messages.empty': 'Keine aktiven Übertragungen im Puffer',
-    'messages.supportSessions': 'Support-Sitzungen',
-    'messages.session': 'Sitzung',
-    'messages.open': 'Öffnen',
-    'messages.reply': 'Eine Antwort eingeben...',
-    'messages.send': 'Senden',
-    'messages.noMessages': 'Noch keine Nachrichten.',
-    'messages.noSupport': 'Noch keine Support-Aktivität.',
-    // Contact
-    'contact.title': 'Admin Kontaktieren',
-    'contact.subject': 'Betreff (optional)',
-    'contact.subjectPlaceholder': 'Wie können wir helfen?',
-    'contact.message': 'Nachricht',
-    'contact.messagePlaceholder': 'Beschreiben Sie Ihr Problem oder Ihre Anfrage...',
-    'contact.cancel': 'Abbrechen',
-    'contact.send': 'Senden',
-    'contact.sending': 'Senden...',
-    // Plans
-    'plans.basic': 'Basis-Ersteller',
-    'plans.premium': 'Premium',
-    'plans.free': 'Kostenlos',
-    'plans.getStarted': 'Loslegen',
-    'plans.upgrade': 'Upgrade',
-    // Common
-    'common.loading': 'Laden...',
-    'common.error': 'Fehler',
-    'common.success': 'Erfolg',
-    'common.delete': 'Löschen',
-    'common.download': 'Herunterladen',
-    'common.close': 'Schließen',
-  },
-  es: {
-    // Navigation
-    'nav.home': 'Inicio',
-    'nav.features': 'Características',
-    'nav.pricing': 'Precios',
-    'nav.login': 'Iniciar Sesión',
-    'nav.signup': 'Registrarse',
-    'nav.profile': 'Perfil',
-    'nav.logout': 'Cerrar Sesión',
-    // Profile
-    'profile.title': 'Perfil del Creador',
-    'profile.edit': 'Editar Perfil',
-    'profile.save': 'Guardar',
-    'profile.cancel': 'Cancelar',
-    'profile.email': 'Email',
-    'profile.language': 'Idioma',
-    'profile.contactUs': 'Contáctenos',
-    'profile.viewPlans': 'Ver Planes',
-    'profile.credits': 'Créditos Restantes',
-    'profile.plan': 'Protocolo Asignado',
-    'profile.status': 'Estado',
-    'profile.joined': 'Protocolo Unido',
-    'profile.archiveSize': 'Tamaño del Archivo',
-    'profile.assets': 'Activos',
-    'profile.active': 'Activo',
-    'profile.backToStation': 'Volver a la Estación',
-    // Tabs
-    'tabs.profile': 'Perfil del Creador',
-    'tabs.history': 'Historial de Generación',
-    'tabs.inbox': 'Bandeja de Entrada',
-    // History
-    'history.title': 'TODAS TUS GENERACIONES DE AUDIO Y VIDEO',
-    'history.empty': 'Bóveda Vacía',
-    'history.emptyDesc': 'Inicialice la producción para llenar su archivo de creación',
-    // Messages
-    'messages.title': 'Transmisiones del Sistema',
-    'messages.from': 'De',
-    'messages.empty': 'No hay transmisiones activas en el búfer',
-    'messages.supportSessions': 'Sesiones de Soporte',
-    'messages.session': 'Sesión',
-    'messages.open': 'Abrir',
-    'messages.reply': 'Escribe una respuesta...',
-    'messages.send': 'Enviar',
-    'messages.noMessages': 'Aún no hay mensajes.',
-    'messages.noSupport': 'Aún no hay actividad de soporte.',
-    // Contact
-    'contact.title': 'Contactar Admin',
-    'contact.subject': 'Asunto (opcional)',
-    'contact.subjectPlaceholder': '¿Cómo podemos ayudar?',
-    'contact.message': 'Mensaje',
-    'contact.messagePlaceholder': 'Describe tu problema o solicitud...',
-    'contact.cancel': 'Cancelar',
-    'contact.send': 'Enviar',
-    'contact.sending': 'Enviando...',
-    // Plans
-    'plans.basic': 'Creador Básico',
-    'plans.premium': 'Premium',
-    'plans.free': 'Gratis',
-    'plans.getStarted': 'Comenzar',
-    'plans.upgrade': 'Mejorar',
-    // Common
-    'common.loading': 'Cargando...',
-    'common.error': 'Error',
-    'common.success': 'Éxito',
-    'common.delete': 'Eliminar',
-    'common.download': 'Descargar',
-    'common.close': 'Cerrar',
-  },
 };
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>(() => {
+    // Priority: URL > Cookie > localStorage > Browser > Default
     try {
+      // Check URL path for language prefix
+      if (typeof window !== 'undefined') {
+        const pathLang = window.location.pathname.split('/')[1];
+        if (pathLang && ['en', 'ar', 'fr'].includes(pathLang)) {
+          return pathLang as Language;
+        }
+      }
+
+      // Check cookie
+      const cookieLang = Cookies.get(COOKIE_KEY);
+      if (cookieLang && ['en', 'ar', 'fr'].includes(cookieLang)) {
+        return cookieLang as Language;
+      }
+
+      // Check localStorage
       const saved = localStorage.getItem(STORAGE_KEY) as Language | null;
-      return saved && ['en','ar','fr','de','es'].includes(saved) ? saved : 'en';
+      if (saved && ['en', 'ar', 'fr'].includes(saved)) {
+        return saved;
+      }
+
+      // Check browser language
+      if (typeof navigator !== 'undefined') {
+        const browserLang = navigator.language.split('-')[0];
+        if (['en', 'ar', 'fr'].includes(browserLang)) {
+          return browserLang as Language;
+        }
+      }
     } catch {
-      return 'en';
+      // Ignore errors
     }
+    return 'en'; // Default language
   });
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
-    try { localStorage.setItem(STORAGE_KEY, lang); } catch {}
+    
+    // Persist to cookie (30 days expiry)
+    try { 
+      Cookies.set(COOKIE_KEY, lang, { expires: 30, path: '/' });
+    } catch {}
+    
+    // Persist to localStorage as backup
+    try { 
+      localStorage.setItem(STORAGE_KEY, lang); 
+    } catch {}
+
+    // Update URL if not already correct
+    if (typeof window !== 'undefined') {
+      const currentPath = window.location.pathname;
+      const pathLang = currentPath.split('/')[1];
+      
+      // If URL doesn't have language prefix or has wrong language
+      if (!['en', 'ar', 'fr'].includes(pathLang) || pathLang !== lang) {
+        let newPath = currentPath;
+        
+        // Remove existing language prefix if present
+        if (['en', 'ar', 'fr'].includes(pathLang)) {
+          newPath = currentPath.substring(3); // Remove /xx
+        }
+        
+        // Add new language prefix
+        newPath = `/${lang}${newPath || '/'}`;
+        
+        // Update URL without reload
+        window.history.replaceState({}, '', newPath);
+      }
+    }
   };
 
   useEffect(() => {
     try {
       document.documentElement.lang = language;
+      
       // Handle RTL for Arabic
       if (language === 'ar') {
         document.documentElement.setAttribute('dir', 'rtl');
+        document.body.style.direction = 'rtl';
       } else {
         document.documentElement.setAttribute('dir', 'ltr');
+        document.body.style.direction = 'ltr';
       }
     } catch {}
   }, [language]);
 
   const t = useMemo(() => {
-    const dict = DICTS[language] || {};
-    return (key: string) => dict[key] ?? key;
+    return (key: string) => {
+      // Try new translation system first
+      const translation = getNestedTranslation(TRANSLATIONS[language], key);
+      if (translation !== key) {
+        return translation;
+      }
+      
+      // Fallback to legacy DICTS
+      const dict = DICTS[language] || {};
+      return dict[key] ?? key;
+    };
   }, [language]);
 
   const value = useMemo(() => ({ language, setLanguage, t }), [language, t]);

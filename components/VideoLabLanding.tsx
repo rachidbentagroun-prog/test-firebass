@@ -14,6 +14,7 @@ import {
   MousePointer2, Terminal, Shield, Workflow, MessageSquare, Monitor
 } from 'lucide-react';
 import { VideoLabConfig, User } from '../types';
+import { useLanguage } from '../utils/i18n';
 
 interface VideoLabLandingProps {
   user: User | null;
@@ -39,6 +40,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
   user, config, onStartCreating, onLoginClick, 
   hasApiKey, onSelectKey, onResetKey 
 }) => {
+  const { t } = useLanguage();
   const [moteurMode, setMoteurMode] = useState<'text' | 'video'>('text');
   const [videoEngine, setVideoEngine] = useState<'sora' | 'klingai'>('klingai');
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16'>('16:9');
@@ -211,17 +213,17 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
       <section id="moteur" className="pt-0 pb-16 sm:pb-24 md:pb-32 relative bg-dark-900/40 border-b border-white/5">
         <div className="max-w-[1400px] mx-auto px-4">
            <div className="text-center mb-12 sm:mb-16 md:mb-20">
-              <h2 className="text-xs sm:text-sm font-black text-indigo-400 uppercase tracking-[0.4em] mb-3 sm:mb-4">Live Production Engine</h2>
-              <h3 className="text-3xl sm:text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter">Ai Video Synthesis Moteur</h3>
+              <h2 className="text-xs sm:text-sm font-black text-indigo-400 uppercase tracking-[0.4em] mb-3 sm:mb-4">{t('videoLanding.liveProductionEngine')}</h2>
+              <h3 className="text-3xl sm:text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter">{t('videoLanding.workstationTitle')}</h3>
            </div>
 
            {showIdentityCheck && (
              <div className="max-w-2xl mx-auto mb-6 p-3 sm:p-4 rounded-2xl bg-amber-900/10 border border-amber-500/10 text-center">
                <div className="flex items-center justify-center gap-2 sm:gap-3">
                  <AlertCircle className="w-4 sm:w-5 h-4 sm:h-5 text-amber-300" />
-                 <h4 className="text-xs sm:text-sm font-black uppercase text-amber-300">IDENTITY CHECK</h4>
+                 <h4 className="text-xs sm:text-sm font-black uppercase text-amber-300">{t('videoLanding.identityCheck')}</h4>
                </div>
-               <p className="text-gray-300 text-xs sm:text-sm mt-2">A verification link was sent to your email. Access is strictly restricted until you confirm your identity via that link.</p>
+               <p className="text-gray-300 text-xs sm:text-sm mt-2">{t('videoLanding.verificationMessage')}</p>
              </div>
            )}
 
@@ -233,7 +235,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                     
                     {/* AI Engine Selector */}
                     <div className="mb-4 relative z-10">
-                      <label className="form-label text-[10px] tracking-[0.18em]">AI Engine</label>
+                      <label className="form-label text-[10px] tracking-[0.18em]">{t('videoLanding.engineLabel')}</label>
                       <div className="flex bg-black/50 p-1.5 rounded-xl border border-white/5">
                         <button 
                           onClick={() => setVideoEngine('klingai')}
@@ -255,13 +257,13 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                         onClick={() => setMoteurMode('text')}
                         className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${moteurMode === 'text' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-300 hover:text-gray-100'}`}
                       >
-                         <Terminal className="w-4 h-4" /> Text To Video
+                         <Terminal className="w-4 h-4" /> {t('videoLanding.textToVideo')}
                       </button>
                       <button 
                         onClick={() => setMoteurMode('video')}
                         className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${moteurMode === 'video' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-300 hover:text-gray-100'}`}
                       >
-                         <Layers className="w-4 h-4" /> Frame Link
+                         <Layers className="w-4 h-4" /> {t('videoLanding.frameLink')}
                       </button>
                     </div>
 
@@ -269,11 +271,11 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                        {moteurMode === 'text' ? (
                           <div className="animate-fade-in">
                              <div className="flex justify-between mb-2">
-                               <label className="form-label text-[10px] tracking-[0.18em]">Directorial Script</label>
+                               <label className="form-label text-[10px] tracking-[0.18em]">{t('videoLanding.directorialScript')}</label>
                                <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">{videoEngine === 'sora' ? 'Sora 2' : 'KlingAI'}</span>
                              </div>
                              <textarea 
-                               placeholder="Describe the cinematic motion, lighting, and textures..."
+                               placeholder={t('videoLanding.scriptPlaceholder')}
                                className="w-full h-44 bg-black/40 border border-white/10 rounded-[1.5rem] p-6 text-white text-base outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none custom-scrollbar"
                                value={textPrompt}
                                onChange={(e) => setTextPrompt(e.target.value)}
@@ -282,11 +284,11 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                        ) : (
                           <div className="animate-fade-in space-y-6">
                              <div className="flex justify-between mb-2">
-                               <label className="form-label text-[10px] tracking-[0.18em]">Temporal Anchor</label>
+                               <label className="form-label text-[10px] tracking-[0.18em]">{t('videoLanding.temporalAnchor')}</label>
                              </div>
                              <div onClick={() => fileInputRef.current?.click()} className="aspect-video bg-black/60 border-2 border-dashed border-white/10 rounded-[1.5rem] flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 hover:border-indigo-500/30 transition-all group">
                                 <Upload className="w-10 h-10 text-gray-600 mb-4 group-hover:text-indigo-400 group-hover:scale-110 transition-all" />
-                                <p className="text-[10px] font-black text-gray-500 uppercase">{referenceFrame ? 'Frame Selected' : 'Upload Starting Frame'}</p>
+                                <p className="text-[10px] font-black text-gray-500 uppercase">{referenceFrame ? t('videoLanding.frameSelected') : t('videoLanding.uploadFrame')}</p>
                                 <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={async (e) => {
                                   const file = e.target.files?.[0];
                                   if (!file) return;
@@ -296,10 +298,10 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                                 }} />
                              </div>
                               <div className="space-y-2">
-                                <label className="form-label text-[10px] tracking-[0.18em]">Motion Guidance Script</label>
+                                <label className="form-label text-[10px] tracking-[0.18em]">{t('videoLanding.motionGuidance')}</label>
                                 <input 
                                   type="text" 
-                                  placeholder="Transform into cyberpunk aesthetic..."
+                                  placeholder={t('videoLanding.motionPlaceholder')}
                                   className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/50"                                   value={videoGuidance}
                                    onChange={(e) => setVideoGuidance(e.target.value)}                                />
                              </div>
@@ -308,7 +310,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
 
                        <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-2 relative" ref={dimMenuRef}>
-                             <label className="form-label text-[9px] tracking-[0.18em]">Dimension</label>
+                             <label className="form-label text-[9px] tracking-[0.18em]">{t('videoLanding.dimension')}</label>
                              <button onClick={() => setIsDimMenuOpen(!isDimMenuOpen)} className="w-full flex items-center justify-between px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all group">
                                <div className="flex items-center gap-1.5 truncate text-white">
                                  {currentDimOption && <currentDimOption.icon className="w-3.5 h-3.5 text-indigo-400 shrink-0 group-hover:scale-110 transition-transform" />}
@@ -329,7 +331,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                           </div>
 
                           <div className="space-y-2 relative" ref={qualityMenuRef}>
-                             <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Quality</label>
+                             <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('videoLanding.quality')}</label>
                              <button onClick={() => setIsQualityMenuOpen(!isQualityMenuOpen)} className="w-full flex items-center justify-between px-3 py-3 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all group">
                                <div className="flex items-center gap-1.5 truncate"><Monitor className="w-3.5 h-3.5 text-indigo-400 shrink-0 group-hover:scale-110 transition-transform" /><span>{resolution.toUpperCase()}</span></div>
                                <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform shrink-0 ${isQualityMenuOpen ? 'rotate-180' : ''}`} />
@@ -348,7 +350,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                        </div>
 
                        <button onClick={handleCTAClick} disabled={isGenerating || showIdentityCheck} className="w-full py-6 bg-indigo-600 hover:bg-indigo-500 disabled:bg-white/10 disabled:text-white/50 disabled:cursor-not-allowed text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02] active:scale-[0.98]">
-                         {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5 fill-white" />} {user?.isRegistered ? (isGenerating ? 'Generating…' : 'Start Ai Video Synthesis') : 'Generate Free Now'}
+                         {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5 fill-white" />} {user?.isRegistered ? (isGenerating ? t('videoLanding.generating') : t('videoLanding.startSynthesis')) : t('videoLanding.generateFree')}
                        </button>
                     </div>
                  </div>
@@ -361,8 +363,8 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                    <video autoPlay muted loop playsInline src={scriptToCinema.videoUrl} className="max-h-full w-auto opacity-50 grayscale group-hover/viewport:opacity-100 group-hover/viewport:grayscale-0 transition-all duration-700" />
                    <div className="absolute inset-0 bg-dark-950/40 backdrop-blur-[2px] flex flex-col items-center justify-center text-center p-12 group-hover/viewport:opacity-0 transition-opacity pointer-events-none">
                       <div className="w-20 h-20 bg-indigo-600 rounded-full flex items-center justify-center shadow-2xl mb-6"><MonitorPlay className="w-10 h-10 text-white" /></div>
-                      <h4 className="text-2xl font-black uppercase italic tracking-tighter mb-2">Cinema Viewport</h4>
-                      <p className="text-gray-500 text-sm max-w-xs font-medium leading-relaxed uppercase tracking-widest">Connect your production parameters to begin high-fidelity synthesis.</p>
+                      <h4 className="text-2xl font-black uppercase italic tracking-tighter mb-2">{t('videoLanding.cinemaViewport')}</h4>
+                      <p className="text-gray-500 text-sm max-w-xs font-medium leading-relaxed uppercase tracking-widest">{t('videoLanding.viewportDesc')}</p>
                    </div>
                 </div>
               </div>
