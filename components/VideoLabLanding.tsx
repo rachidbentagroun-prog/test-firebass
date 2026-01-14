@@ -26,14 +26,14 @@ interface VideoLabLandingProps {
   onResetKey: () => void;
 }
 
-const ASPECT_RATIOS: { id: '16:9' | '9:16', label: string, icon: any }[] = [
-  { id: '16:9', label: '16:9 (Landscape)', icon: RectangleHorizontal },
-  { id: '9:16', label: '9:16 (Portrait)', icon: RectangleVertical },
+const ASPECT_RATIOS: { id: '16:9' | '9:16', label: string, icon: any, labelKey: string }[] = [
+  { id: '16:9', label: '16:9 (Landscape)', icon: RectangleHorizontal, labelKey: 'videoLanding.landscapeLabel' },
+  { id: '9:16', label: '9:16 (Portrait)', icon: RectangleVertical, labelKey: 'videoLanding.portraitLabel' },
 ];
 
-const QUALITIES: { id: '720p' | '1080p', label: string, desc: string, badge: string }[] = [
-  { id: '720p', label: '720P', desc: 'Fast Generation', badge: 'HD' },
-  { id: '1080p', label: '1080P', desc: 'High Fidelity', badge: 'FHD' },
+const QUALITIES: { id: '720p' | '1080p', label: string, desc: string, badge: string, descKey: string }[] = [
+  { id: '720p', label: '720P', desc: 'Fast Generation', badge: 'HD', descKey: 'videoLanding.fastGenerationLabel' },
+  { id: '1080p', label: '1080P', desc: 'High Fidelity', badge: 'FHD', descKey: 'videoLanding.highFidelityLabel' },
 ];
 
 export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({ 
@@ -112,7 +112,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
     // Enforce identity check gating
     if (showIdentityCheck) {
       console.log('[VideoLabLanding] Identity check required');
-      alert('A verification link was sent to your email. Please confirm your identity to proceed.');
+      alert(t('videoLanding.alertVerification'));
       return;
     }
 
@@ -128,7 +128,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
     console.log('[VideoLabLanding] Prompt:', prompt);
     
     if (!prompt) {
-      alert('Please enter a prompt in the Directorial Script textarea before starting synthesis.');
+      alert(t('videoLanding.alertPromptRequired'));
       return;
     }
 
@@ -173,15 +173,15 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
       
       if (url && typeof url === 'string') {
         const engineName = videoEngine === 'sora' ? 'Sora' : 'KlingAI';
-        alert(`${engineName} video generation started! Opening: ${url}`);
+        alert(t('videoLanding.alertGenerationStarted').replace('{engine}', engineName).replace('{url}', url));
         window.open(url, '_blank', 'noopener');
       } else {
-        alert(`${videoEngine.toUpperCase()} responded without a video URL. Please check your generation queue.`);
+        alert(t('videoLanding.alertNoUrl').replace('{engine}', videoEngine.toUpperCase()));
       }
     } catch (e: any) {
       console.error('[VideoLabLanding] Generation failed:', e);
       const engineName = videoEngine === 'sora' ? 'Sora' : 'KlingAI';
-      alert(`Failed to start ${engineName} generation: ${e?.message || e}`);
+      alert(t('videoLanding.alertGenerationFailed').replace('{engine}', engineName).replace('{error}', e?.message || e));
     } finally {
       setIsGenerating(false);
     }
@@ -322,7 +322,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                                <div className="absolute top-full left-0 right-0 mt-2 z-[200] bg-dark-900 border border-white/10 rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-scale-in">
                                  {ASPECT_RATIOS.map(opt => (
                                    <button key={opt.id} onClick={() => { setAspectRatio(opt.id); setIsDimMenuOpen(false); }} className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 text-[9px] font-black transition-all ${aspectRatio === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
-                                     <div className="flex items-center gap-2 truncate"><opt.icon className="w-3.5 h-3.5" /><span className="truncate">{opt.label}</span></div>
+                                     <div className="flex items-center gap-2 truncate"><opt.icon className="w-3.5 h-3.5" /><span className="truncate">{t(opt.labelKey)}</span></div>
                                      {aspectRatio === opt.id && <Check className="w-2.5 h-2.5 shrink-0" />}
                                    </button>
                                  ))}
@@ -341,7 +341,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                                  {QUALITIES.map(opt => (
                                    <button key={opt.id} onClick={() => { setResolution(opt.id); setIsQualityMenuOpen(false); }} className={`w-full text-left px-3 py-2.5 transition-all ${resolution === opt.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 border-b border-white/5 last:border-none'}`}>
                                      <div className="flex justify-between mb-0.5"><span className="text-[9px] font-black uppercase tracking-widest">{opt.label}</span><span className={`text-[7px] font-bold px-1 py-0.5 rounded ${resolution === opt.id ? 'bg-white/20' : 'bg-indigo-500/10 text-indigo-400'}`}>{opt.badge}</span></div>
-                                     <p className={`text-[7px] uppercase tracking-tighter truncate ${resolution === opt.id ? 'text-indigo-100' : 'text-gray-600'}`}>{opt.desc}</p>
+                                     <p className={`text-[7px] uppercase tracking-tighter truncate ${resolution === opt.id ? 'text-indigo-100' : 'text-gray-600'}`}>{t(opt.descKey)}</p>
                                    </button>
                                  ))}
                                </div>

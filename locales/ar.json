@@ -416,7 +416,16 @@
     "cinemaViewport": "نافذة السينما",
     "viewportDesc": "قم بتوصيل معاملات الإنتاج الخاصة بك لبدء التركيب عالي الدقة.",
     "identityCheck": "فحص الهوية",
-    "verificationMessage": "تم إرسال رابط التحقق إلى بريدك الإلكتروني. الوصول مقيد بشكل صارم حتى تؤكد هويتك عبر هذا الرابط."
+    "verificationMessage": "تم إرسال رابط التحقق إلى بريدك الإلكتروني. الوصول مقيد بشكل صارم حتى تؤكد هويتك عبر هذا الرابط.",
+    "landscapeLabel": "16:9 (أفقي)",
+    "portraitLabel": "9:16 (عمودي)",
+    "fastGenerationLabel": "توليد سريع",
+    "highFidelityLabel": "دقة عالية",
+    "alertVerification": "تم إرسال رابط التحقق إلى بريدك الإلكتروني. يرجى تأكيد هويتك للمتابعة.",
+    "alertPromptRequired": "يرجى إدخال نص في مربع النص الإخراجي قبل بدء التركيب.",
+    "alertGenerationStarted": "بدأ إنشاء فيديو {engine}! يتم الفتح: {url}",
+    "alertNoUrl": "استجاب {engine} بدون رابط فيديو. يرجى التحقق من قائمة الانتظار الخاصة بك.",
+    "alertGenerationFailed": "فشل بدء إنشاء {engine}: {error}"
   },
   "ttsLanding": {
     "title": "محطة عمل الصوت والذكاء الاصطناعي",

@@ -485,7 +485,16 @@
     "cinemaViewport": "Cinema Viewport",
     "viewportDesc": "Connect your production parameters to begin high-fidelity synthesis.",
     "identityCheck": "IDENTITY CHECK",
-    "verificationMessage": "A verification link was sent to your email. Access is strictly restricted until you confirm your identity via that link."
+    "verificationMessage": "A verification link was sent to your email. Access is strictly restricted until you confirm your identity via that link.",
+    "landscapeLabel": "16:9 (Landscape)",
+    "portraitLabel": "9:16 (Portrait)",
+    "fastGenerationLabel": "Fast Generation",
+    "highFidelityLabel": "High Fidelity",
+    "alertVerification": "A verification link was sent to your email. Please confirm your identity to proceed.",
+    "alertPromptRequired": "Please enter a prompt in the Directorial Script textarea before starting synthesis.",
+    "alertGenerationStarted": "{engine} video generation started! Opening: {url}",
+    "alertNoUrl": "{engine} responded without a video URL. Please check your generation queue.",
+    "alertGenerationFailed": "Failed to start {engine} generation: {error}"
   },
   "ttsLanding": {
     "title": "AI Voice & Audio Workstation",

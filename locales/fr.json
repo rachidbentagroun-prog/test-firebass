@@ -402,7 +402,16 @@
     "cinemaViewport": "Fenêtre Cinéma",
     "viewportDesc": "Connectez vos paramètres de production pour commencer la synthèse haute fidélité.",
     "identityCheck": "VÉRIFICATION D'IDENTITÉ",
-    "verificationMessage": "Un lien de vérification a été envoyé à votre email. L'accès est strictement restreint jusqu'à ce que vous confirmiez votre identité via ce lien."
+    "verificationMessage": "Un lien de vérification a été envoyé à votre email. L'accès est strictement restreint jusqu'à ce que vous confirmiez votre identité via ce lien.",
+    "landscapeLabel": "16:9 (Paysage)",
+    "portraitLabel": "9:16 (Portrait)",
+    "fastGenerationLabel": "Génération Rapide",
+    "highFidelityLabel": "Haute Fidélité",
+    "alertVerification": "Un lien de vérification a été envoyé à votre email. Veuillez confirmer votre identité pour continuer.",
+    "alertPromptRequired": "Veuillez entrer un prompt dans le champ Script Directoriel avant de commencer la synthèse.",
+    "alertGenerationStarted": "Génération vidéo {engine} démarrée! Ouverture: {url}",
+    "alertNoUrl": "{engine} a répondu sans URL vidéo. Veuillez vérifier votre file d'attente de génération.",
+    "alertGenerationFailed": "Échec du démarrage de la génération {engine}: {error}"
   },
   "ttsLanding": {
     "title": "Station Audio et Voix IA",
