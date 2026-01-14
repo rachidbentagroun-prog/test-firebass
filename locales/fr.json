@@ -188,7 +188,60 @@
     "monthlyCredits": "Crédits Mensuels",
     "startFree": "Commencer l'Essai Gratuit",
     "tryOne": "Essayer pour 1$",
-    "upgrade": "Mettre à Niveau"
+    "upgrade": "Mettre à Niveau",
+    "plans": {
+      "free": {
+        "name": "Essai Gratuit",
+        "feature1": "1 vidéo / mois",
+        "feature2": "Ou jusqu'à 3 images / mois",
+        "feature3": "Nouveau: Sora2 et génération de vidéo HD 15s / 25s prise en charge",
+        "feature4": "3 tâches parallèles",
+        "feature5": "Sortie HD 1080P",
+        "feature6": "Sans Filigranes",
+        "feature7": "Sans Files d'Attente et Génération Instantanée",
+        "feature8": "Accès à tous les modèles",
+        "feature9": "Dall-E 3 - Sora2 - Chatgpt"
+      },
+      "test": {
+        "name": "Plan de Test",
+        "feature1": "Jusqu'à 3 vidéos / mois",
+        "feature2": "Ou jusqu'à 10 images / mois",
+        "feature3": "Jusqu'à 1 minute de voix et audio AI / mois",
+        "feature4": "Nouveau: Sora2 et génération de vidéo HD 15s / 25s prise en charge",
+        "feature5": "3 tâches parallèles",
+        "feature6": "Sortie HD 1080P",
+        "feature7": "Sans Filigranes",
+        "feature8": "Sans Files d'Attente et Génération Instantanée",
+        "feature9": "Accès à tous les modèles",
+        "feature10": "Dall-E 3 - Sora2 - Chatgpt"
+      },
+      "basic": {
+        "name": "Plan Basique",
+        "feature1": "Jusqu'à 10 vidéos / mois",
+        "feature2": "Ou jusqu'à 80 images / mois",
+        "feature3": "Jusqu'à 20 minutes de voix et audio AI / mois",
+        "feature4": "Nouveau: Sora2 et génération de vidéo HD 15s / 25s prise en charge",
+        "feature5": "3 tâches parallèles",
+        "feature6": "Sortie HD 1080P",
+        "feature7": "Sans Filigranes",
+        "feature8": "Sans Files d'Attente et Génération Instantanée",
+        "feature9": "Accès à tous les modèles",
+        "feature10": "Dall-E 3 - Sora2 - Chatgpt"
+      },
+      "premium": {
+        "name": "Plan Premium",
+        "feature1": "Jusqu'à 20 vidéos / mois",
+        "feature2": "Ou jusqu'à 180 images / mois",
+        "feature3": "Jusqu'à 40 minutes de voix et audio AI / mois",
+        "feature4": "Nouveau: Sora2 et génération de vidéo HD 15s / 25s prise en charge",
+        "feature5": "3 tâches parallèles",
+        "feature6": "Sortie HD 1080P",
+        "feature7": "Sans Filigranes",
+        "feature8": "Sans Files d'Attente et Génération Instantanée",
+        "feature9": "Accès à tous les modèles",
+        "feature10": "Dall-E 3 - Sora2 - Chatgpt"
+      }
+    }
   },
   "gallery": {
     "title": "Ma Galerie",

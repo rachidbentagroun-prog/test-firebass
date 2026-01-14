@@ -205,7 +205,60 @@
     "monthlyCredits": "Monthly Credits",
     "startFree": "Start Free Trial",
     "tryOne": "Try for $1",
-    "upgrade": "Upgrade Plan"
+    "upgrade": "Upgrade Plan",
+    "plans": {
+      "free": {
+        "name": "Free Trial",
+        "feature1": "1 video / month",
+        "feature2": "Or Up to 3 images / month",
+        "feature3": "New: Sora2 and 15s / 25s HD video generation supported",
+        "feature4": "3 parallel tasks",
+        "feature5": "1080P HD Output",
+        "feature6": "No Watermarks",
+        "feature7": "No Queues and Instant Generation",
+        "feature8": "Access to all models",
+        "feature9": "Dall-E 3 - Sora2 - Chatgpt"
+      },
+      "test": {
+        "name": "Test Plan",
+        "feature1": "Up to 3 videos / month",
+        "feature2": "Or Up to 10 images / month",
+        "feature3": "Up to 1 Minute Ai Voice&Audio / month",
+        "feature4": "New: Sora2 and 15s / 25s HD video generation supported",
+        "feature5": "3 parallel tasks",
+        "feature6": "1080P HD Output",
+        "feature7": "No Watermarks",
+        "feature8": "No Queues and Instant Generation",
+        "feature9": "Access to all models",
+        "feature10": "Dall-E 3 - Sora2 - Chatgpt"
+      },
+      "basic": {
+        "name": "Basic Plan",
+        "feature1": "Up to 10 videos / month",
+        "feature2": "Or Up to 80 images / month",
+        "feature3": "Up to 20 Minutes Ai Voice&Audio / month",
+        "feature4": "New: Sora2 and 15s / 25s HD video generation supported",
+        "feature5": "3 parallel tasks",
+        "feature6": "1080P HD Output",
+        "feature7": "No Watermarks",
+        "feature8": "No Queues and Instant Generation",
+        "feature9": "Access to all models",
+        "feature10": "Dall-E 3 - Sora2 - Chatgpt"
+      },
+      "premium": {
+        "name": "Premium Plan",
+        "feature1": "Up to 20 videos / month",
+        "feature2": "Or Up to 180 images / month",
+        "feature3": "Up to 40 Minutes Ai Voice&Audio / month",
+        "feature4": "New: Sora2 and 15s / 25s HD video generation supported",
+        "feature5": "3 parallel tasks",
+        "feature6": "1080P HD Output",
+        "feature7": "No Watermarks",
+        "feature8": "No Queues and Instant Generation",
+        "feature9": "Access to all models",
+        "feature10": "Dall-E 3 - Sora2 - Chatgpt"
+      }
+    }
   },
   "gallery": {
     "title": "My Gallery",
