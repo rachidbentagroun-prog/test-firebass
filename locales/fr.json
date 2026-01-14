@@ -1,4 +1,8 @@
 {
+  "common": {
+    "and": "et",
+    "or": "ou"
+  },
   "nav": {
     "home": "Accueil",
     "explore": "Explorer",
@@ -189,6 +193,18 @@
     "startFree": "Commencer l'Essai Gratuit",
     "tryOne": "Essayer pour 1$",
     "upgrade": "Mettre à Niveau",
+    "pageTitle": "Plans Tarifaires",
+    "heroTitle": "Choisissez Votre Plan Parfait",
+    "heroDescription": "Commencez gratuitement ou débloquez une créativité illimitée avec nos plans premium. Tous les plans incluent l'accès à",
+    "hdOutput": "Sortie HD 1080P",
+    "noWatermarks": "Sans Filigranes",
+    "instantGeneration": "Génération Instantanée",
+    "noQueues": "Sans Files d'Attente",
+    "mostPopular": "Le Plus Populaire",
+    "getStarted": "Commencer",
+    "needHelp": "Besoin d'Aide pour Choisir ?",
+    "needHelpDesc": "Vous ne savez pas quel plan vous convient ? Commencez par notre essai gratuit pour explorer toutes les fonctionnalités, ou contactez notre équipe de support pour des recommandations personnalisées.",
+    "contactSupport": "Contacter le Support",
     "plans": {
       "free": {
         "name": "Essai Gratuit",

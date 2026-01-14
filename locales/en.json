@@ -1,4 +1,8 @@
 {
+  "common": {
+    "and": "and",
+    "or": "or"
+  },
   "nav": {
     "home": "Home",
     "explore": "Explore",
@@ -206,6 +210,18 @@
     "startFree": "Start Free Trial",
     "tryOne": "Try for $1",
     "upgrade": "Upgrade Plan",
+    "pageTitle": "Pricing Plans",
+    "heroTitle": "Choose Your Perfect Plan",
+    "heroDescription": "Get started for free or unlock unlimited creativity with our premium plans. All plans include access to",
+    "hdOutput": "1080P HD Output",
+    "noWatermarks": "No Watermarks",
+    "instantGeneration": "Instant Generation",
+    "noQueues": "No Queues",
+    "mostPopular": "Most Popular",
+    "getStarted": "Get Started",
+    "needHelp": "Need Help Choosing?",
+    "needHelpDesc": "Not sure which plan is right for you? Start with our free trial to explore all features, or contact our support team for personalized recommendations.",
+    "contactSupport": "Contact Support",
     "plans": {
       "free": {
         "name": "Free Trial",

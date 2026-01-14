@@ -1,7 +1,8 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { Check, ExternalLink, Sparkles, Zap, Crown, Rocket } from 'lucide-react';
 import { Plan } from '../types';
+import { useLanguage } from '../utils/i18n';
 
 interface PricingLandingProps {
   plans: Plan[];
@@ -10,12 +11,38 @@ interface PricingLandingProps {
 
 export const PricingLanding: React.FC<PricingLandingProps> = ({ plans, onSelectPlan }) => {
   const plansContainerRef = useRef<HTMLDivElement>(null);
+  const { t, language } = useLanguage();
 
   useEffect(() => {
     if (plansContainerRef.current) {
       plansContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, []);
+
+  // Memoize translated plans
+  const translatedPlans = useMemo(() => {
+    return plans.map(plan => {
+      const translationKey = `pricing.plans.${plan.id}.name`;
+      const translatedName = t(translationKey);
+      
+      const features: string[] = [];
+      const maxFeatures = 10;
+      
+      for (let i = 1; i <= maxFeatures; i++) {
+        const featureKey = `pricing.plans.${plan.id}.feature${i}`;
+        const translatedFeature = t(featureKey);
+        if (translatedFeature && !translatedFeature.includes('pricing.plans')) {
+          features.push(translatedFeature);
+        }
+      }
+      
+      return {
+        ...plan,
+        translatedName: translatedName.includes('pricing.plans') ? plan.name : translatedName,
+        translatedFeatures: features.length > 0 ? features : plan.features
+      };
+    });
+  }, [plans, language, t]);
 
   const handlePlanClick = (plan: Plan) => {
     // Create WhatsApp message based on plan
@@ -57,18 +84,18 @@ export const PricingLanding: React.FC<PricingLandingProps> = ({ plans, onSelectP
         <div className="text-center mb-12 sm:mb-16 md:mb-20">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1f4b99]/10 border border-[#1f4b99]/20 mb-6">
             <Sparkles className="w-4 h-4 text-[#1f4b99]" />
-            <span className="text-xs sm:text-sm font-bold text-[#1f4b99] uppercase tracking-wide">Pricing Plans</span>
+            <span className="text-xs sm:text-sm font-bold text-[#1f4b99] uppercase tracking-wide">{t('pricing.pageTitle')}</span>
           </div>
           
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 mb-4 sm:mb-6">
-            Choose Your Perfect Plan
+            {t('pricing.heroTitle')}
           </h1>
           
           <p className="text-base sm:text-lg md:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
-            Get started for free or unlock unlimited creativity with our premium plans. 
-            All plans include access to <span className="font-bold text-[#1f4b99]">Dall-E 3</span>, 
-            <span className="font-bold text-[#1f4b99]"> Sora2</span>, and 
-            <span className="font-bold text-[#1f4b99]"> ChatGPT</span>.
+            {t('pricing.heroDescription')}{' '}
+            <span className="font-bold text-[#1f4b99]">Dall-E 3</span>, 
+            <span className="font-bold text-[#1f4b99]"> Sora2</span>, {t('common.and')}{' '}
+            <span className="font-bold text-[#1f4b99]">ChatGPT</span>.
           </p>
 
           {/* Features highlight */}
@@ -77,32 +104,32 @@ export const PricingLanding: React.FC<PricingLandingProps> = ({ plans, onSelectP
               <div className="p-1.5 rounded-full bg-green-100">
                 <Check className="w-3 h-3 text-green-600" />
               </div>
-              <span>1080P HD Output</span>
+              <span>{t('pricing.hdOutput')}</span>
             </div>
             <div className="flex items-center gap-2 text-slate-700">
               <div className="p-1.5 rounded-full bg-green-100">
                 <Check className="w-3 h-3 text-green-600" />
               </div>
-              <span>No Watermarks</span>
+              <span>{t('pricing.noWatermarks')}</span>
             </div>
             <div className="flex items-center gap-2 text-slate-700">
               <div className="p-1.5 rounded-full bg-green-100">
                 <Check className="w-3 h-3 text-green-600" />
               </div>
-              <span>Instant Generation</span>
+              <span>{t('pricing.instantGeneration')}</span>
             </div>
             <div className="flex items-center gap-2 text-slate-700">
               <div className="p-1.5 rounded-full bg-green-100">
                 <Check className="w-3 h-3 text-green-600" />
               </div>
-              <span>No Queues</span>
+              <span>{t('pricing.noQueues')}</span>
             </div>
           </div>
         </div>
 
         {/* Pricing Cards */}
         <div ref={plansContainerRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-          {plans.map((plan) => (
+          {translatedPlans.map((plan) => (
             <div 
               key={plan.id}
               className={`relative rounded-2xl p-6 sm:p-8 border transition-all duration-300 hover:-translate-y-2 bg-white shadow-[0_22px_70px_rgba(16,45,85,0.10)] hover:shadow-[0_26px_90px_rgba(16,45,85,0.14)] ${
@@ -113,7 +140,7 @@ export const PricingLanding: React.FC<PricingLandingProps> = ({ plans, onSelectP
             >
               {plan.recommended && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#1f4b99] to-[#153a7a] text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-lg uppercase tracking-wide">
-                  Most Popular
+                  {t('pricing.mostPopular')}
                 </div>
               )}
 
@@ -128,10 +155,10 @@ export const PricingLanding: React.FC<PricingLandingProps> = ({ plans, onSelectP
                 </div>
 
                 {/* Plan Name & Price */}
-                <h3 className="text-lg sm:text-xl font-black text-slate-900 mb-2">{plan.name}</h3>
+                <h3 className="text-lg sm:text-xl font-black text-slate-900 mb-2">{plan.translatedName}</h3>
                 <div className="flex items-baseline gap-1 mb-4 sm:mb-6">
                   <span className="text-3xl sm:text-4xl font-black text-slate-900">{plan.price}</span>
-                  <span className="text-sm sm:text-base text-slate-500">/month</span>
+                  <span className="text-sm sm:text-base text-slate-500">/{t('pricing.month')}</span>
                 </div>
 
                 {/* Credits Badge */}
@@ -140,7 +167,7 @@ export const PricingLanding: React.FC<PricingLandingProps> = ({ plans, onSelectP
                     ? 'bg-[#1f4b99]/5 border-[#1f4b99]/20'
                     : 'bg-[#eef1f6] border-slate-200'
                 }`}>
-                  <span className="block text-xs sm:text-sm text-slate-600 mb-1">Monthly Credits</span>
+                  <span className="block text-xs sm:text-sm text-slate-600 mb-1">{t('pricing.monthlyCredits')}</span>
                   <span className={`text-xl sm:text-2xl font-black ${
                     plan.recommended ? 'text-[#1f4b99]' : 'text-slate-900'
                   }`}>{plan.credits}</span>
@@ -148,7 +175,7 @@ export const PricingLanding: React.FC<PricingLandingProps> = ({ plans, onSelectP
 
                 {/* Features List */}
                 <ul className="space-y-3 sm:space-y-4 mb-6 sm:mb-8 flex-grow">
-                  {plan.features.map((feature, idx) => (
+                  {plan.translatedFeatures.map((feature, idx) => (
                     <li key={idx} className="flex items-start gap-2 sm:gap-3 text-xs sm:text-sm text-slate-700">
                       <div className={`p-1 rounded-full flex-shrink-0 mt-0.5 ${
                         plan.recommended 
@@ -171,7 +198,7 @@ export const PricingLanding: React.FC<PricingLandingProps> = ({ plans, onSelectP
                       : 'bg-white text-slate-700 border-2 border-slate-200 hover:border-[#1f4b99] hover:text-[#1f4b99] hover:bg-[#1f4b99]/5'
                   }`}
                 >
-                  {plan.price === '$0' ? 'Start Free Trial' : plan.price === '$1' ? 'Try for $1' : 'Get Started'}
+                  {plan.price === '$0' ? t('pricing.startFree') : plan.price === '$1' ? t('pricing.tryOne') : t('pricing.getStarted')}
                   {plan.buttonUrl && <ExternalLink className="w-4 h-4" />}
                 </button>
               </div>
@@ -182,23 +209,22 @@ export const PricingLanding: React.FC<PricingLandingProps> = ({ plans, onSelectP
         {/* FAQ or Additional Info */}
         <div className="mt-16 sm:mt-20 md:mt-24 text-center">
           <div className="inline-block p-8 rounded-2xl bg-white border border-slate-200 shadow-lg max-w-2xl">
-            <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-4">Need Help Choosing?</h3>
+            <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-4">{t('pricing.needHelp')}</h3>
             <p className="text-sm sm:text-base text-slate-600 mb-6">
-              Not sure which plan is right for you? Start with our free trial to explore all features, 
-              or contact our support team for personalized recommendations.
+              {t('pricing.needHelpDesc')}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button 
                 onClick={() => handlePlanClick(plans[0])}
                 className="px-6 py-3 rounded-xl bg-[#1f4b99] text-white font-semibold hover:bg-[#153a7a] transition-colors cursor-pointer"
               >
-                Start Free Trial
+                {t('pricing.startFree')}
               </button>
               <button 
                 className="px-6 py-3 rounded-xl bg-white text-slate-700 font-semibold border-2 border-slate-200 hover:border-[#1f4b99] hover:text-[#1f4b99] transition-colors cursor-pointer"
                 onClick={() => window.open('https://wa.me/212630961392?text=' + encodeURIComponent('Hello! I need help choosing the right pricing plan for my needs.'), '_blank', 'noopener,noreferrer')}
               >
-                Contact Support
+                {t('pricing.contactSupport')}
               </button>
             </div>
           </div>
