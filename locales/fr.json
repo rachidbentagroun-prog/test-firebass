@@ -24,8 +24,8 @@
     "signup": "S'inscrire"
   },
   "hero": {
-    "title": "Transformez votre imagination en réalité visuelle",
-    "subtitle": "Créez des images uniques époustouflantes et des vidéos cinématographiques en quelques secondes grâce à l'IA avancée. Décrivez votre vision et regardez-la prendre vie. Inscrivez-vous aujourd'hui et obtenez 3 générations gratuites.",
+    "title": "Créez vos publicités UGC avec l'IA en 5 secondes",
+    "subtitle": "Créez les meilleures publicités UGC à conversion en quelques secondes grâce à l'IA avancée, décrivez votre produit et regardez-le prendre vie. Inscrivez-vous aujourd'hui et obtenez 3 générations gratuites.",
     "promptPlaceholder": "Décrivez ce que vous voulez imaginer...",
     "poweredBy": "Propulsé par l'architecture Gemini 2.5",
     "visualReality": "Réalité Visuelle",
@@ -409,8 +409,8 @@
     "allRights": "Tous droits réservés"
   },
   "homeLanding": {
-    "heroTitle": "Transformez votre imagination en réalité visuelle",
-    "heroSubtitle": "Créez des images uniques époustouflantes et des vidéos cinématographiques en quelques secondes grâce à l'IA avancée. Décrivez votre vision et regardez-la prendre vie.",
+    "heroTitle": "Créez vos publicités UGC avec l'IA en 5 secondes",
+    "heroSubtitle": "Créez les meilleures publicités UGC à conversion en quelques secondes grâce à l'IA avancée, décrivez votre produit et regardez-le prendre vie.",
     "inputPlaceholder": "Décrivez ce que vous voulez créer... (ex: 'Un paysage urbain futuriste au coucher du soleil')",
     "uploadRef": "Télécharger Réf",
     "removeImage": "Supprimer l'image",
