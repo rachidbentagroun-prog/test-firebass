@@ -576,7 +576,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
 
               {/* Engine Selection */}
               <div className="space-y-1.5 sm:space-y-2 relative md:z-[1000] mb-4 sm:mb-5" ref={engineMenuRef}>
-                <label className="form-label text-[9px] sm:text-[10px] tracking-[0.18em]">AI Engine</label>
+                <label className="form-label text-[9px] sm:text-[10px] tracking-[0.18em]">{t('videoLanding.aiEngine')}</label>
                 <button 
                   ref={engineButtonRef}
                   onClick={() => !isGenerating && setIsEngineMenuOpen(!isEngineMenuOpen)} 
@@ -595,7 +595,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               <div className="space-y-3 sm:space-y-4 md:space-y-5 relative z-10">
               {mode === 'interpolation' && (
                 <div className="space-y-2 sm:space-y-3 animate-fade-in">
-                  <label className="form-label text-[9px] sm:text-[10px] tracking-[0.18em]">Starting Frame</label>
+                  <label className="form-label text-[9px] sm:text-[10px] tracking-[0.18em]">{t('videoLanding.startingFrame')}</label>
                   <div 
                     onClick={() => fileInputRef.current?.click()}
                     className="aspect-video bg-black/40 border-2 border-dashed border-white/10 rounded-lg sm:rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500/30 transition-all group overflow-hidden"
@@ -605,7 +605,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                     ) : (
                       <>
                         <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-gray-700 group-hover:text-indigo-400 mb-2 transition-colors" />
-                        <span className="text-[7px] sm:text-[8px] font-black text-gray-600 uppercase">Upload Frame</span>
+                        <span className="text-[7px] sm:text-[8px] font-black text-gray-600 uppercase">{t('videoLanding.uploadFrame')}</span>
                       </>
                     )}
                   </div>
@@ -614,11 +614,11 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               )}
 
               <div>
-                <label className="form-label text-[9px] sm:text-[10px] tracking-[0.18em]">Enter Prompt</label>
+                <label className="form-label text-[9px] sm:text-[10px] tracking-[0.18em]">{t('videoLanding.enterPrompt')}</label>
                 <textarea 
                   value={prompt} onChange={(e) => setPrompt(e.target.value)}
                   disabled={isOutOfCredits || isGenerating}
-                  placeholder="Describe cinematic lighting, camera moves, and textures..."
+                  placeholder={t('videoLanding.promptDescPlaceholder')}
                   className="w-full h-24 sm:h-28 md:h-32 bg-black/40 border border-white/10 rounded-lg sm:rounded-2xl p-3 sm:p-4 md:p-5 text-white text-sm sm:text-base focus:ring-1 focus:ring-indigo-500/50 outline-none resize-none transition-all placeholder:text-gray-600 custom-scrollbar disabled:opacity-50"
                 />
               </div>
@@ -627,9 +627,9 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                 <div className="flex items-start justify-between gap-2 sm:gap-3">
                   <div className="flex-1">
                     <p className="text-[8px] sm:text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-                      <AlertCircle className="w-3 h-3 text-pink-400 flex-shrink-0" /> Negative
+                      <AlertCircle className="w-3 h-3 text-pink-400 flex-shrink-0" /> {t('videoLanding.negative')}
                     </p>
-                    <p className="text-[7px] sm:text-[8px] text-gray-600 uppercase tracking-widest">Video filters</p>
+                    <p className="text-[7px] sm:text-[8px] text-gray-600 uppercase tracking-widest">{t('videoLanding.videoFilters')}</p>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     {negativePrompt && (
@@ -638,7 +638,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                         onClick={() => setNegativePrompt('')}
                         className="px-2 py-0.5 text-[7px] sm:text-[8px] font-black uppercase tracking-widest bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:border-white/30"
                       >
-                        Clear
+                        {t('videoLanding.clear')}
                       </button>
                     )}
                     <div className="relative">
@@ -646,7 +646,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                         onClick={() => !isGenerating && setIsNegativeMenuOpen(!isNegativeMenuOpen)}
                         className="px-2 sm:px-3 py-1 sm:py-1.5 text-[7px] sm:text-[9px] font-black uppercase tracking-widest bg-black/50 border border-white/10 rounded-lg text-gray-200 hover:border-white/30 flex items-center gap-1"
                       >
-                        Presets
+                        {t('videoLanding.presets')}
                         <ChevronDown className={`w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-500 transition-transform ${isNegativeMenuOpen ? 'rotate-180' : ''}`} />
                       </button>
                       {isNegativeMenuOpen && (
@@ -669,14 +669,14 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                   value={negativePrompt}
                   onChange={(e) => setNegativePrompt(e.target.value)}
                   disabled={isGenerating}
-                  placeholder="Short: e.g., blurry, extra limbs"
+                  placeholder={t('videoLanding.negativePromptPlaceholder')}
                   className="w-full h-16 bg-black/40 border border-white/10 rounded-lg p-3 text-white text-xs focus:ring-1 focus:ring-indigo-500/40 outline-none resize-none transition-all placeholder:text-gray-700 custom-scrollbar disabled:opacity-50"
                 />
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                  <div className="space-y-1.5 sm:space-y-2 relative" ref={dimMenuRef}>
-                    <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Aspect</label>
+                    <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('videoLanding.aspect')}</label>
                     <button ref={dimButtonRef} onClick={() => !isGenerating && setIsDimMenuOpen(!isDimMenuOpen)} className="w-full flex items-center justify-between px-2 sm:px-3 py-2 sm:py-3 bg-black/40 border border-white/10 rounded-lg text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
                       <div className="flex items-center gap-1 truncate">{currentDimOption && <currentDimOption.icon className="w-3 h-3 text-indigo-400 flex-shrink-0" />}<span className="truncate text-[7px] sm:text-[8px]">{aspectRatio}</span></div>
                       <ChevronDown className={`w-2.5 h-2.5 text-gray-500 transition-transform flex-shrink-0 ${isDimMenuOpen ? 'rotate-180' : ''}`} />
@@ -685,7 +685,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                  </div>
 
                   <div className="space-y-1.5 sm:space-y-2 relative" ref={qualityMenuRef}>
-                    <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Size</label>
+                    <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('videoLanding.size')}</label>
                     <button ref={qualityButtonRef} onClick={() => !isGenerating && setIsQualityMenuOpen(!isQualityMenuOpen)} className="w-full flex items-center justify-between px-2 sm:px-3 py-2 sm:py-3 bg-black/40 border border-white/10 rounded-lg text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
                       <div className="flex items-center gap-1 truncate"><Monitor className="w-3 h-3 text-indigo-400 flex-shrink-0" /><span className="text-[7px] sm:text-[8px]">{resolution.toUpperCase()}</span></div>
                       <ChevronDown className={`w-2.5 h-2.5 text-gray-500 transition-transform flex-shrink-0 ${isQualityMenuOpen ? 'rotate-180' : ''}`} />
@@ -694,7 +694,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                  </div>
 
                      <div className="space-y-1.5 sm:space-y-2 relative" ref={durationMenuRef}>
-                        <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Duration</label>
+                        <label className="text-[8px] sm:text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('videoLanding.duration')}</label>
                         <button ref={durationButtonRef} onClick={() => !isGenerating && setIsDurationMenuOpen(!isDurationMenuOpen)} className="w-full flex items-center justify-between px-2 sm:px-3 py-2 sm:py-3 bg-black/40 border border-white/10 rounded-lg text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest hover:border-white/20 transition-all">
                           <div className="flex items-center gap-1 truncate"><Clock className="w-3 h-3 text-indigo-400 flex-shrink-0" /><span className="text-[7px] sm:text-[8px]">{duration.toUpperCase()}</span></div>
                           <ChevronDown className={`w-2.5 h-2.5 text-gray-500 transition-transform flex-shrink-0 ${isDurationMenuOpen ? 'rotate-180' : ''}`} />
@@ -813,7 +813,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 group-hover:animate-shimmer"></div>
                 {isGenerating ? <RefreshCw className="w-6 h-6 animate-spin relative z-10" /> : (isOutOfCredits ? <Lock className="w-6 h-6 relative z-10" /> : <Zap className="w-6 h-6 fill-white drop-shadow-[0_2px_8px_rgba(255,255,255,0.5)] relative z-10" />)}
-                <span className="relative z-10">{isGenerating ? 'SYNTHESIZING...' : (showIdentityCheck ? 'VERIFY EMAIL FIRST' : 'GENERATE VIDEO NOW (3 CREDITS)')}</span>
+                <span className="relative z-10">{isGenerating ? t('videoLanding.synthesizing') : (showIdentityCheck ? t('videoLanding.verifyEmailFirst') : t('videoLanding.generateVideoNow'))}</span>
               </button>
             </div>
           </div>
@@ -907,10 +907,10 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                        {/* Overlay: AI Generated Badge + Prompt Label */}
                        <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/60 to-transparent flex items-center justify-between z-20">
                          <div className="px-4 py-2 bg-indigo-600/80 backdrop-blur-sm rounded-lg border border-indigo-400/40">
-                           <p className="text-[10px] font-black text-white uppercase tracking-wider">🎬 AI Generated Video</p>
+                           <p className="text-[10px] font-black text-white uppercase tracking-wider">{t('videoLanding.aiGeneratedVideo')}</p>
                          </div>
                          <div className="px-3 py-1.5 bg-purple-600/70 backdrop-blur-sm rounded-lg">
-                           <p className="text-[8px] font-black text-purple-100 uppercase">Real-Time Demo</p>
+                           <p className="text-[8px] font-black text-purple-100 uppercase">{t('videoLanding.realTimeDemo')}</p>
                          </div>
                        </div>
                        
@@ -933,7 +933,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                        {/* Prompt Input */}
                        <div className="flex items-center justify-center gap-3 opacity-80">
                          <div className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm">
-                           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">💬 Text Input</p>
+                           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{t('videoLanding.textInput')}</p>
                          </div>
                          <div className="flex-1 h-[2px] max-w-xs bg-gradient-to-r from-white/20 via-indigo-500/50 to-transparent animate-pulse" />
                        </div>
@@ -941,7 +941,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                        {/* Processing Status */}
                        <div className="flex items-center justify-center gap-2">
                          <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse" />
-                         <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Processing with AI</p>
+                         <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">{t('videoLanding.processingWithAi')}</p>
                          <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse animation-delay-200" />
                        </div>
                        
@@ -949,7 +949,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                        <div className="flex items-center justify-center gap-3 opacity-80">
                          <div className="flex-1 h-[2px] max-w-xs bg-gradient-to-r from-transparent via-indigo-500/50 to-white/20 animate-pulse animation-delay-300" />
                          <div className="px-4 py-2.5 bg-indigo-600/15 border border-indigo-500/30 rounded-xl backdrop-blur-sm">
-                           <p className="text-[9px] font-bold text-indigo-300 uppercase tracking-wider">🎥 Video Output</p>
+                           <p className="text-[9px] font-bold text-indigo-300 uppercase tracking-wider">{t('videoLanding.videoOutput')}</p>
                          </div>
                        </div>
                      </div>
@@ -957,16 +957,16 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                      {/* Feature Highlights */}
                      <div className="w-full max-w-2xl mt-6 grid grid-cols-3 gap-3">
                        <div className="p-3 bg-white/5 border border-white/5 rounded-xl text-center">
-                         <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest">✓ Realistic Motion</p>
-                         <p className="text-[9px] font-bold text-white mt-1">Natural hand & facial</p>
+                         <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest">✓ {t('videoLanding.realisticMotion')}</p>
+                         <p className="text-[9px] font-bold text-white mt-1">{t('videoLanding.naturalHandFacial')}</p>
                        </div>
                        <div className="p-3 bg-white/5 border border-white/5 rounded-xl text-center">
-                         <p className="text-[8px] font-black text-purple-400 uppercase tracking-widest">✓ AI Generated</p>
-                         <p className="text-[9px] font-bold text-white mt-1">Text to video</p>
+                         <p className="text-[8px] font-black text-purple-400 uppercase tracking-widest">✓ {t('videoLanding.aiGenerated')}</p>
+                         <p className="text-[9px] font-bold text-white mt-1">{t('videoLanding.textToVideoLabel')}</p>
                        </div>
                        <div className="p-3 bg-white/5 border border-white/5 rounded-xl text-center">
-                         <p className="text-[8px] font-black text-pink-400 uppercase tracking-widest">✓ HD Quality</p>
-                         <p className="text-[9px] font-bold text-white mt-1">4K Ready</p>
+                         <p className="text-[8px] font-black text-pink-400 uppercase tracking-widest">✓ {t('videoLanding.hdQuality')}</p>
+                         <p className="text-[9px] font-bold text-white mt-1">{t('videoLanding.fourKReady')}</p>
                        </div>
                      </div>
                    </div>
@@ -985,12 +985,12 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               <div>
                 <h3 className="text-sm font-black text-purple-400 uppercase tracking-[0.4em] mb-3 flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
-                  Your Videos
+                  {t('videoLanding.yourVideos')}
                 </h3>
-                <h4 className="text-3xl md:text-4xl font-black text-white uppercase italic tracking-tighter">Recently Generated</h4>
+                <h4 className="text-3xl md:text-4xl font-black text-white uppercase italic tracking-tighter">{t('videoLanding.recentlyGenerated')}</h4>
               </div>
               <div className="text-xs font-black text-gray-600 uppercase tracking-widest px-4 py-2 bg-purple-600/10 border border-purple-500/20 rounded-full">
-                {videoHistory.length} {videoHistory.length === 1 ? 'Video' : 'Videos'}
+                {videoHistory.length} {t('videoLanding.videos')}
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
@@ -1037,7 +1037,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
             {user && (
               <div className="mt-8 text-center">
                 <p className="text-xs text-gray-500 font-medium">
-                  Your generated videos are automatically saved and synced with Gallery
+                  {t('videoLanding.autoSavedSynced')}
                 </p>
               </div>
             )}
@@ -1048,9 +1048,9 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
       {/* Explore Ideas Section - Featured Videos from Explore Page */}
       <div className="max-w-[1400px] mx-auto px-4 py-16 mt-12">
         <div className="text-center mb-12">
-          <h2 className="text-xs sm:text-sm font-black text-indigo-400 uppercase tracking-[0.4em] mb-3 sm:mb-4">Featured Examples</h2>
-          <h3 className="text-3xl sm:text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter">Explore AI Video Ideas</h3>
-          <p className="text-gray-400 mt-4 max-w-2xl mx-auto">Discover stunning AI-generated videos - Temporal Sequences</p>
+          <h2 className="text-xs sm:text-sm font-black text-indigo-400 uppercase tracking-[0.4em] mb-3 sm:mb-4">{t('videoLanding.featuredExamples')}</h2>
+          <h3 className="text-3xl sm:text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter">{t('videoLanding.exploreAiVideoIdeas')}</h3>
+          <p className="text-gray-400 mt-4 max-w-2xl mx-auto">{t('videoLanding.discoverStunning')}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1068,7 +1068,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               />
             </div>
             <div className="p-4">
-              <p className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-2">Temporal Sequence 1</p>
+              <p className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-2">{t('videoLanding.temporalSequence')} 1</p>
               <p className="text-sm text-gray-300">"Cinematic video generation with stunning visual effects"</p>
             </div>
           </div>
@@ -1087,7 +1087,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               />
             </div>
             <div className="p-4">
-              <p className="text-xs font-black text-purple-400 uppercase tracking-widest mb-2">Temporal Sequence 2</p>
+              <p className="text-xs font-black text-purple-400 uppercase tracking-widest mb-2">{t('videoLanding.temporalSequence')} 2</p>
               <p className="text-sm text-gray-300">"Dynamic motion and creative transitions"</p>
             </div>
           </div>
@@ -1106,7 +1106,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               />
             </div>
             <div className="p-4">
-              <p className="text-xs font-black text-pink-400 uppercase tracking-widest mb-2">Temporal Sequence 3</p>
+              <p className="text-xs font-black text-pink-400 uppercase tracking-widest mb-2">{t('videoLanding.temporalSequence')} 3</p>
               <p className="text-sm text-gray-300">"High-quality AI-generated video sequences"</p>
             </div>
           </div>
@@ -1125,7 +1125,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               />
             </div>
             <div className="p-4">
-              <p className="text-xs font-black text-blue-400 uppercase tracking-widest mb-2">Temporal Sequence 4</p>
+              <p className="text-xs font-black text-blue-400 uppercase tracking-widest mb-2">{t('videoLanding.temporalSequence')} 4</p>
               <p className="text-sm text-gray-300">"Professional video generation with AI"</p>
             </div>
           </div>
@@ -1144,7 +1144,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               />
             </div>
             <div className="p-4">
-              <p className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-2">Temporal Sequence 5</p>
+              <p className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-2">{t('videoLanding.temporalSequence')} 5</p>
               <p className="text-sm text-gray-300">"Stunning temporal effects and motion"</p>
             </div>
           </div>
@@ -1163,7 +1163,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               />
             </div>
             <div className="p-4">
-              <p className="text-xs font-black text-green-400 uppercase tracking-widest mb-2">Temporal Sequence 6</p>
+              <p className="text-xs font-black text-green-400 uppercase tracking-widest mb-2">{t('videoLanding.temporalSequence')} 6</p>
               <p className="text-sm text-gray-300">"Advanced AI video generation capabilities"</p>
             </div>
           </div>
@@ -1182,7 +1182,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               />
             </div>
             <div className="p-4">
-              <p className="text-xs font-black text-purple-400 uppercase tracking-widest mb-2">Temporal Sequence 7</p>
+              <p className="text-xs font-black text-purple-400 uppercase tracking-widest mb-2">{t('videoLanding.temporalSequence')} 7</p>
               <p className="text-sm text-gray-300">"Realistic motion and camera movements"</p>
             </div>
           </div>
@@ -1201,7 +1201,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               />
             </div>
             <div className="p-4">
-              <p className="text-xs font-black text-pink-400 uppercase tracking-widest mb-2">Temporal Sequence 8</p>
+              <p className="text-xs font-black text-pink-400 uppercase tracking-widest mb-2">{t('videoLanding.temporalSequence')} 8</p>
               <p className="text-sm text-gray-300">"Cinematic quality AI video generation"</p>
             </div>
           </div>

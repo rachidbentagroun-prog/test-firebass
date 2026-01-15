@@ -749,10 +749,10 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
             </div>
 
               <div className="flex bg-black p-1.5 rounded-[1.2rem] mb-8 border border-white/5 relative z-[1000] w-full overflow-hidden">
-              <button onClick={() => setMode('narrator')} className={`flex-1 py-3.5 px-2 rounded-[0.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${mode === 'narrator' ? 'bg-[#4f46e5] text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}>TEXT TO SPEECH</button>
-              <button onClick={() => setMode('clone')} className={`flex-1 py-3.5 px-2 rounded-[0.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${mode === 'clone' ? 'bg-pink-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}><Scissors className="w-3.5 h-3.5" /> CLONE VOICE</button>
-              <button onClick={() => setMode('stt')} className={`flex-1 py-3.5 px-2 rounded-[0.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${mode === 'stt' ? 'bg-emerald-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}><FileText className="w-3.5 h-3.5" /> SPEECH TO TEXT</button>
-                <button onClick={() => setMode('song')} className={`flex-1 py-3.5 px-2 rounded-[0.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${mode === 'song' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}><Music className="w-3.5 h-3.5" /> CREATE SONG</button>
+              <button onClick={() => setMode('narrator')} className={`flex-1 py-3.5 px-2 rounded-[0.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${mode === 'narrator' ? 'bg-[#4f46e5] text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}>{t('aiVoice.textToSpeech')}</button>
+              <button onClick={() => setMode('clone')} className={`flex-1 py-3.5 px-2 rounded-[0.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${mode === 'clone' ? 'bg-pink-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}><Scissors className="w-3.5 h-3.5" /> {t('aiVoice.voiceClone')}</button>
+              <button onClick={() => setMode('stt')} className={`flex-1 py-3.5 px-2 rounded-[0.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${mode === 'stt' ? 'bg-emerald-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}><FileText className="w-3.5 h-3.5" /> {t('aiVoice.speechToText')}</button>
+                <button onClick={() => setMode('song')} className={`flex-1 py-3.5 px-2 rounded-[0.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${mode === 'song' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}><Music className="w-3.5 h-3.5" /> {t('aiVoice.createSong')}</button>
             </div>
               {mode === 'song' && (
                 <div className="space-y-6 animate-fade-in">
@@ -825,7 +825,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
             {/* Engine Selector */}
             {mode === 'narrator' && (
               <div className="mb-6 relative z-[1000]" ref={engineMenuRef}>
-                <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-2 block">Select Engine</label>
+                <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1 mb-2 block">{t('aiVoice.selectEngine')}</label>
                 <button 
                   ref={engineButtonRef}
                   type="button"
@@ -834,7 +834,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                 >
                   <div className="flex items-center gap-2 truncate">
                     <Zap className={`w-3.5 h-3.5 ${engine === 'gemini' ? 'text-blue-400' : 'text-purple-400'}`} />
-                    <span className="truncate">{engine === 'gemini' ? 'GEMINI ENGINE' : 'ELEVENLABS ENGINE'}</span>
+                    <span className="truncate">{engine === 'gemini' ? t('aiVoice.geminiEngine') : t('aiVoice.elevenlabsEngine')}</span>
                   </div>
                   <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform flex-shrink-0 ${isEngineMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -847,7 +847,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                 <div className="grid grid-cols-2 gap-4 animate-fade-in">
                   {/* Language Selector */}
                   <div className="space-y-2 relative z-[1000]" ref={langMenuRef}>
-                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Language</label>
+                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('aiVoice.language')}</label>
                     <button 
                       ref={langButtonRef}
                       onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} 
@@ -860,7 +860,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                   </div>
                   {/* Voice Selector */}
                   <div className="space-y-2 relative z-[1000]" ref={voiceMenuRef}>
-                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Narrator</label>
+                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('aiVoice.narrator')}</label>
                     <button 
                       ref={voiceButtonRef}
                       onClick={() => setIsVoiceMenuOpen(!isVoiceMenuOpen)} 
@@ -876,7 +876,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
 
               {mode === 'clone' && (
                 <div className="space-y-4 animate-fade-in">
-                   <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Identity Anchor (Audio Reference)</label>
+                   <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('aiVoice.identityAnchor')}</label>
                    <div onClick={() => !isTranscoding && cloneRefInputRef.current?.click()} className="p-10 bg-black/40 border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-pink-600/5 hover:border-pink-500/30 transition-all group">
                       <input type="file" ref={cloneRefInputRef} onChange={handleMediaImport} className="hidden" accept="audio/*" />
                       {isTranscoding ? <RefreshCw className="w-8 h-8 text-pink-400 animate-spin" /> : clonedVoiceData ? (
@@ -888,7 +888,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                       ) : (
                         <>
                           <Upload className="w-6 h-6 text-pink-500 group-hover:scale-110 transition-transform mb-3" />
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Import Reference Voice</p>
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('aiVoice.importReferenceVoice')}</p>
                         </>
                       )}
                    </div>
@@ -897,13 +897,13 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
 
               {mode === 'stt' && (
                 <div className="space-y-4 animate-fade-in">
-                   <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Import Media Source</label>
+                   <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">{t('aiVoice.importMediaSource')}</label>
                    <div onClick={() => !isTranscoding && sttInputRef.current?.click()} className="aspect-video bg-black/40 border-2 border-dashed border-white/10 rounded-3xl flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-600/5 hover:border-emerald-500/30 transition-all group">
                       <input type="file" ref={sttInputRef} onChange={handleMediaImport} className="hidden" accept="audio/*,video/*" />
                       {isTranscoding ? <RefreshCw className="w-10 h-10 text-emerald-400 animate-spin mx-auto" /> : (
                         <>
                           <Upload className="w-8 h-8 text-emerald-500 group-hover:scale-110 transition-transform mb-4" />
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Upload Audio or Video</p>
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('aiVoice.uploadAudioVideo')}</p>
                         </>
                       )}
                    </div>
@@ -913,16 +913,16 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                    <Zap className="w-3.5 h-3.5 text-indigo-500" /> {mode === 'stt' ? 'Transcription Result' : 'Directorial Script'}
+                    <Zap className="w-3.5 h-3.5 text-indigo-500" /> {mode === 'stt' ? t('aiVoice.transcriptionResult') : t('aiVoice.directorialScript')}
                   </label>
                   {mode !== 'stt' && (
                     <button onClick={handleEnhance} disabled={isEnhancing || !text.trim()} className="text-[10px] font-bold text-indigo-400 hover:text-white flex items-center gap-1.5 disabled:opacity-30">
-                      <Wand2 className={`w-3.5 h-3.5 ${isEnhancing ? 'animate-spin' : ''}`} /> Optimize
+                      <Wand2 className={`w-3.5 h-3.5 ${isEnhancing ? 'animate-spin' : ''}`} /> {t('aiVoice.optimize')}
                     </button>
                   )}
                   {mode === 'stt' && text && (
                     <button onClick={() => { navigator.clipboard.writeText(text); alert('Copied!'); }} className="text-[10px] font-bold text-emerald-400 hover:text-white flex items-center gap-1.5">
-                      <Copy className="w-3.5 h-3.5" /> Copy
+                      <Copy className="w-3.5 h-3.5" /> {t('aiVoice.copy')}
                     </button>
                   )}
                 </div>
@@ -936,9 +936,9 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                          <ThumbsDown className="w-3.5 h-3.5 text-pink-400" /> Negative Prompt
+                          <ThumbsDown className="w-3.5 h-3.5 text-pink-400" /> {t('aiVoice.negativePrompt')}
                         </p>
-                        <p className="text-[9px] text-gray-600 uppercase tracking-widest">Guide all voice engines on what to avoid</p>
+                        <p className="text-[9px] text-gray-600 uppercase tracking-widest">{t('aiVoice.guideVoiceEngines')}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         {negativePrompt && (
@@ -947,7 +947,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                             onClick={() => setNegativePrompt('')}
                             className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:border-white/30"
                           >
-                            Clear
+                            {t('aiVoice.clear')}
                           </button>
                         )}
                         <div className="relative">
@@ -956,7 +956,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                             onClick={() => setIsNegativeMenuOpen(!isNegativeMenuOpen)}
                             className="px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-[10px] font-bold text-white flex items-center gap-2 hover:border-white/20"
                           >
-                            Presets
+                            {t('aiVoice.presets')}
                             <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform ${isNegativeMenuOpen ? 'rotate-180' : ''}`} />
                           </button>
                           {isNegativeMenuOpen && (
@@ -1000,7 +1000,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 group-hover:animate-shimmer"></div>
                 {isSynthesizing ? <RefreshCw className="w-6 h-6 animate-spin relative z-10" /> : <Zap className="w-6 h-6 fill-white drop-shadow-[0_2px_8px_rgba(255,255,255,0.5)] relative z-10" />}
-                <span className="relative z-10">{isSynthesizing ? 'SYNTHESIZING...' : (showIdentityCheck ? 'VERIFY EMAIL FIRST' : (mode === 'song' ? 'CREATE SONG (1 CREDIT)' : 'GENERATE NOW (1 CREDIT)'))}</span>
+                <span className="relative z-10">{isSynthesizing ? t('aiVoice.synthesizing') : (showIdentityCheck ? t('aiVoice.verifyEmailFirst') : (mode === 'song' ? t('aiVoice.createSongCredit') : t('aiVoice.generateNowCredit')))}</span>
               </button>
 
               {/* Recently Generated Section (Sticky) */}
@@ -1008,9 +1008,9 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                 <div className="mt-8 space-y-4 animate-fade-in sticky top-4 z-20">
                   <div className="flex items-center justify-between">
                     <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] flex items-center gap-2">
-                      <History className="w-4 h-4" /> Recently Generated
+                      <History className="w-4 h-4" /> {t('aiVoice.recentlyGenerated')}
                     </h4>
-                    <span className="text-[9px] font-black text-gray-600 uppercase">{audioList.length} Items</span>
+                    <span className="text-[9px] font-black text-gray-600 uppercase">{audioList.length} {t('aiVoice.items')}</span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {audioList.length > 0 ? (

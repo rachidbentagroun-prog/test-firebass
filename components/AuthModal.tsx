@@ -318,12 +318,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             </form>
             
             <p className="mt-8 text-center text-[10px] text-gray-500 font-black uppercase tracking-[0.2em]">
-              {isLogin ? "NEW CREATOR? " : "HAVE AN ACCOUNT? "}
+              {isLogin ? t('auth.newCreator') : t('auth.haveAccount')}
               <button 
                 onClick={() => { setIsLogin(!isLogin); setError(null); }} 
                 className="text-indigo-400 hover:text-indigo-300 ml-1 transition-colors underline underline-offset-4"
               >
-                {isLogin ? 'SIGNUP' : 'LOGIN'}
+                {isLogin ? t('auth.signupCTA') : t('auth.loginCTA')}
               </button>
             </p>
           </div>
@@ -332,8 +332,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
              <div className="w-16 h-16 bg-indigo-600/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-indigo-600/20 shadow-inner">
                 <Lock className="w-8 h-8 text-indigo-500" />
               </div>
-              <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter mb-2">UPDATE KEY</h2>
-              <p className="text-gray-400 text-xs font-black uppercase tracking-[0.2em] mb-10">Set a new account password</p>
+              <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter mb-2">{t('auth.updateKey')}</h2>
+              <p className="text-gray-400 text-xs font-black uppercase tracking-[0.2em] mb-10">{t('auth.setNewPassword')}</p>
               
               <form onSubmit={handleUpdatePassword} className="space-y-4 text-left">
                 <div className="relative group">
@@ -341,14 +341,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                   <input 
                     type="password" required minLength={6} value={newPassword} onChange={e => setNewPassword(e.target.value)} 
                     className="w-full bg-black/40 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm font-medium" 
-                    placeholder="New Password" 
+                    placeholder={t('auth.newPassword')} 
                   />
                 </div>
                 <button 
                   type="submit" disabled={isLoading} 
                   className="w-full py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-indigo-600/20 transition-all disabled:opacity-50 mt-4"
                 >
-                  {isLoading ? <RefreshCw className="w-5 h-5 animate-spin mx-auto" /> : 'CONFIRM PASSWORD'}
+                  {isLoading ? <RefreshCw className="w-5 h-5 animate-spin mx-auto" /> : t('auth.confirmPassword')}
                 </button>
               </form>
           </div>
@@ -361,10 +361,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                </div>
             </div>
             
-            <h2 className="text-3xl font-black text-white mb-3 uppercase italic tracking-tighter leading-none text-center">VERIFICATION <br /> REQUIRED</h2>
+            <h2 className="text-3xl font-black text-white mb-3 uppercase italic tracking-tighter leading-none text-center">{t('auth.verificationRequired').split(' ').map((word, i) => <React.Fragment key={i}>{word}{i === 0 ? <br /> : ' '}</React.Fragment>)}</h2>
             <p className="text-gray-400 text-sm font-medium leading-relaxed mb-10 px-4 text-center">
-              A neural activation link has been sent to your email address.<br />
-              <strong className="text-indigo-400">Click the link in the email</strong> to verify your account and unlock dashboard access.
+              {t('auth.verificationEmailSent')}<br />
+              <strong className="text-indigo-400">{t('auth.clickLinkToVerify')}</strong> {t('auth.unlockDashboard')}
             </p>
             
             <div className="space-y-4 px-4">
@@ -373,26 +373,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                   onClick={handleCheckVerification}
                   className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 border border-indigo-600/20 rounded-2xl text-[12px] font-black text-white uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2"
                 >
-                  {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'I\'ve verified — Continue'}
+                  {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : t('auth.verifiedContinue')}
                 </button>
 
                 <button
                   onClick={handleResendVerification}
                   className="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[12px] font-black text-gray-400 hover:text-white uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2"
                 >
-                  Resend verification email
+                  {t('auth.resendVerification')}
                 </button>
 
                 <button 
                   onClick={() => setStep('auth')} 
                   className="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[10px] font-black text-gray-400 hover:text-white uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2"
                 >
-                  <ArrowLeft className="w-4 h-4" /> RETURN TO LOGIN
+                  <ArrowLeft className="w-4 h-4" /> {t('auth.returnToLogin')}
                 </button>
 
                 <div className="p-4 bg-indigo-500/5 rounded-2xl border border-indigo-500/10">
                   <p className="text-[9px] text-indigo-400/60 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
-                    <Inbox className="w-3 h-3" /> Check your spam folder if the email is not in your inbox.
+                    <Inbox className="w-3 h-3" /> {t('auth.checkSpam')}
                   </p>
                 </div>
               </div>

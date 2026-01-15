@@ -817,6 +817,17 @@ const App: React.FC = () => {
       const params = new URLSearchParams(window.location.search);
       const gotoParam = params.get('goto');
       const verifiedParam = params.get('verified');
+      const loginParam = params.get('login');
+      
+      // If login parameter is set, open the auth modal
+      if (loginParam === 'true') {
+        setIsAuthModalOpen(true);
+        // Clean up URL param
+        params.delete('login');
+        const search = params.toString();
+        const newUrl = search ? `${window.location.pathname}?${search}` : window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
       
       // If user just verified, force reload auth state and clean up
       if (gotoParam === 'dashboard' && verifiedParam === '1') {

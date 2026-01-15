@@ -160,7 +160,7 @@ export default function SignUp() {
         {success && <div className="mt-4 text-sm text-green-400">{success}</div>}
 
         <div className="mt-6 text-center text-sm text-gray-400">
-          {t('signUp.haveAccount')} <button onClick={() => window.location.href = '/'} className="text-indigo-400 font-medium">{t('signUp.login')}</button>
+          {t('signUp.haveAccount')} <button onClick={() => window.location.href = '/?login=true'} className="text-indigo-400 font-medium">{t('signUp.login')}</button>
         </div>
       </div>
     </div>
