@@ -179,9 +179,34 @@
 [dir="rtl"] body,
 [dir="rtl"] p,
 [dir="rtl"] span,
-[dir="rtl"] div {
-  font-family: 'Inter', 'Arial', 'Helvetica', sans-serif;
+[dir="rtl"] div,
+[dir="rtl"] button,
+[dir="rtl"] input,
+[dir="rtl"] textarea,
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] h3,
+[dir="rtl"] h4,
+[dir="rtl"] h5,
+[dir="rtl"] h6 {
+  font-family: 'Cairo', 'Inter', 'Arial', sans-serif;
+  font-weight: 600;
   letter-spacing: 0;
+}
+
+/* Extra bold for headings */
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] h3 {
+  font-weight: 800;
+}
+
+/* Bold for buttons and important text */
+[dir="rtl"] button,
+[dir="rtl"] .font-bold,
+[dir="rtl"] .font-extrabold,
+[dir="rtl"] .font-black {
+  font-weight: 900;
 }
 
 /* Enhanced line height for Arabic text */

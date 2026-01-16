@@ -184,8 +184,8 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bot className="w-5 h-5 text-indigo-600" />
-              <span className="font-semibold text-slate-900">GPT-5.2 Chat</span>
-              <span className="text-xs text-slate-500">• {messages.length} messages</span>
+              <span className="font-semibold text-slate-900">GPT-5.2 {t('chat.title')}</span>
+              <span className="text-xs text-slate-500">• {messages.length} {t('chat.messages')}</span>
             </div>
             <button
               onClick={clearHistory}
@@ -265,7 +265,7 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
                 <div className="inline-block rounded-2xl px-4 py-3 bg-white border border-slate-200 shadow-sm">
                   <div className="flex items-center gap-2 text-slate-500">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">Thinking...</span>
+                    <span className="text-sm">{t('chat.thinking')}</span>
                   </div>
                 </div>
               </div>
@@ -287,12 +287,12 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
                   <MessageSquare className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-xl font-black text-slate-900">
-                  {isFreePlan ? 'Free Plan Limit Reached' : 'No Credits Remaining'}
+                  {isFreePlan ? t('chat.freePlanLimit') : t('chat.noCreditsRemaining')}
                 </h3>
                 <p className="text-slate-600">
                   {isFreePlan 
-                    ? "You've used your 2 free messages. Get more credits to continue chatting with GPT-5.2!"
-                    : "Your credits have run out. Purchase more credits to continue your conversation."}
+                    ? t('chat.freePlanMessage')
+                    : t('chat.noCreditsMessage')}
                 </p>
                 <button
                   onClick={() => {
@@ -303,7 +303,7 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
                   }}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-black uppercase tracking-wide shadow-lg shadow-green-500/30 transition-all transform hover:scale-105"
                 >
-                  💰 Buy Credits to Continue
+                  {t('chat.buyCredits')}
                 </button>
               </div>
             </div>
@@ -324,7 +324,7 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
                 type="button"
                 disabled={!user || isLoading || isBlocked}
                 className="flex items-center justify-center w-10 h-10 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                title="Attach file"
+                title={t('chat.attachFile')}
               >
                 <Paperclip className="w-5 h-5" />
               </button>
@@ -347,7 +347,7 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
                 type="button"
                 disabled={!user || isLoading || isBlocked}
                 className="flex items-center justify-center w-10 h-10 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                title="Voice input"
+                title={t('chat.voiceInput')}
               >
                 <Mic className="w-5 h-5" />
               </button>
@@ -357,7 +357,7 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
                 onClick={handleSend}
                 disabled={!user || isLoading || (!input.trim() && !isBlocked)}
                 className="flex items-center justify-center w-10 h-10 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white transition-all shadow-sm hover:shadow-md disabled:shadow-none"
-                title="Send message"
+                title={t('chat.sendMessage')}
               >
                 {isLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -371,17 +371,17 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
           {/* Helper Text */}
           <div className="flex items-center justify-between text-xs text-slate-500">
             <span>
-              Press <kbd className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-300 font-mono text-slate-700">Enter</kbd> to send · <kbd className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-300 font-mono text-slate-700">Shift</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-300 font-mono text-slate-700">Enter</kbd> for new line
+              {t('chat.pressEnter')} <kbd className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-300 font-mono text-slate-700">Enter</kbd> {t('chat.toSend')} · <kbd className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-300 font-mono text-slate-700">{t('chat.shiftEnter')}</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-300 font-mono text-slate-700">Enter</kbd> {t('chat.forNewLine')}
             </span>
             {user && (
               <span className="font-semibold">
                 {isFreePlan ? (
                   <span className={userMessageCount >= 2 ? 'text-red-600' : 'text-slate-600'}>
-                    {2 - userMessageCount} free messages left
+                    {2 - userMessageCount} {t('chat.freeMessagesLeft')}
                   </span>
                 ) : (
                   <span className={(user.credits || 0) <= 5 ? 'text-amber-600' : 'text-indigo-600'}>
-                    💎 {user.credits || 0} credits · Next deduction at {10 - (userMessageCount % 10)} messages
+                    💎 {user.credits || 0} {t('chat.credits')} · {t('chat.nextDeduction')} {10 - (userMessageCount % 10)} {t('chat.messagesText')}
                   </span>
                 )}
               </span>
@@ -399,16 +399,16 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
                 <MessageSquare className="w-8 h-8 text-white" />
               </div>
               <h2 className="text-2xl font-black text-slate-900">
-                {isFreePlan ? 'Upgrade to Continue' : 'Out of Credits'}
+                {isFreePlan ? t('chat.upgradeToContinue') : t('chat.outOfCredits')}
               </h2>
               <p className="text-slate-600">
                 {isFreePlan 
-                  ? "You've used your free 2 GPT-5.2 messages. Upgrade to Premium for unlimited access."
-                  : "You've run out of credits. Buy more credits to continue chatting with GPT-5.2."}
+                  ? t('chat.freePlanUpgradeMessage')
+                  : t('chat.noCreditsUpgradeMessage')}
               </p>
               {!isFreePlan && user && (
                 <div className="text-sm text-slate-500 bg-slate-50 rounded-xl p-3 border border-slate-200">
-                  Current balance: <span className="font-bold text-slate-900">{user.credits || 0} credits</span>
+                  {t('chat.currentBalance')} <span className="font-bold text-slate-900">{user.credits || 0} {t('chat.credits')}</span>
                 </div>
               )}
             </div>
@@ -422,13 +422,13 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
                 }}
                 className="w-full py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black uppercase tracking-wide shadow-lg transition-all"
               >
-                {isFreePlan ? '💳 Upgrade Now' : '💰 Buy Credits Now To Continue'}
+                {isFreePlan ? t('chat.upgradeNow') : t('chat.buyCreditsNow')}
               </button>
               <button
                 onClick={() => setShowUpgradeModal(false)}
                 className="w-full py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition-all"
               >
-                Maybe Later
+                {t('chat.maybeLater')}
               </button>
             </div>
           </div>
