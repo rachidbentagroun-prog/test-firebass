@@ -32,15 +32,9 @@ export default function SignUp() {
           plan: 'free',
           signup_method: 'email',
         });
-        
-        if (res?.emailSent) {
-          setSuccess('Account created — check your email for a verification link.');
-        } else {
-          setSuccess('Account created — verification email failed to send. Please try resending from the login flow.');
-        }
-        setName('');
-        setEmail('');
-        setPassword('');
+        // Redirect to signup success page
+        window.location.href = '/signup-success';
+        return;
       } else {
         setError('Firebase signup failed');
       }
@@ -81,10 +75,9 @@ export default function SignUp() {
                     signup_method: 'google',
                     is_new_user: res.isNew,
                   });
-                  
-                  setSuccess('Signed in with Google — redirecting...');
-                  // Redirect to dashboard or home where the app will handle auth state
-                  window.location.href = '/?goto=dashboard';
+                  // Redirect to signup success page
+                  window.location.href = '/signup-success';
+                  return;
                 }
               } catch (err: any) {
                 setError(err?.message || String(err));

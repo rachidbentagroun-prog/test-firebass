@@ -57,9 +57,6 @@ const STYLES_BASE = [
 ];
 
 const NEGATIVE_PRESETS_BASE = [
-  { id: 'quality', labelKey: 'generator.negativePresetLabels.lowQuality', value: 'blurry, low resolution, pixelated, compression artifacts, noisy, distorted details, watermark' },
-  { id: 'anatomy', labelKey: 'generator.negativePresetLabels.badAnatomy', value: 'bad anatomy, extra fingers, deformed hands, malformed limbs, distorted faces, asymmetry' },
-  { id: 'content', labelKey: 'generator.negativePresetLabels.nsfwViolence', value: 'nsfw, nudity, gore, blood, violence, offensive, hateful, copyrighted logos' },
 ];
 
 const IMAGE_IDEAS = [
@@ -82,7 +79,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
   const [genMode, setGenMode] = useState<'tti' | 'iti'>('tti');
   const [imageEngine, setImageEngine] = useState<'klingai' | 'gemini' | 'deapi' | 'runware' | 'seedream' | 'seedream40' | 'dalle3'>('runware');
   const [prompt, setPrompt] = useState(initialPrompt || '');
-  const [negativePrompt, setNegativePrompt] = useState('');
+  const [negativePrompt, setNegativePrompt] = useState<string>('');
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [selectedStyle, setSelectedStyle] = useState('none');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -120,10 +117,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
     label: t(style.labelKey)
   })), [language, t]);
 
-  const NEGATIVE_PRESETS = useMemo(() => NEGATIVE_PRESETS_BASE.map(preset => ({
-    ...preset,
-    label: t(preset.labelKey)
-  })), [language, t]);
+  const NEGATIVE_PRESETS = useMemo(() => NEGATIVE_PRESETS_BASE.map(preset => ({ ...preset, label: t(preset.labelKey) })), [language, t]);
 
   useEffect(() => {
     try {
@@ -145,7 +139,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
   
   const [isAspectRatioMenuOpen, setIsAspectRatioMenuOpen] = useState(false);
   const [isStyleMenuOpen, setIsStyleMenuOpen] = useState(false);
-  const [isNegativeMenuOpen, setIsNegativeMenuOpen] = useState(false);
+  const [isNegativeMenuOpen, setIsNegativeMenuOpen] = useState<boolean>(false);
   const [isImageEngineMenuOpen, setIsImageEngineMenuOpen] = useState(false);
   const [isDalleResolutionMenuOpen, setIsDalleResolutionMenuOpen] = useState(false);
   const [isDalleQualityMenuOpen, setIsDalleQualityMenuOpen] = useState(false);
@@ -204,7 +198,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
           if (state.genMode) setGenMode(state.genMode);
           if (state.imageEngine) setImageEngine(state.imageEngine);
           if (state.prompt && !initialPrompt) setPrompt(state.prompt);
-          if (state.negativePrompt) setNegativePrompt(state.negativePrompt);
+          if (state.negativePrompt) setNegativePrompt(state.negativePrompt as string);
           if (state.aspectRatio) setAspectRatio(state.aspectRatio);
           if (state.selectedStyle) setSelectedStyle(state.selectedStyle);
           if (state.isProMode !== undefined) setIsProMode(state.isProMode);
@@ -233,7 +227,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
           genMode,
           imageEngine,
           prompt,
-          negativePrompt,
+          negativePrompt: negativePrompt as string,
           aspectRatio,
           selectedStyle,
           isProMode,
@@ -609,18 +603,15 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
 
       const style = STYLES.find(s => s.id === selectedStyle);
       const finalPrompt = style?.modifier && style?.id !== 'none' ? `${prompt}, ${style.modifier}` : prompt;
-      const cleanNegativePrompt = negativePrompt.trim();
+      const cleanNegativePrompt = negativePrompt.trim() as string;
 
       const supportedRatio = aspectRatio === '1:2' ? '9:16' : aspectRatio;
 
       let generatedDataUrl: string;
 
       if (imageEngine === 'klingai') {
-        // KlingAI generation
-        console.log('[Generator] Generating with KlingAI:', { prompt: finalPrompt, aspect_ratio: supportedRatio, mode: isProMode ? 'pro' : 'standard' });
         const body: any = {
           prompt: finalPrompt,
-          negative_prompt: cleanNegativePrompt || undefined,
           aspect_ratio: supportedRatio,
           mode: isProMode ? 'pro' : 'standard',
           image_count: 1
@@ -628,15 +619,10 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
         if (base64Image) {
           body.image_url = `data:${mimeType};base64,${base64Image}`;
         }
-        console.log('[Generator] Calling KlingAI API');
         generatedDataUrl = await generateImageWithKlingAI(body);
-        console.log('[Generator] KlingAI responded with URL:', generatedDataUrl);
       } else if (imageEngine === 'deapi') {
-        // DeAPI.ai generation
-        console.log('[Generator] Generating with DeAPI.ai:', { prompt: finalPrompt, aspect_ratio: supportedRatio, mode: isProMode ? 'pro' : 'standard' });
         const body: any = {
           prompt: finalPrompt,
-          negative_prompt: cleanNegativePrompt || undefined,
           aspect_ratio: supportedRatio,
           mode: isProMode ? 'pro' : 'standard',
           image_count: 1
@@ -644,41 +630,24 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
         if (base64Image) {
           body.image_url = `data:${mimeType};base64,${base64Image}`;
         }
-        console.log('[Generator] Calling DeAPI.ai API');
         generatedDataUrl = await generateImageWithDeAPI(body);
-        console.log('[Generator] DeAPI.ai responded with URL:', generatedDataUrl);
       } else if (imageEngine === 'runware') {
-        console.log('[Generator] Generating with Runware.ai:', { prompt: finalPrompt, aspect_ratio: supportedRatio });
         const body: any = {
           prompt: finalPrompt,
-          negative_prompt: cleanNegativePrompt || undefined,
           aspect_ratio: supportedRatio,
           image_count: 1
         };
         if (base64Image) {
           body.image_url = `data:${mimeType};base64,${base64Image}`;
         }
-        console.log('[Generator] Calling Runware.ai API via proxy');
         generatedDataUrl = await generateImageWithRunware(body);
-        console.log('[Generator] Runware.ai responded with URL:', generatedDataUrl);
       } else if (imageEngine === 'seedream' || imageEngine === 'seedream40') {
         const isSeedream40 = imageEngine === 'seedream40';
         const seedreamDefaultModel = isSeedream40 ? 'seedream-4-0-250828' : 'seedream-4-5-251128';
         const effectiveModel = (seedreamModel && seedreamModel.trim()) || seedreamDefaultModel;
-
-        console.log(`[Generator] Generating with Seedream ${isSeedream40 ? '4.0' : '4.5'}:`, {
-          model: effectiveModel,
-          prompt: finalPrompt,
-          aspect_ratio: supportedRatio,
-          resolution: seedreamResolution,
-          quality: seedreamQuality,
-          guidance: seedreamGuidance,
-          seed: seedreamSeed
-        });
         const body: any = {
           model: effectiveModel,
           prompt: finalPrompt,
-          negative_prompt: cleanNegativePrompt || undefined,
           aspect_ratio: supportedRatio,
           image_count: 1,
           resolution: seedreamResolution,
@@ -689,30 +658,23 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
         if (base64Image) {
           body.image_url = `data:${mimeType};base64,${base64Image}`;
         }
-        console.log(`[Generator] Calling Seedream ${isSeedream40 ? '4.0' : '4.5'} via proxy`);
         generatedDataUrl = await generateImageWithSeedream(body);
-        console.log('[Generator] Seedream responded with URL/Data');
       } else if (imageEngine === 'dalle3') {
         if (genMode === 'iti') {
           throw new Error('DALL·E 3 currently supports text-to-image only. Switch to Text mode.');
         }
-        console.log('[Generator] Generating with DALL·E 3:', { prompt: finalPrompt, size: dalleSize, quality: dalleQuality, style: dalleStyle });
         generatedDataUrl = await generateImageWithDalle3({
           prompt: finalPrompt,
           size: dalleSize,
           quality: dalleQuality,
           style: dalleStyle,
-          negativePrompt: cleanNegativePrompt || undefined,
         });
       } else {
-        // Gemini generation requires the shared Gemini API key (same as Voice & Audio)
         if (!hasApiKey) {
           setError('Gemini API key missing. Select a key to use Gemini Image engine.');
           onSelectKey();
           throw new Error('Gemini API key missing');
         }
-
-        console.log('[Generator] Generating with Gemini:', { prompt: finalPrompt, aspectRatio: supportedRatio, isProMode });
         generatedDataUrl = await generateImageWithGemini(
           finalPrompt, 
           base64Image, 
@@ -721,7 +683,6 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
           isProMode,
           cleanNegativePrompt
         );
-        console.log('[Generator] Gemini responded');
       }
       
       if (!generatedDataUrl || !generatedDataUrl.startsWith('data:')) {

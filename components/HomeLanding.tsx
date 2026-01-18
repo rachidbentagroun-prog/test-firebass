@@ -466,12 +466,12 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
 
             {/* Quick Ideas Section */}
             <div className="mt-12 text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-4">Quick Inspiration ✨ Auto-routes to the right tool</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-4">{t('homeLanding.quickInspiration')}</p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {[
-                  { text: "Futuristic city skyline illustration", type: "🖼️" },
-                  { text: "Cinematic drone shot of mountains", type: "🎥" },
-                  { text: "Professional podcast intro voiceover", type: "🔊" }
+                  { text: t('homeLanding.idea1'), type: "🖼️" },
+                  { text: t('homeLanding.idea2'), type: "🎥" },
+                  { text: t('homeLanding.idea3'), type: "🔊" }
                 ].map((idea) => (
                   <button 
                     key={idea.text} 
@@ -494,7 +494,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
             {/* AI Video Examples Slideshow */}
             <div className="mt-16">
               <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">UGC Style Product Videos from Sora</h3>
+                <h3 className="text-2xl font-bold text-slate-900 mb-2">{t('homeLanding.ugcTitle')}</h3>
                 <p className="text-slate-600">{t('homeLanding.watchExamples')}</p>
               </div>
               

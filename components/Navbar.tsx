@@ -188,6 +188,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           <NavLink label={t('nav.aiVideo')} page="video-generator" icon={<Video size={16} strokeWidth={2} />} />
           <NavLink label={t('nav.aiVoice')} page="tts-generator" icon={<Mic2 size={16} strokeWidth={2} />} />
 
+          {/* Join Community link */}
+          <NavLink label={t('nav.joinCommunity') || 'Join Community'} page="https://www.facebook.com/share/g/1GCDRidxur/" icon={<Globe size={16} strokeWidth={2} />} />
+
           {user?.isRegistered && (
             <>
               <NavLink label={t('nav.gallery')} page="gallery" icon={<ImageIcon size={16} strokeWidth={2} />} />
@@ -724,6 +727,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* === MOBILE MENU === */}
       {isMobileMenuOpen && (
+
         <div className="mobile-menu open">
           <button onClick={() => handleNavClick('home')} className="mobile-link">{t('nav.home')}</button>
           <button onClick={() => handleNavClick('explore')} className="mobile-link">{t('nav.explore')}</button>
@@ -731,6 +735,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button onClick={() => handleNavClick('dashboard')} className="mobile-link">{t('nav.aiImage')}</button>
           <button onClick={() => handleNavClick('video-generator')} className="mobile-link">{t('nav.aiVideo')}</button>
           <button onClick={() => handleNavClick('tts-generator')} className="mobile-link">{t('nav.aiVoice')}</button>
+
+          {/* Join Community link for mobile */}
+          <button onClick={() => handleNavClick('https://www.facebook.com/share/g/1GCDRidxur/')} className="mobile-link">{t('nav.joinCommunity') || 'Join Community'}</button>
 
           {user?.isRegistered && (
             <>

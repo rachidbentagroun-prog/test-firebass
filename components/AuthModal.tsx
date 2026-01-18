@@ -67,7 +67,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
       
       // Track Google login/signup in PostHog
       if (res?.user) {
-        if (res.isNew) {
+        if (res.isNew && res.user) {
           trackSignup(res.user.uid, {
             email: res.user.email || 'unknown',
             name: res.user.displayName || 'unknown',
@@ -75,7 +75,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             signup_method: 'google',
             is_new_user: true,
           });
-        } else {
+        } else if (res.user) {
           trackLogin(res.user.uid, {
             email: res.user.email || 'unknown',
             name: res.user.displayName || 'unknown',
@@ -94,6 +94,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
       
       console.log('✅ Calling onLoginSuccess callback - auth listener should have fired by now');
       // Successful sign-in
+      // Redirect to signup success page after successful signup
+      window.location.href = '/signup-success';
       onLoginSuccess();
       onClose();
     } catch (err: any) {
@@ -139,6 +141,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           login_method: 'email',
         });
 
+        // Redirect to signup success page after successful signup
+        window.location.href = '/signup-success';
         onLoginSuccess();
         onClose();
       } else {
@@ -213,6 +217,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
       }
 
       // Verified: proceed to login success
+      // Redirect to signup success page after successful verification
+      window.location.href = '/signup-success';
       onLoginSuccess();
       onClose();
     } catch (err: any) {

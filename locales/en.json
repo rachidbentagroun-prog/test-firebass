@@ -21,7 +21,8 @@
     "upgrade": "Upgrade to Premium",
     "features": "Features",
     "login": "Login",
-    "signup": "Sign Up"
+    "signup": "Sign Up",
+    "joinCommunity": "Join Community"
   },
   "hero": {
     "title": "Create your UGC Ads with Ai in 5 Seconds",
@@ -33,6 +34,11 @@
     "synthesize": "Synthesize",
     "tryFree": "Try Free",
     "quickIdeas": "Quick Ideas:",
+    "quickInspiration": "Quick Inspiration ✨ Auto-routes to the right tool",
+    "idea1": "Futuristic city skyline illustration",
+    "idea2": "Cinematic drone shot of mountains",
+    "idea3": "Professional podcast intro voiceover",
+    "ugcTitle": "UGC Style Product Videos from Sora",
     "uploadRef": "Ref",
     "neonSamurai": "Neon Samurai",
     "cosmicWhale": "Cosmic Whale",
@@ -58,6 +64,18 @@
     "unlimited": "Unlimited",
     "availableCredits": "Available credits",
     "premiumPlan": "Premium Plan"
+  },
+  "facebookGroup": {
+    "title": "Join Our Community! 🎉",
+    "description": "Join our <span class=\"font-semibold text-blue-600 dark:text-blue-400\">FREE Facebook Group</span> to learn, connect with creators, and get exclusive tips!",
+    "benefits": [
+      "Learn AI creation techniques",
+      "Connect with other creators",
+      "Get help and support",
+      "Early access to new features"
+    ],
+    "cta": "Join Free Community Now",
+    "skip": "Maybe later"
   },
   "tabs": {
     "profile": "Creator Profile",

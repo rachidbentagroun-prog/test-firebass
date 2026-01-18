@@ -32,13 +32,7 @@ import { useLanguage } from '../utils/i18n';
 import { saveWorkState, getWorkState } from '../services/dbService';
 import { saveAudioToFirebase, getAudioFromFirebase, deleteAudioFromFirebase } from '../services/firebase';
 
-const NEGATIVE_PRESETS = [
-  'background noise, distortion, static',
-  'robotic tone, monotone delivery',
-  'mouth clicks, sibilance, pops',
-  'echo, reverb, room tone',
-  'breaths, filler words, stutters'
-];
+
 
 interface TTSGeneratorProps {
   user: User | null;
@@ -171,8 +165,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
   const [loadingVoiceId, setLoadingVoiceId] = useState<string | null>(null);
   const [audioProgress, setAudioProgress] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
-  const [negativePrompt, setNegativePrompt] = useState('');
-  const [isNegativeMenuOpen, setIsNegativeMenuOpen] = useState(false);
+  // Removed negative prompt state
   
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [isVoiceMenuOpen, setIsVoiceMenuOpen] = useState(false);
@@ -190,7 +183,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
   const langMenuRef = useRef<HTMLDivElement>(null);
   const voiceMenuRef = useRef<HTMLDivElement>(null);
   const engineMenuRef = useRef<HTMLDivElement>(null);
-  const negativeMenuRef = useRef<HTMLDivElement>(null);
+  // Removed negative prompt ref
   const engineButtonRef = useRef<HTMLButtonElement>(null);
   const langButtonRef = useRef<HTMLButtonElement>(null);
   const voiceButtonRef = useRef<HTMLButtonElement>(null);
@@ -211,7 +204,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
         if (state) {
           if (state.mode) setMode(state.mode);
           if (state.text) setText(state.text);
-          if (state.negativePrompt) setNegativePrompt(state.negativePrompt);
+          // Removed negative prompt restore
           if (state.engine) setEngine(state.engine);
           if (state.selectedVoice) setSelectedVoice(state.selectedVoice);
           if (state.selectedLanguage) setSelectedLanguage(state.selectedLanguage);
@@ -238,7 +231,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
         saveWorkState(user.id, 'tts-generator', {
           mode,
           text,
-          negativePrompt,
+          // Removed negative prompt from saveWorkState
           engine,
           selectedVoice,
           selectedLanguage,
@@ -257,7 +250,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
       }, 1000);
       return () => clearTimeout(timeoutId);
     }
-  }, [user, mode, text, negativePrompt, engine, selectedVoice, selectedLanguage, selectedElevenlabsVoice, selectedElevenlabsLanguage, songGenre, songBpm, songMood, songKey, songStyle, songStability, songSimilarityBoost, songUseSpeakerBoost, songModel]);
+  }, [user, mode, text, engine, selectedVoice, selectedLanguage, selectedElevenlabsVoice, selectedElevenlabsLanguage, songGenre, songBpm, songMood, songKey, songStyle, songStability, songSimilarityBoost, songUseSpeakerBoost, songModel]);
 
   // Auto-play handled by Plyr component, cleanup old Object URLs
   useEffect(() => {
@@ -355,7 +348,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
       if (langMenuRef.current && !langMenuRef.current.contains(target) && (!langPortalRef.current || !langPortalRef.current.contains(target))) setIsLangMenuOpen(false);
       if (voiceMenuRef.current && !voiceMenuRef.current.contains(target) && (!voicePortalRef.current || !voicePortalRef.current.contains(target))) setIsVoiceMenuOpen(false);
       if (engineMenuRef.current && !engineMenuRef.current.contains(target) && (!enginePortalRef.current || !enginePortalRef.current.contains(target))) setIsEngineMenuOpen(false);
-      if (negativeMenuRef.current && !negativeMenuRef.current.contains(target)) setIsNegativeMenuOpen(false);
+      // Removed negative prompt menu close logic
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -382,10 +375,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
     finally { setIsEnhancing(false); }
   };
 
-  const handleNegativePromptSelect = (prompt: string) => {
-    setNegativePrompt(prompt);
-    setIsNegativeMenuOpen(false);
-  };
+  // Removed handleNegativePromptSelect
 
   const playFromList = async (item: GeneratedAudio) => {
     try {
@@ -503,23 +493,21 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
     setError(null);
     try {
       const baseScript = text.trim();
-      const cleanNegative = negativePrompt.trim();
-      const requestScript = cleanNegative ? `${baseScript}\nAvoid: ${cleanNegative}` : baseScript;
       let displayScript = baseScript;
       let lyrics = '';
       let blob: Blob;
       if (mode === 'clone' && clonedVoiceData) {
         if (engine === 'elevenlabs') {
-          blob = await generateClonedSpeechWithElevenLabs(requestScript, clonedVoiceData.base64, clonedVoiceData.type);
+          blob = await generateClonedSpeechWithElevenLabs(baseScript, clonedVoiceData.base64, clonedVoiceData.type);
         } else {
-          blob = await generateClonedSpeechWithGemini(requestScript, clonedVoiceData.base64, clonedVoiceData.type);
+          blob = await generateClonedSpeechWithGemini(baseScript, clonedVoiceData.base64, clonedVoiceData.type);
         }
       } else if (mode === 'song') {
         const voice = selectedElevenlabsVoice;
         // Convert the user's prompt into structured song lyrics (verses + chorus)
         const baseLyrics = text.trim();
         lyrics = await enhancePrompt(baseLyrics || 'Write emotive, concise song lyrics with verse and chorus about hope.', 'songwriting - produce structured verses and chorus as PURE LYRICS (no instructions)');
-        const singingPrompt = `Sing in ${songGenre} style, ${songMood} mood, key ${songKey}, tempo ${songBpm} BPM. Lyrics: "${lyrics}"${cleanNegative ? `. Avoid: ${cleanNegative}` : ''}`;
+        const singingPrompt = `Sing in ${songGenre} style, ${songMood} mood, key ${songKey}, tempo ${songBpm} BPM. Lyrics: "${lyrics}"`;
         blob = await generateSpeechWithElevenLabs(singingPrompt, voice, {
           model_id: songModel,
           voice_settings: {
@@ -533,10 +521,10 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
       } else {
         if (engine === 'elevenlabs') {
           const voice = selectedElevenlabsVoice;
-          blob = await generateSpeechWithElevenLabs(requestScript, voice);
+          blob = await generateSpeechWithElevenLabs(baseScript, voice);
         } else {
           const lang = LANGUAGES.find(l => l.id === selectedLanguage);
-          const prompt = `Directorial Note: Speak in ${lang?.label}. Content: "${requestScript}"`;
+          const prompt = `Directorial Note: Speak in ${lang?.label}. Content: "${baseScript}"`;
           blob = await generateSpeechWithGemini(prompt, selectedVoice);
         }
       }
@@ -931,58 +919,7 @@ export const TTSGenerator: React.FC<TTSGeneratorProps> = ({
                   placeholder={mode === 'stt' ? "Awaiting media input for neural extraction..." : "Initialize synthesis script..."}
                   className="w-full h-44 bg-black/40 border border-white/10 rounded-2xl p-6 text-white text-sm focus:ring-2 focus:ring-indigo-500/50 outline-none resize-none disabled:opacity-50 transition-all custom-scrollbar"
                 />
-                {mode !== 'stt' && (
-                  <div className="animate-fade-in bg-black/30 border border-white/10 rounded-2xl p-4 space-y-2" ref={negativeMenuRef}>
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                          <ThumbsDown className="w-3.5 h-3.5 text-pink-400" /> {t('aiVoice.negativePrompt')}
-                        </p>
-                        <p className="text-[9px] text-gray-600 uppercase tracking-widest">{t('aiVoice.guideVoiceEngines')}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {negativePrompt && (
-                          <button
-                            type="button"
-                            onClick={() => setNegativePrompt('')}
-                            className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:border-white/30"
-                          >
-                            {t('aiVoice.clear')}
-                          </button>
-                        )}
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={() => setIsNegativeMenuOpen(!isNegativeMenuOpen)}
-                            className="px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-[10px] font-bold text-white flex items-center gap-2 hover:border-white/20"
-                          >
-                            {t('aiVoice.presets')}
-                            <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform ${isNegativeMenuOpen ? 'rotate-180' : ''}`} />
-                          </button>
-                          {isNegativeMenuOpen && (
-                            <div className="absolute right-0 mt-2 w-64 bg-dark-900 border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-scale-in">
-                              {NEGATIVE_PRESETS.map(p => (
-                                <button
-                                  key={p}
-                                  onClick={() => handleNegativePromptSelect(p)}
-                                  className="w-full text-left px-4 py-3 text-[10px] font-bold text-gray-300 hover:bg-white/5 border-b border-white/5 last:border-none"
-                                >
-                                  {p}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <textarea
-                      value={negativePrompt}
-                      onChange={(e) => setNegativePrompt(e.target.value)}
-                      placeholder="background noise, distortion, static"
-                      className="w-full h-16 bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:ring-2 focus:ring-pink-500/30 outline-none resize-none custom-scrollbar"
-                    />
-                  </div>
-                )}
+                {/* Negative prompt UI removed */}
               </div>
 
               {error && (

@@ -177,6 +177,12 @@ const DICTS: Record<Language, Record<string, string>> = {
     'common.delete': 'حذف',
     'common.download': 'تحميل',
     'common.close': 'إغلاق',
+    // HomeLanding Quick Inspiration
+    'homeLanding.quickInspiration': 'إلهام سريع ✨ يوجهك تلقائيًا للأداة المناسبة',
+    'homeLanding.idea1': 'رسم توضيحي لأفق مدينة مستقبلية',
+    'homeLanding.idea2': 'لقطة درون سينمائية للجبال',
+    'homeLanding.idea3': 'مقدمة بودكاست احترافية بالصوت',
+    'homeLanding.ugcTitle': 'فيديوهات منتجات بأسلوب UGC من Sora',
   },
   fr: {
     // Navigation

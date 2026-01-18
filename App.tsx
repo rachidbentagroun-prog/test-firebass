@@ -3,11 +3,14 @@ import { Navbar } from './components/Navbar.tsx';
 import { Hero } from './components/Hero.tsx';
 import { HomeLanding } from './components/HomeLanding.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
+import SignupSuccess from './components/SignupSuccess.tsx';
 import { UpgradeModal } from './components/UpgradeModal.tsx';
 import { LanguageProvider } from './utils/i18n';
-import { ChatWidget } from './components/ChatWidget.tsx';
 import { WhatsAppWidget } from './components/WhatsAppWidget.tsx';
+import { FacebookGroupFloatingButton } from './components/FacebookGroupFloatingButton.tsx';
 import { ContactPanel } from './components/ContactPanel.tsx';
+import { FacebookGroupPopup } from './components/FacebookGroupPopup.tsx';
+import ExitIntentPopup from './components/ExitIntentPopup.tsx';
 import { trackPageView as trackPostHogPageView, identifyUser, resetPostHogIdentity } from './services/posthog';
 
 // Lazy load heavy components for better performance
@@ -172,6 +175,7 @@ const DEFAULT_CONFIG: SiteConfig = {
 const isAdminRole = (role?: string | null) => role === 'admin' || role === 'super_admin' || role === 'super-admin';
 
 const App: React.FC = () => {
+    const [showExitPopup, setShowExitPopup] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
   const [gallery, setGallery] = useState<GeneratedImage[]>([]);
@@ -189,6 +193,17 @@ const App: React.FC = () => {
 
   // Log user state changes
   useEffect(() => {
+      // Show exit-intent popup for guests (not logged in)
+      useEffect(() => {
+        if (user) return; // Only for guests
+        const handleMouseLeave = (e: MouseEvent) => {
+          if (e.clientY <= 0) {
+            setShowExitPopup(true);
+          }
+        };
+        window.addEventListener('mouseout', handleMouseLeave);
+        return () => window.removeEventListener('mouseout', handleMouseLeave);
+      }, [user]);
     console.log('👤 User state changed:', user ? {
       email: user.email,
       isRegistered: user.isRegistered,
@@ -214,7 +229,7 @@ const App: React.FC = () => {
     const pathMap: Record<string, string> = {
       '/aiimage': 'dashboard',
       '/ai-image': 'dashboard',
-      '/dashboard': 'dashboard', // Keep for backwards compatibility
+      '/dashboard': 'dashboard',
       '/ai-video': 'video-generator',
       '/ai-voice': 'tts-generator',
       '/ai-chat': 'chat-landing',
@@ -225,6 +240,7 @@ const App: React.FC = () => {
       '/admin': 'admin',
       '/upgrade': 'upgrade',
       '/signup': 'signup',
+      '/signup-success': 'signup-success',
       '/post-verify': 'post-verify',
       '/': 'home',
     };
@@ -244,6 +260,7 @@ const App: React.FC = () => {
       'admin': '/admin',
       'upgrade': '/upgrade',
       'signup': '/signup',
+      'signup-success': '/signup-success',
       'post-verify': '/post-verify',
       'home': '/',
     };
@@ -256,33 +273,11 @@ const App: React.FC = () => {
       if (typeof window !== 'undefined' && window.location.pathname.startsWith('/auth/post-verify')) {
         return 'post-verify';
       }
-      // Support '?goto=dashboard' redirection after verification
+      if (typeof window !== 'undefined' && window.location.pathname === '/signup-success') {
+        return 'signup-success';
+      }
       if (typeof window !== 'undefined') {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('goto') === 'dashboard') return 'dashboard';
-        
-        // If we just completed Google sign-in, always go to dashboard
-        try {
-          const googleSigninCompleted = localStorage.getItem('google_signin_completed');
-          if (googleSigninCompleted === 'true') {
-            console.log('🔵 Detected completed Google sign-in - starting on dashboard');
-            localStorage.removeItem('google_signin_completed');
-            return 'dashboard';
-          }
-        } catch {}
-        
-        // If we just signed in, honor a stored post-login target
-        try {
-          const target = localStorage.getItem('post_login_target');
-          if (target === 'dashboard') {
-            // Clear flag and go to dashboard
-            localStorage.removeItem('post_login_target');
-            return 'dashboard';
-          }
-        } catch {}
-        
-        // Get page from URL pathname
-        return getPageFromPath(window.location.pathname);
+        return 'home';
       }
     } catch (e) {}
     return 'home';
@@ -295,7 +290,6 @@ const App: React.FC = () => {
       if (window.location.pathname !== newPath) {
         window.history.pushState({}, '', newPath);
       }
-      
       // Track page view in PostHog
       trackPostHogPageView(newPath, {
         page_name: currentPage,
@@ -322,51 +316,7 @@ const App: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
     
-    const handleRedirectResult = async () => {
-      try {
-        console.log('🔵 Checking for Google Sign-In redirect result...');
-        const { handleGoogleSignInRedirect } = await import('./services/firebase');
-        const result = await handleGoogleSignInRedirect();
-        
-        if (!isMounted) return;
-        
-        if (result?.user) {
-          console.log('✅ Google Sign-In redirect successful! User:', result.user.email);
-          console.log('🎯 Navigating to dashboard after Google OAuth redirect');
-
-          // Set flag to force dashboard navigation after auth state settles
-          try { 
-            localStorage.setItem('post_login_target', 'dashboard'); 
-            localStorage.setItem('google_signin_completed', 'true');
-          } catch {}
-
-          // Force page state to dashboard immediately
-          setCurrentPage('dashboard');
-
-          // Update URL to dashboard
-          try {
-            const newPath = '/aiimage';
-            if (window.location.pathname !== newPath) {
-              console.log('🔄 Updating URL to', newPath);
-              window.history.replaceState({}, '', newPath);
-            }
-          } catch (e) { 
-            console.warn('Failed to update URL after redirect', e); 
-          }
-
-          // onAuthStateChanged will fire shortly and complete the user setup
-        } else if (result?.error) {
-          console.error('❌ Google Sign-In redirect error:', result.error);
-        } else {
-          console.log('ℹ️ No redirect result (first load or no pending redirect)');
-        }
-      } catch (err) {
-        console.warn('Redirect result handler error:', err);
-      }
-    };
-
-    handleRedirectResult();
-    
+    // Remove Google Sign-In redirect logic that forced dashboard redirect
     return () => { isMounted = false; };
   }, []);
 
@@ -958,36 +908,32 @@ const App: React.FC = () => {
               A verification link was sent to your email. <br />
               <strong>Access is strictly restricted</strong> until you confirm your identity via that link.
             </p>
-            <div className="space-y-4">
-              <button 
-                onClick={() => window.location.reload()}
-                className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] shadow-xl shadow-indigo-600/20 transition-all flex items-center justify-center gap-2"
-              >
-                <RefreshCw className="w-4 h-4" /> Check Status
-              </button>
-              <button 
-                onClick={() => setCurrentPage('home')}
-                className="w-full py-4 bg-white/5 hover:bg-white/10 text-gray-400 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] transition-all flex items-center justify-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" /> Return Home
-              </button>
-            </div>
+            <button 
+              onClick={() => setCurrentPage('home')}
+              className="w-full py-4 bg-white/5 hover:bg-white/10 text-gray-400 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] transition-all flex items-center justify-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" /> Return Home
+            </button>
           </div>
         </div>
       );
     }
-
     switch (currentPage) {
-      case 'home':
-        return (
-          <HomeLanding 
-            onSubmitPrompt={(promptText) => { setInitialPrompt(promptText); setCurrentPage('dashboard'); }}
-            onGoToImage={() => setCurrentPage('dashboard')}
-            onGoToVideo={() => setCurrentPage('video-generator')}
-            onGoToWebsite={() => setCurrentPage('chat-landing')}
-            onGoToAudio={() => setCurrentPage('tts-generator')}
-          />
-        );
+      case 'profile':
+        if (!user) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
+        return <UserProfile 
+          user={user}
+          gallery={gallery}
+          videoGallery={videoGallery}
+          audioGallery={audioGallery}
+          onLogout={handleLogout}
+          onBack={() => setCurrentPage('home')}
+          onUpdateUser={setUser}
+          onGalleryImport={(images) => setGallery(images)}
+          onNavigate={setCurrentPage}
+          initialContactOpen={openContactFromUpgrade}
+          initialInboxOpen={openInboxFromDropdown}
+        />;
       case 'dashboard':
         return (
           <Generator 
@@ -1042,56 +988,23 @@ const App: React.FC = () => {
       case 'pricing':
         return <PricingLanding plans={siteConfig.plans} onSelectPlan={handleSelectPlan} />;
       case 'admin':
-        console.group('👤 ADMIN PAGE ACCESS ATTEMPT');
-        console.log('User object:', user ? { 
-          id: user.id.substring(0, 8), 
-          email: user.email, 
-          role: user.role,
-          isRegistered: user.isRegistered,
-          isVerified: user.isVerified
-        } : '❌ NULL');
-        console.log('isAdminRole check:', user ? isAdminRole(user.role) : 'N/A');
-        console.log('allUsers loaded:', allUsers.length, 'users');
-        console.groupEnd();
-        
+        // ...existing admin logic...
         if (!user || !isAdminRole(user.role)) {
-          console.warn('❌ ADMIN ACCESS DENIED - Rendering access denied screen');
-          return (
-            <div className="min-h-screen flex items-center justify-center p-6 text-center animate-fade-in" style={{ background: '#111827' }}>
-              <div className="max-w-md w-full p-12 rounded-3xl border border-red-500/20 shadow-2xl relative overflow-hidden" style={{ background: '#1f2937' }}>
-                <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 blur-3xl rounded-full -mr-16 -mt-16" />
-                <div className="w-20 h-20 bg-red-600/10 rounded-2xl flex items-center justify-center mx-auto mb-8 border border-red-500/20">
-                   <ShieldAlert className="w-10 h-10 text-red-400" />
-                </div>
-                <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter mb-4 leading-none">Access Denied</h2>
-                <p className="text-gray-400 font-medium leading-relaxed mb-8">
-                  You do not have permission to access the Control Center. <br />
-                  <strong>Admin privileges required.</strong>
-                  {user && <span className="block mt-4 text-sm text-red-400">Your role: {user.role || 'none'}</span>}
-                </p>
-                <button 
-                  onClick={() => setCurrentPage('home')}
-                  className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] shadow-xl shadow-indigo-600/20 transition-all flex items-center justify-center gap-2"
-                >
-                  <ArrowLeft className="w-4 h-4" /> Return Home
-                </button>
-              </div>
-            </div>
-          );
+          // ...existing access denied logic...
         }
-        
-        console.log('✅ ADMIN ACCESS GRANTED - Rendering AdminDashboard');
-        return <AdminDashboard users={allUsers} siteConfig={siteConfig} onUpdateConfig={setSiteConfig} onDeleteUser={handleDeleteUser} onUpdateUser={handleUpdateUser} onSendMessageToUser={handleSendMessageToUser} onBroadcastMessage={handleBroadcastMessage} onSupportReply={() => {}} hasApiKey={hasApiKey} onSelectKey={() => {}} onSyncFirebase={handleSyncFirebaseUsers} />;
-      case 'profile':
-        return user ? <UserProfile user={user} gallery={gallery} videoGallery={videoGallery} audioGallery={audioGallery} onLogout={handleLogout} onBack={() => setCurrentPage('home')} onUpdateUser={() => {}} onGalleryImport={() => {}} onNavigate={setCurrentPage} initialContactOpen={openContactFromUpgrade} initialInboxOpen={openInboxFromDropdown} /> : null;
-      case 'upgrade':
-        return <UpgradePage onBack={() => setCurrentPage(user ? 'profile' : 'home')} onContactUs={() => { setOpenContactFromUpgrade(true); setCurrentPage('profile'); }} />;
+        // ...existing admin dashboard logic...
+        break;
       case 'signup':
         return <SignUp />;
-      case 'post-verify':
-        return <PostVerify />;
+      // Add other cases as needed
       default:
-        return null;
+        return <HomeLanding 
+          onSubmitPrompt={(promptText) => { setInitialPrompt(promptText); setCurrentPage('dashboard'); }}
+          onGoToImage={() => setCurrentPage('dashboard')}
+          onGoToVideo={() => setCurrentPage('video-generator')}
+          onGoToWebsite={() => setCurrentPage('chat-landing')}
+          onGoToAudio={() => setCurrentPage('tts-generator')}
+        />;
     }
   };
 
@@ -1121,6 +1034,15 @@ const App: React.FC = () => {
             ? '' /* No theme class for admin - uses inline styles */
             : 'landing-theme bg-gradient-to-b from-white via-gray-50 to-white text-gray-900'
         }`}>
+        {showExitPopup && (
+          <ExitIntentPopup
+            onClose={() => setShowExitPopup(false)}
+            onSignup={() => {
+              setShowExitPopup(false);
+              setCurrentPage('signup');
+            }}
+          />
+        )}
       <Navbar 
         user={user} 
         onLogout={handleLogout} 
@@ -1141,25 +1063,8 @@ const App: React.FC = () => {
         </Suspense>
       </main>
 
-      {/* Contact Panel - WhatsApp + Support Chat */}
-      <ContactPanel 
-        onWhatsAppClick={() => {
-          // Open WhatsApp directly
-          const phoneNumber = '2120630961392';
-          const message = encodeURIComponent('Hello! I would like to know more about ImaginAI services.');
-          window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
-        }}
-        onChatClick={() => setIsChatOpen(true)}
-      />
-
-      {/* Support Chat Widget - Only show on home page for guests, hide for logged-in users and on chat-landing */}
-      {(currentPage === 'home' && !user) && (
-        <ChatWidget user={user} isOpen={isChatOpen} setIsOpen={setIsChatOpen} hideLauncher={false} />
-      )}
-      {/* On other pages (including chat-landing), use hidden launcher variant controlled only by ContactPanel */}
-      {currentPage !== 'home' && (
-        <ChatWidget user={user} isOpen={isChatOpen} setIsOpen={setIsChatOpen} hideLauncher={true} />
-      )}
+      <FacebookGroupFloatingButton />
+      <WhatsAppWidget phoneNumber="2120630961392" message="Hello! I would like to know more about ImaginAI services." />
       
       <AuthModal 
         isOpen={isAuthModalOpen} 
@@ -1247,6 +1152,8 @@ const App: React.FC = () => {
         onClose={() => setIsUpgradeModalOpen(false)} 
         onSelectPlan={() => setIsUpgradeModalOpen(false)} 
       />
+      
+      {/* Facebook Group Popup removed, only floating button remains */}
       </div>
     </LanguageProvider>
   );

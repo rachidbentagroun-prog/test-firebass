@@ -118,6 +118,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <NavLink label="AI Video" page="video-generator" icon={<Video size={16} />} />
           <NavLink label="AI Voice" page="tts-generator" icon={<Mic2 size={16} />} />
+
+          {/* Join Community link */}
+          <NavLink label="Join Community" page="https://www.facebook.com/share/g/1GCDRidxur/" icon={<Globe size={16} />} />
+
           {user?.isRegistered && <NavLink label="Gallery" page="gallery" icon={<ImageIcon size={16} />} />}
 
           {canAccessAdmin && <NavLink label="Admin" page="admin" icon={<Shield size={16} />} />}
@@ -330,6 +334,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button onClick={() => handleNavClick('video-generator')} className="mobile-link">AI Video</button>
           <button onClick={() => handleNavClick('tts-generator')} className="mobile-link">AI Voice</button>
+
+          {/* Join Community link for mobile */}
+          <button onClick={() => handleNavClick('https://www.facebook.com/share/g/1GCDRidxur/')} className="mobile-link">Join Community</button>
+
           {user?.isRegistered && <button onClick={() => handleNavClick('gallery')} className="mobile-link">Gallery</button>}
 
           {canAccessAdmin && <button onClick={() => handleNavClick('admin')} className="mobile-link">Admin</button>}
