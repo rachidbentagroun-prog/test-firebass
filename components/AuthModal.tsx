@@ -66,22 +66,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         return;
       
       // Track Google login/signup in PostHog
-      if (res?.user) {
-        if (res.isNew && res.user) {
-          trackSignup(res.user.uid, {
-            email: res.user.email || 'unknown',
-            name: res.user.displayName || 'unknown',
-            plan: 'free',
-            signup_method: 'google',
-            is_new_user: true,
-          });
-        } else if (res.user) {
-          trackLogin(res.user.uid, {
-            email: res.user.email || 'unknown',
-            name: res.user.displayName || 'unknown',
-            login_method: 'google',
-          });
-        }
+      if (!res?.user) return;
+      const { uid, email, displayName } = res.user;
+      if (res.isNew) {
+        trackSignup(uid, {
+          email: email || 'unknown',
+          name: displayName || 'unknown',
+          plan: 'free',
+          signup_method: 'google',
+          is_new_user: true,
+        });
+      } else {
+        trackLogin(uid, {
+          email: email || 'unknown',
+          name: displayName || 'unknown',
+          login_method: 'google',
+        });
       }
       
       }

@@ -18,12 +18,14 @@ const ExitIntentPopup: React.FC<ExitIntentPopupProps> = ({ onClose, onSignup }) 
       </button>
       <h2 className="text-2xl font-black text-indigo-700 mb-4">احصل على 3 فيديوهات UGC مجانية الآن!</h2>
       <p className="text-gray-700 mb-6 text-lg font-semibold">جرب الذكاء الاصطناعي لصناعة فيديوهات UGC مجانًا عند التسجيل.</p>
-      <button
-        className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-lg transition-all mb-2"
-        onClick={onSignup}
+      <a
+        className="w-full inline-block py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-lg transition-all mb-2"
+        href="https://wa.me/2120630961392?text=مرحبا! أود التسجيل في ImaginAI."
+        target="_blank"
+        rel="noopener noreferrer"
       >
         سجل الآن مجانًا
-      </button>
+      </a>
     </div>
   </div>
 );

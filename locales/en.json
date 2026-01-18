@@ -1,7 +1,16 @@
 {
   "common": {
     "and": "and",
-    "or": "or"
+    "or": "or",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "delete": "Delete",
+    "download": "Download",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No",
+    "confirm": "Confirm"
   },
   "nav": {
     "home": "Home",
@@ -119,18 +128,7 @@
     "buyCredits": "Buy Credits",
     "viewPlans": "View Plans"
   },
-  "common": {
-    "loading": "Loading...",
-    "error": "Error",
-    "success": "Success",
-    "delete": "Delete",
-    "download": "Download",
-    "close": "Close",
-    "yes": "Yes",
-    "no": "No",
-    "confirm": "Confirm",
-    "or": "or"
-  },
+
   "auth": {
     "signInTitle": "Welcome Back",
     "signUpTitle": "Create Account",
@@ -293,7 +291,7 @@
     "monthly": "Monthly",
     "annually": "Annually",
     "save": "Save",
-    "mostPopular": "Popular",
+    
     "popular": "Popular",
     "perMonth": "/month",
     "month": "month",
@@ -593,7 +591,7 @@
     "directorialScript": "Directorial Script",
     "scriptPlaceholder": "Describe the cinematic motion, lighting, and textures...",
     "temporalAnchor": "Temporal Anchor",
-    "uploadFrame": "Upload Starting Frame",
+    
     "frameSelected": "Frame Selected",
     "motionGuidance": "Motion Guidance Script",
     "motionPlaceholder": "Transform into cyberpunk aesthetic...",
@@ -652,8 +650,7 @@
     "discoverStunning": "Discover stunning AI-generated videos - Temporal Sequences",
     "temporalSequence": "TEMPORAL SEQUENCE",
     "aiEngine": "AI Engine",
-    "startingFrame": "Starting Frame",
-    "uploadFrame": "Upload Frame"
+    "startingFrame": "Starting Frame"
   },
   "ttsLanding": {
     "title": "AI Voice & Audio Workstation",

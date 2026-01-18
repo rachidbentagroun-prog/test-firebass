@@ -56,8 +56,12 @@ const STYLES_BASE = [
   { id: 'fantasy', labelKey: 'generator.styles.fantasy', modifier: 'fantasy art, magical, ethereal, highly detailed, concept art, dungeons and dragons style' },
 ];
 
-const NEGATIVE_PRESETS_BASE = [
-];
+interface NegativePreset {
+  id?: string;
+  labelKey?: string;
+  modifier?: string;
+}
+const NEGATIVE_PRESETS_BASE: NegativePreset[] = [];
 
 const IMAGE_IDEAS = [
   { label: "Neon Samurai", prompt: "A holographic neon samurai in rainy Cyberpunk Tokyo, extreme detail, katana glowing", thumbnail: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&q=80&w=800" },
@@ -117,7 +121,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
     label: t(style.labelKey)
   })), [language, t]);
 
-  const NEGATIVE_PRESETS = useMemo(() => NEGATIVE_PRESETS_BASE.map(preset => ({ ...preset, label: t(preset.labelKey) })), [language, t]);
+  const NEGATIVE_PRESETS = useMemo(() => NEGATIVE_PRESETS_BASE.map(preset => ({ ...preset, label: t(preset.labelKey || '') })), [language, t]);
 
   useEffect(() => {
     try {
@@ -857,7 +861,7 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
       {NEGATIVE_PRESETS.map((opt) => (
         <button
           key={opt.id}
-          onClick={() => { setNegativePrompt(opt.value); setIsNegativeMenuOpen(false); }}
+          onClick={() => { setNegativePrompt(opt.modifier || ''); setIsNegativeMenuOpen(false); }}
           className="w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:bg-white/5 border-b border-white/5 last:border-none"
         >
           {opt.label}

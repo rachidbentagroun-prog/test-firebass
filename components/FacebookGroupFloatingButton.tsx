@@ -15,5 +15,4 @@ export const FacebookGroupFloatingButton: React.FC = () => (
     <FaFacebookF className="text-white text-2xl" />
   </a>
 );
-
 export default FacebookGroupFloatingButton;

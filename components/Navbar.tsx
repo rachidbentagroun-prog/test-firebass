@@ -184,9 +184,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           <NavLink label={t('nav.home')} page="home" icon={<Home size={16} strokeWidth={2} />} />
           <NavLink label={t('nav.explore')} page="explore" icon={<Compass size={16} strokeWidth={2} />} />
           <NavLink label={t('nav.aiChat')} page="chat-landing" icon={<MessageSquare size={16} strokeWidth={2} />} />
-          <NavLink label={t('nav.aiImage')} page="dashboard" icon={<Sparkles size={16} strokeWidth={2} />} />
-          <NavLink label={t('nav.aiVideo')} page="video-generator" icon={<Video size={16} strokeWidth={2} />} />
-          <NavLink label={t('nav.aiVoice')} page="tts-generator" icon={<Mic2 size={16} strokeWidth={2} />} />
+          <NavLink label={t('nav.aiImage')} page="aiimage" icon={<Sparkles size={16} strokeWidth={2} />} />
+          <NavLink label={t('nav.aiVideo')} page="aivideo" icon={<Video size={16} strokeWidth={2} />} />
+          <NavLink label={t('nav.aiVoice')} page="aivoice" icon={<Mic2 size={16} strokeWidth={2} />} />
 
           {/* Join Community link */}
           <NavLink label={t('nav.joinCommunity') || 'Join Community'} page="https://www.facebook.com/share/g/1GCDRidxur/" icon={<Globe size={16} strokeWidth={2} />} />
@@ -371,7 +371,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {t('nav.signIn')}
               </button>
               <button
-                onClick={() => onNavigate('signup')}
+                onClick={() => handleNavClick('signup')}
                 className="btn-primary-cta"
               >
                 {t('nav.getStarted')}
@@ -732,9 +732,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button onClick={() => handleNavClick('home')} className="mobile-link">{t('nav.home')}</button>
           <button onClick={() => handleNavClick('explore')} className="mobile-link">{t('nav.explore')}</button>
           <button onClick={() => handleNavClick('chat-landing')} className="mobile-link">{t('nav.aiChat')}</button>
-          <button onClick={() => handleNavClick('dashboard')} className="mobile-link">{t('nav.aiImage')}</button>
-          <button onClick={() => handleNavClick('video-generator')} className="mobile-link">{t('nav.aiVideo')}</button>
-          <button onClick={() => handleNavClick('tts-generator')} className="mobile-link">{t('nav.aiVoice')}</button>
+          <button onClick={() => handleNavClick('aiimage')} className="mobile-link">{t('nav.aiImage')}</button>
+          <button onClick={() => handleNavClick('aivideo')} className="mobile-link">{t('nav.aiVideo')}</button>
+          <button onClick={() => handleNavClick('aivoice')} className="mobile-link">{t('nav.aiVoice')}</button>
 
           {/* Join Community link for mobile */}
           <button onClick={() => handleNavClick('https://www.facebook.com/share/g/1GCDRidxur/')} className="mobile-link">{t('nav.joinCommunity') || 'Join Community'}</button>

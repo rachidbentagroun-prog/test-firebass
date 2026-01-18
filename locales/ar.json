@@ -1,7 +1,16 @@
 {
   "common": {
     "and": "و",
-    "or": "أو"
+    "or": "أو",
+    "loading": "جارٍ التحميل...",
+    "error": "خطأ",
+    "success": "نجاح",
+    "delete": "حذف",
+    "download": "تحميل",
+    
+    "yes": "نعم",
+    "no": "لا",
+    "confirm": "تأكيد"
   },
   "nav": {
     "home": "الرئيسية",
@@ -113,18 +122,7 @@
     "buyCredits": "شراء أرصدة",
     "viewPlans": "عرض الخطط"
   },
-  "common": {
-    "loading": "جارٍ التحميل...",
-    "error": "خطأ",
-    "success": "نجاح",
-    "delete": "حذف",
-    "download": "تحميل",
-    "close": "إغلاق",
-    "yes": "نعم",
-    "no": "لا",
-    "confirm": "تأكيد",
-    "or": "أو"
-  },
+
   "auth": {
     "signInTitle": "مرحبًا بعودتك",
     "signUpTitle": "إنشاء حساب",
@@ -287,7 +285,7 @@
     "monthly": "شهري",
     "annually": "سنوي",
     "save": "وفر",
-    "mostPopular": "الأكثر شعبية",
+
     "popular": "شائع",
     "perMonth": "في الشهر",
     "month": "الشهر",
@@ -548,7 +546,7 @@
     "directorialScript": "النص الإخراجي",
     "scriptPlaceholder": "صف الحركة السينمائية والإضاءة والأنسجة...",
     "temporalAnchor": "المرساة الزمنية",
-    "uploadFrame": "تحميل الإطار الأولي",
+
     "frameSelected": "تم اختيار الإطار",
     "motionGuidance": "نص توجيه الحركة",
     "motionPlaceholder": "التحويل إلى مظهر سايبربانك...",
@@ -607,8 +605,8 @@
     "discoverStunning": "اكتشف مقاطع فيديو مذهلة مُنشأة بالذكاء الاصطناعي - تسلسلات زمنية",
     "temporalSequence": "تسلسل زمني",
     "aiEngine": "محرك الذكاء الاصطناعي",
-    "startingFrame": "الإطار الابتدائي",
-    "uploadFrame": "تحميل إطار"
+    "startingFrame": "الإطار الابتدائي"
+
   },
   "ttsLanding": {
     "title": "محطة عمل الصوت والذكاء الاصطناعي",

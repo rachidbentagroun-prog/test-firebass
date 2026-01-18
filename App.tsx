@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar.tsx';
 import { Hero } from './components/Hero.tsx';
 import { HomeLanding } from './components/HomeLanding.tsx';
@@ -13,24 +13,6 @@ import { FacebookGroupPopup } from './components/FacebookGroupPopup.tsx';
 import ExitIntentPopup from './components/ExitIntentPopup.tsx';
 import { trackPageView as trackPostHogPageView, identifyUser, resetPostHogIdentity } from './services/posthog';
 
-// Lazy load heavy components for better performance
-const Pricing = lazy(() => import('./components/Pricing.tsx').then(m => ({ default: m.Pricing })));
-const PricingLanding = lazy(() => import('./components/PricingLanding.tsx').then(m => ({ default: m.PricingLanding })));
-const Generator = lazy(() => import('./components/Generator.tsx').then(m => ({ default: m.Generator })));
-const VideoLabLanding = lazy(() => import('./components/VideoLabLanding.tsx').then(m => ({ default: m.VideoLabLanding })));
-const VideoGenerator = lazy(() => import('./components/VideoGenerator.tsx').then(m => ({ default: m.VideoGenerator })));
-const TTSGenerator = lazy(() => import('./components/TTSGenerator.tsx').then(m => ({ default: m.TTSGenerator })));
-const TTSLanding = lazy(() => import('./components/TTSLanding.tsx').then(m => ({ default: m.TTSLanding })));
-const ChatLanding = lazy(() => import('./components/ChatLanding.tsx').then(m => ({ default: m.ChatLanding })));
-const Gallery = lazy(() => import('./components/Gallery.tsx').then(m => ({ default: m.Gallery })));
-const AdminDashboard = lazy(() => import('./components/AdminDashboard.tsx').then(m => ({ default: m.AdminDashboard })));
-const UserProfile = lazy(() => import('./components/UserProfile.tsx').then(m => ({ default: m.UserProfile })));
-const UpgradePage = lazy(() => import('./components/UpgradePage.tsx').then(m => ({ default: m.UpgradePage })));
-const Showcase = lazy(() => import('./components/Showcase.tsx').then(m => ({ default: m.Showcase })));
-const ExplorePage = lazy(() => import('./components/ExplorePage.tsx').then(m => ({ default: m.ExplorePage })));
-const MultimodalSection = lazy(() => import('./components/MultimodalSection.tsx').then(m => ({ default: m.MultimodalSection })));
-const SignUp = lazy(() => import('./components/SignUp.tsx'));
-const PostVerify = lazy(() => import('./components/PostVerify'));
 import { User, GeneratedImage, GeneratedVideo, GeneratedAudio, SiteConfig, Plan } from './types.ts';
 import { supabase } from './services/supabase.ts';
 import { 
@@ -59,8 +41,6 @@ const DEFAULT_CONFIG: SiteConfig = {
     description: "Create stunning AI art and videos with ImaginAI. Powered by advanced Gemini Veo & Flash models.",
     keywords: "ai art, video generator, gemini veo, ai tools, art creator"
   },
-  testimonials: [],
-  articles: [],
   plans: [
     { 
       id: 'free', 
@@ -191,19 +171,21 @@ const App: React.FC = () => {
     } catch (e) { return DEFAULT_CONFIG; }
   });
 
+
+  // Show exit-intent popup for guests (not logged in)
+  useEffect(() => {
+    if (user) return; // Only for guests
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (e.clientY <= 0) {
+        setShowExitPopup(true);
+      }
+    };
+    window.addEventListener('mouseout', handleMouseLeave);
+    return () => window.removeEventListener('mouseout', handleMouseLeave);
+  }, [user]);
+
   // Log user state changes
   useEffect(() => {
-      // Show exit-intent popup for guests (not logged in)
-      useEffect(() => {
-        if (user) return; // Only for guests
-        const handleMouseLeave = (e: MouseEvent) => {
-          if (e.clientY <= 0) {
-            setShowExitPopup(true);
-          }
-        };
-        window.addEventListener('mouseout', handleMouseLeave);
-        return () => window.removeEventListener('mouseout', handleMouseLeave);
-      }, [user]);
     console.log('👤 User state changed:', user ? {
       email: user.email,
       isRegistered: user.isRegistered,
@@ -227,11 +209,10 @@ const App: React.FC = () => {
   const getPageFromPath = (pathname: string): string => {
     const p = pathname.toLowerCase();
     const pathMap: Record<string, string> = {
-      '/aiimage': 'dashboard',
-      '/ai-image': 'dashboard',
-      '/dashboard': 'dashboard',
-      '/ai-video': 'video-generator',
-      '/ai-voice': 'tts-generator',
+      '/aiimage': 'aiimage',
+      '/aivideo': 'aivideo',
+      '/aivoice': 'aivoice',
+      '/signup': 'signup',
       '/ai-chat': 'chat-landing',
       '/explore': 'explore',
       '/pricing': 'pricing',
@@ -239,7 +220,6 @@ const App: React.FC = () => {
       '/profile': 'profile',
       '/admin': 'admin',
       '/upgrade': 'upgrade',
-      '/signup': 'signup',
       '/signup-success': 'signup-success',
       '/post-verify': 'post-verify',
       '/': 'home',
@@ -249,9 +229,10 @@ const App: React.FC = () => {
 
   const getPathFromPage = (page: string): string => {
     const pageMap: Record<string, string> = {
-      'dashboard': '/aiimage',
-      'video-generator': '/AI-Video',
-      'tts-generator': '/AI-Voice',
+      'aiimage': '/aiimage',
+      'aivideo': '/aivideo',
+      'aivoice': '/aivoice',
+      'signup': '/signup',
       'chat-landing': '/AI-Chat',
       'explore': '/Explore',
       'pricing': '/Pricing',
@@ -259,7 +240,6 @@ const App: React.FC = () => {
       'profile': '/profile',
       'admin': '/admin',
       'upgrade': '/upgrade',
-      'signup': '/signup',
       'signup-success': '/signup-success',
       'post-verify': '/post-verify',
       'home': '/',
@@ -918,6 +898,9 @@ const App: React.FC = () => {
         </div>
       );
     }
+    if (currentPage === 'signup-success') {
+      return <SignupSuccess />;
+    }
     switch (currentPage) {
       case 'profile':
         if (!user) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
@@ -934,37 +917,12 @@ const App: React.FC = () => {
           initialContactOpen={openContactFromUpgrade}
           initialInboxOpen={openInboxFromDropdown}
         />;
-      case 'dashboard':
-        return (
-          <Generator 
-            user={user} 
-            gallery={gallery} 
-            onCreditUsed={handleCreditUsed} 
-            onUpgradeRequired={() => setCurrentPage('upgrade')} 
-            onImageGenerated={(img) => { 
-              setGallery(p => [img, ...p]); 
-              if (user?.id) {
-                saveImageToDB(img, user.id).catch(err => console.error('Failed to save to Supabase:', err));
-              }
-            }} 
-            initialPrompt={initialPrompt} 
-            hasApiKey={hasApiKey} 
-            onSelectKey={() => {}} 
-            onLoginClick={() => setIsAuthModalOpen(true)}
-          />
-        );
-      case 'video-lab-landing':
+      case 'aiimage':
+        return <AIImageLanding user={user} onStartCreating={() => setCurrentPage('dashboard')} onLoginClick={() => setIsAuthModalOpen(true)} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
+      case 'aivideo':
         return <VideoLabLanding user={user} config={siteConfig.videoLab} onStartCreating={() => setCurrentPage('video-generator')} onLoginClick={() => setIsAuthModalOpen(true)} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
-      case 'video-generator':
-        return <VideoGenerator 
-          user={user} 
-          onCreditUsed={() => { if (!user) { setIsAuthModalOpen(true); return; } handleCreditUsed(); }} 
-          onUpgradeRequired={() => { if (!user) { setIsAuthModalOpen(true); return; } setIsUpgradeModalOpen(true); }} 
-          onVideoGenerated={(video) => { setVideoGallery(p => [video, ...p]); if (user?.id) saveVideoToDB(video, user.id); }} 
-          hasApiKey={hasApiKey} 
-          onSelectKey={() => {}} 
-          onResetKey={() => {}} 
-        />;
+      case 'aivoice':
+        return <TTSLanding user={user} config={siteConfig.ttsLab} onStartCreating={() => setCurrentPage('tts-generator')} onCreditUsed={handleCreditUsed} onUpgradeRequired={() => setIsUpgradeModalOpen(true)} onLoginClick={() => setIsAuthModalOpen(true)} onAudioGenerated={(aud) => { setAudioGallery(p => [aud, ...p]); if (user?.id) saveAudioToDB(aud, user.id); }} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
       case 'chat-landing':
         return <ChatLanding user={user} onStartChat={() => { if (!user) { setIsAuthModalOpen(true); return; } setIsChatOpen(true); }} onLoginClick={() => setIsAuthModalOpen(true)} />;
       case 'tts-lab-landing':
@@ -998,6 +956,7 @@ const App: React.FC = () => {
         return <SignUp />;
       // Add other cases as needed
       default:
+        // Always show HomeLanding for home page and fallback
         return <HomeLanding 
           onSubmitPrompt={(promptText) => { setInitialPrompt(promptText); setCurrentPage('dashboard'); }}
           onGoToImage={() => setCurrentPage('dashboard')}
@@ -1054,13 +1013,7 @@ const App: React.FC = () => {
         onOpenInbox={() => setOpenInboxFromDropdown(true)}
       />
       <main className={`pt-16 ${currentPage === 'admin' ? 'bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 min-h-screen' : ''}`}>
-        <Suspense fallback={
-          <div className="min-h-screen flex items-center justify-center">
-            <Sparkles className="w-12 h-12 text-indigo-500 animate-spin" />
-          </div>
-        }>
-          {renderPage()}
-        </Suspense>
+        {renderPage()}
       </main>
 
       <FacebookGroupFloatingButton />
