@@ -288,7 +288,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch {
       // Ignore errors
     }
-    return 'en'; // Default language
+    return 'ar'; // Default language is now Arabic
   });
 
   const setLanguage = (lang: Language) => {

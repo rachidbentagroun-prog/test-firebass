@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar.tsx';
+import { PricingLanding } from './components/PricingLanding.tsx';
+import { TTSLanding } from './components/TTSLanding.tsx';
 import { Hero } from './components/Hero.tsx';
 import { HomeLanding } from './components/HomeLanding.tsx';
 import { VideoLabLanding } from './components/VideoLabLanding.tsx';
+import { AIImageLanding } from './components/AIImageLanding.tsx';
+import { ExplorePage } from './components/ExplorePage.tsx';
+import { ChatLanding } from './components/ChatLanding.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
 import SignupSuccess from './components/SignupSuccess.tsx';
+import SignUp from './components/SignUp.tsx';
 import { UpgradeModal } from './components/UpgradeModal.tsx';
 import { LanguageProvider } from './utils/i18n';
 import { WhatsAppWidget } from './components/WhatsAppWidget.tsx';
@@ -861,7 +867,13 @@ const App: React.FC = () => {
       return;
     }
 
-    // For free plan or plans without buttonUrl, require authentication
+    // If guest selects free plan, send to signup page
+    if (!user && plan.id === 'free') {
+      setCurrentPage('signup');
+      return;
+    }
+
+    // For other plans, require authentication
     if (!user) {
       setIsAuthModalOpen(true);
       return;

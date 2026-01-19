@@ -208,7 +208,7 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
             {t('explore.subtitle')}
           </p>
           <div className="mt-6 flex gap-3">
-            <button onClick={() => onNavigate('dashboard')} className="px-5 py-3 rounded-xl bg-white text-dark-950 font-bold text-sm hover:bg-gray-100 transition-colors">
+            <button onClick={() => onNavigate('aivideo')} className="px-5 py-3 rounded-xl bg-white text-dark-950 font-bold text-sm hover:bg-gray-100 transition-colors">
               {t('explore.startCreating')}
             </button>
             <button onClick={() => onNavigate('pricing')} className="px-5 py-3 rounded-xl bg-white/5 text-white border border-white/10 font-bold text-sm hover:bg-white/10 transition-colors">
@@ -228,7 +228,7 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
             </div>
             <h2 className="text-2xl md:text-3xl font-black text-white italic">{t('explore.temporalSequences')}</h2>
           </div>
-          <button onClick={() => onNavigate('video-generator')} className="text-sm font-bold text-indigo-400 hover:text-white transition-colors">{t('explore.createVideo')} →</button>
+          <button onClick={() => onNavigate('aivideo')} className="text-sm font-bold text-indigo-400 hover:text-white transition-colors">{t('explore.createVideo')} →</button>
         </div>
         
         {/* Featured Videos Slideshow - 9:16 Portrait - Click to go to AI VIDEO */}
@@ -254,7 +254,7 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
                   {/* Clickable Play Button - Navigate to AI VIDEO */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <button 
-                      onClick={(e) => { e.stopPropagation(); onNavigate('video-generator'); }}
+                      onClick={(e) => { e.stopPropagation(); onNavigate('aivideo'); }}
                       className="p-4 bg-white/20 backdrop-blur-md rounded-full border-2 border-white/30 hover:bg-white/30 hover:border-white/50 hover:scale-110 transition-all group-hover:opacity-100 opacity-60"
                     >
                       <Play className="w-6 h-6 text-white fill-white" />
@@ -326,7 +326,7 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ user, images, videos, 
             </div>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => onNavigate(user ? 'video-generator' : 'signup')} className="px-5 py-3 rounded-xl bg-white text-dark-950 font-bold text-sm hover:bg-gray-100 transition-colors">{user ? t('explore.startCreating') : t('explore.getStarted')}</button>
+            <button onClick={() => onNavigate('aivideo')} className="px-5 py-3 rounded-xl bg-white text-dark-950 font-bold text-sm hover:bg-gray-100 transition-colors">{user ? t('explore.startCreating') : t('explore.getStarted')}</button>
             <button onClick={() => onNavigate('pricing')} className="px-5 py-3 rounded-xl bg-white/5 text-white border border-white/10 font-bold text-sm hover:bg-white/10 transition-colors">{t('explore.viewPlans')}</button>
           </div>
         </div>

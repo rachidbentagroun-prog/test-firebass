@@ -197,49 +197,8 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
 
   return (
     <div className="bg-dark-950 text-white min-h-screen font-sans selection:bg-pink-500/30">
-      {/* Video Popup Modal */}
-      {showVideoPopup && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md animate-fade-in">
-          <div className="relative w-[95vw] max-w-7xl mx-auto">
-            {/* Close Button */}
-            <button
-              onClick={() => setShowVideoPopup(false)}
-              className="absolute -top-12 right-0 sm:-right-12 sm:top-0 w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full transition-all group z-50"
-              aria-label="Close video"
-            >
-              <X className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
-            </button>
-            
-            {/* Video Container with 9:1 aspect ratio */}
-            <div className="relative w-full bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10" style={{ aspectRatio: '9/1' }}>
-              <iframe
-                src="https://drive.google.com/file/d/1d-CCQZFQ4wdMjsCFHVu57evgdbQ0TyLl/preview"
-                className="absolute inset-0 w-full h-full"
-                allow="autoplay"
-                allowFullScreen
-                title="Tutorial Video"
-              />
-            </div>
-          </div>
-        </div>
-      )}
       
-      {/* 1. Cinematic Hero Section */}
-      <section className="relative min-h-[95vh] flex items-center justify-center overflow-hidden border-b border-white/5">
-        <div className="absolute inset-0 z-0">
-          <video 
-            autoPlay 
-            muted 
-            loop 
-            playsInline 
-            className="w-full h-full object-cover opacity-30 scale-105 blur-[2px]" 
-            src={hero.videoUrl} 
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-dark-950/90 via-dark-950/20 to-dark-950" />
-        </div>
 
-        <div className="relative z-10 max-w-6xl mx-auto px-4 text-center" />
-      </section>
 
       {/* 2. PRODUCTION MOTEUR SECTION */}
       <section id="moteur" className="pt-0 pb-16 sm:pb-24 md:pb-32 relative bg-dark-900/40 border-b border-white/5">

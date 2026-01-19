@@ -26,6 +26,9 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
   const [messageCount, setMessageCount] = useState(0); // Track total messages sent by user
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
 
   // Count user messages
   const userMessageCount = messages.filter(m => m.role === 'user').length;
@@ -325,8 +328,22 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
                 disabled={!user || isLoading || isBlocked}
                 className="flex items-center justify-center w-10 h-10 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 title={t('chat.attachFile')}
+                onClick={() => fileInputRef.current?.click()}
               >
                 <Paperclip className="w-5 h-5" />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  style={{ display: 'none' }}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      // For demo: just show file name as a message
+                      setMessages(prev => [...prev, { role: 'user', content: `[File uploaded: ${file.name}]`, timestamp: Date.now() }]);
+                    }
+                  }}
+                  disabled={!user || isLoading || isBlocked}
+                />
               </button>
 
               {/* Textarea Input */}
@@ -346,10 +363,58 @@ export const ChatLanding: React.FC<ChatLandingProps> = ({ user, onStartChat, onL
               <button
                 type="button"
                 disabled={!user || isLoading || isBlocked}
-                className="flex items-center justify-center w-10 h-10 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                title={t('chat.voiceInput')}
+                className={`flex items-center justify-center w-10 h-10 rounded-xl ${isRecording ? 'bg-red-100 text-red-600' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'} disabled:opacity-40 disabled:cursor-not-allowed transition-all`}
+                title={isRecording ? t('chat.stopRecording') : t('chat.voiceInput')}
+                onClick={() => {
+                  if (isRecording) {
+                    // Stop recognition
+                    if ((window as any)._chatRecognitionInstance) {
+                      (window as any)._chatRecognitionInstance.stop();
+                    }
+                    setIsRecording(false);
+                  } else {
+                    const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+                    if (SpeechRecognition) {
+                      try {
+                        setIsTranscribing(true);
+                        const recognition = new SpeechRecognition();
+                        (window as any)._chatRecognitionInstance = recognition;
+                        recognition.lang = 'en-US';
+                        recognition.interimResults = false;
+                        recognition.maxAlternatives = 1;
+                        recognition.onresult = (event: any) => {
+                          const transcript = event.results[0][0].transcript;
+                          setInput(transcript);
+                          setIsTranscribing(false);
+                          setIsRecording(false);
+                        };
+                        recognition.onerror = () => {
+                          setIsTranscribing(false);
+                          setIsRecording(false);
+                          alert('Speech recognition failed.');
+                        };
+                        recognition.onend = () => {
+                          setIsTranscribing(false);
+                          setIsRecording(false);
+                        };
+                        recognition.start();
+                        setIsRecording(true);
+                      } catch (err) {
+                        setIsTranscribing(false);
+                        setIsRecording(false);
+                        alert('Speech recognition not supported or failed.');
+                      }
+                    } else {
+                      alert('Speech recognition not supported in this browser.');
+                    }
+                  }
+                }}
               >
-                <Mic className="w-5 h-5" />
+                {isTranscribing ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Mic className="w-5 h-5" />
+                )}
               </button>
 
               {/* Send Button - Inline */}

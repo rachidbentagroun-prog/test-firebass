@@ -45,18 +45,19 @@ export const PricingLanding: React.FC<PricingLandingProps> = ({ plans, onSelectP
   }, [plans, language, t]);
 
   const handlePlanClick = (plan: Plan) => {
-    // Create WhatsApp message based on plan
+    // If the plan is free, send guest to signup page
+    if (plan.id === 'free') {
+      onSelectPlan({ ...plan, id: 'free' });
+      return;
+    }
+    // Otherwise, keep existing WhatsApp logic
     const messages: Record<string, string> = {
-      free: "Hello! I'm interested in your Free plan and want to start my free trial.",
       test: "Hello! I'm interested in your $1 Test plan and would like more details.",
       basic: "Hello! I'm interested in your Basic plan and want to upgrade my account.",
       premium: "Hello! I'm interested in your Premium plan with unlimited credits. Can you provide more details?"
     };
-    
     const message = messages[plan.id] || `Hello! I'm interested in your ${plan.name} plan and want more details.`;
     const whatsappUrl = `https://wa.me/212630961392?text=${encodeURIComponent(message)}`;
-    
-    // Open WhatsApp in new tab
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
   };
 

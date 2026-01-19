@@ -1,5 +1,6 @@
 import React from 'react';
-import { User } from '../types';
+import { User, GeneratedImage } from '../types';
+import { Generator } from './Generator';
 
 interface AIImageLandingProps {
   user: User | null;
@@ -8,16 +9,28 @@ interface AIImageLandingProps {
   hasApiKey: boolean;
   onSelectKey: () => void;
   onResetKey: () => void;
+  gallery?: GeneratedImage[];
+  onCreditUsed?: () => void;
+  onUpgradeRequired?: () => void;
+  onImageGenerated?: (image: GeneratedImage) => void;
+  onDeleteImage?: (id: string) => void;
+  onUpdateUser?: (user: User) => void;
 }
 
-export const AIImageLanding: React.FC<AIImageLandingProps> = ({ user, onStartCreating, onLoginClick }) => {
+export const AIImageLanding: React.FC<AIImageLandingProps> = (props) => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-white via-slate-50 to-white">
-      <h1 className="text-3xl font-bold mb-4">AI Image Landing Page</h1>
-      <p className="mb-6">Welcome to the AI Image Lab. Generate stunning images with a single prompt.</p>
-      <button className="btn-primary" onClick={user ? onStartCreating : onLoginClick}>
-        {user ? 'Start Creating' : 'Login to Start'}
-      </button>
-    </div>
+    <Generator
+      user={props.user}
+      gallery={props.gallery || []}
+      onCreditUsed={props.onCreditUsed || (() => {})}
+      onUpgradeRequired={props.onUpgradeRequired || (() => {})}
+      onImageGenerated={props.onImageGenerated || (() => {})}
+      onDeleteImage={props.onDeleteImage}
+      onUpdateUser={props.onUpdateUser}
+      hasApiKey={props.hasApiKey}
+      onSelectKey={props.onSelectKey}
+      onResetKey={props.onResetKey}
+      onLoginClick={props.onLoginClick}
+    />
   );
 };

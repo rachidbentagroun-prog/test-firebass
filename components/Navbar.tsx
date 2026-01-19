@@ -119,6 +119,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   // Handle navigation
   const handleNavClick = (page: string) => {
+    if (page === 'pricing') {
+      onNavigate('pricing');
+      setIsMobileMenuOpen(false);
+      return;
+    }
     if (page.startsWith('http')) {
       window.open(page, '_blank');
     } else {

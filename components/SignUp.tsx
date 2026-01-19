@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../services/firebase';
 import { signUpWithFirebase, signInWithGoogle } from '../services/firebase';
 import { trackSignup } from '../services/posthog';
 import { Sparkles, User, Mail, Lock } from 'lucide-react';
 import { useLanguage } from '../utils/i18n';
 
 
+
 export default function SignUp() {
   const { t } = useLanguage();
-
+  const [isLogin, setIsLogin] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,28 +18,46 @@ export default function SignUp() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSuccess(null);
     setLoading(true);
-
     try {
       const res = await signUpWithFirebase(email, password, name);
       const cred = res?.userCredential;
       if (cred?.user) {
-        // Track signup in PostHog
         trackSignup(cred.user.uid, {
           email: email,
           name: name,
           plan: 'free',
           signup_method: 'email',
         });
-        // Redirect to signup success page
         window.location.href = '/signup-success';
         return;
       } else {
         setError('Firebase signup failed');
+      }
+    } catch (err: any) {
+      setError(err?.message || String(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setLoading(true);
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      if (cred.user) {
+        setSuccess('Login successful!');
+        window.location.href = '/';
+        return;
+      } else {
+        setError('Login failed');
       }
     } catch (err: any) {
       setError(err?.message || String(err));
@@ -52,8 +73,8 @@ export default function SignUp() {
           <div className="mx-auto mb-3 w-14 h-14 bg-gradient-to-tr from-indigo-600 to-purple-500 rounded-lg flex items-center justify-center">
             <Sparkles className="w-7 h-7 text-white" />
           </div>
-          <h2 className="text-2xl font-extrabold text-white">{t('signUp.title')}</h2>
-          <p className="text-sm text-gray-400 mt-1">{t('signUp.subtitle')}</p>
+          <h2 className="text-2xl font-extrabold text-white">{isLogin ? t('auth.signInTitle') : t('signUp.title')}</h2>
+          <p className="text-sm text-gray-400 mt-1">{isLogin ? t('auth.signInButton') : t('signUp.subtitle')}</p>
         </div>
 
         <div className="flex gap-2 mb-4">
@@ -67,7 +88,6 @@ export default function SignUp() {
                 if (res?.error) {
                   setError('Google sign-in failed: ' + res.error);
                 } else if (res?.user) {
-                  // Track Google signup/signin in PostHog
                   trackSignup(res.user.uid, {
                     email: res.user.email || 'unknown',
                     name: res.user.displayName || 'unknown',
@@ -75,7 +95,6 @@ export default function SignUp() {
                     signup_method: 'google',
                     is_new_user: res.isNew,
                   });
-                  // Redirect to signup success page
                   window.location.href = '/signup-success';
                   return;
                 }
@@ -92,22 +111,22 @@ export default function SignUp() {
           </button>
         </div>
 
-
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <label className="block">
-            <span className="sr-only">{t('signUp.fullName')}</span>
-            <div className="flex items-center gap-3">
-              <User className="w-5 h-5 text-gray-400" />
-              <input
-                className="flex-1 bg-dark-900/40 border border-white/6 rounded-lg px-3 py-2 text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder={t('signUp.fullName')}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
-          </label>
+        <form onSubmit={isLogin ? handleLogin : handleSignup} className="space-y-4">
+          {!isLogin && (
+            <label className="block">
+              <span className="sr-only">{t('signUp.fullName')}</span>
+              <div className="flex items-center gap-3">
+                <User className="w-5 h-5 text-gray-400" />
+                <input
+                  className="flex-1 bg-dark-900/40 border border-white/6 rounded-lg px-3 py-2 text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder={t('signUp.fullName')}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required={!isLogin}
+                />
+              </div>
+            </label>
+          )}
 
           <label className="block">
             <span className="sr-only">{t('signUp.email')}</span>
@@ -145,7 +164,7 @@ export default function SignUp() {
             disabled={loading}
             className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg font-semibold disabled:opacity-60"
           >
-            {loading ? t('signUp.signingUp') : t('signUp.createButton')}
+            {loading ? (isLogin ? t('signUp.signingIn') : t('signUp.signingUp')) : (isLogin ? t('signUp.login') : t('signUp.createButton'))}
           </button>
         </form>
 
@@ -153,7 +172,17 @@ export default function SignUp() {
         {success && <div className="mt-4 text-sm text-green-400">{success}</div>}
 
         <div className="mt-6 text-center text-sm text-gray-400">
-          {t('signUp.haveAccount')} <button onClick={() => window.location.href = '/?login=true'} className="text-indigo-400 font-medium">{t('signUp.login')}</button>
+          {isLogin ? (
+            <>
+              New Creator{' '}
+              <button onClick={() => setIsLogin(false)} className="text-indigo-400 font-medium">SINGUP</button>
+            </>
+          ) : (
+            <>
+              {t('signUp.haveAccount')}
+              <button onClick={() => setIsLogin(true)} className="text-indigo-400 font-medium">{t('signUp.login')}</button>
+            </>
+          )}
         </div>
       </div>
     </div>
