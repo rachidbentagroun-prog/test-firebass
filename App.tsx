@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar.tsx';
 import { Hero } from './components/Hero.tsx';
 import { HomeLanding } from './components/HomeLanding.tsx';
+import { VideoLabLanding } from './components/VideoLabLanding.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
 import SignupSuccess from './components/SignupSuccess.tsx';
 import { UpgradeModal } from './components/UpgradeModal.tsx';
@@ -901,6 +902,21 @@ const App: React.FC = () => {
     if (currentPage === 'signup-success') {
       return <SignupSuccess />;
     }
+    // Fix: Ensure correct page loads for AI VIDEO, AI IMAGE, Pricing
+    if (currentPage === 'aiimage') {
+      return <AIImageLanding user={user} onStartCreating={() => setCurrentPage('dashboard')} onLoginClick={() => setIsAuthModalOpen(true)} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
+    }
+    if (currentPage === 'aivideo') {
+      return <VideoLabLanding user={user} config={siteConfig.videoLab} onStartCreating={() => setCurrentPage('video-generator')} onLoginClick={() => setIsAuthModalOpen(true)} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
+    }
+    if (currentPage === 'pricing') {
+      return <PricingLanding plans={siteConfig.plans} onSelectPlan={handleSelectPlan} />;
+    }
+    // Add fallback for PricingLanding if credits reach 0
+    if (currentPage === 'pricing-landing') {
+      return <PricingLanding plans={siteConfig.plans} onSelectPlan={handleSelectPlan} />;
+    }
+    // Other main pages
     switch (currentPage) {
       case 'profile':
         if (!user) { setCurrentPage('home'); setIsAuthModalOpen(true); return null; }
@@ -917,15 +933,11 @@ const App: React.FC = () => {
           initialContactOpen={openContactFromUpgrade}
           initialInboxOpen={openInboxFromDropdown}
         />;
-      case 'aiimage':
-        return <AIImageLanding user={user} onStartCreating={() => setCurrentPage('dashboard')} onLoginClick={() => setIsAuthModalOpen(true)} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
-      case 'aivideo':
-        return <VideoLabLanding user={user} config={siteConfig.videoLab} onStartCreating={() => setCurrentPage('video-generator')} onLoginClick={() => setIsAuthModalOpen(true)} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
-      case 'aivoice':
-        return <TTSLanding user={user} config={siteConfig.ttsLab} onStartCreating={() => setCurrentPage('tts-generator')} onCreditUsed={handleCreditUsed} onUpgradeRequired={() => setIsUpgradeModalOpen(true)} onLoginClick={() => setIsAuthModalOpen(true)} onAudioGenerated={(aud) => { setAudioGallery(p => [aud, ...p]); if (user?.id) saveAudioToDB(aud, user.id); }} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
       case 'chat-landing':
         return <ChatLanding user={user} onStartChat={() => { if (!user) { setIsAuthModalOpen(true); return; } setIsChatOpen(true); }} onLoginClick={() => setIsAuthModalOpen(true)} />;
       case 'tts-lab-landing':
+        return <TTSLanding user={user} config={siteConfig.ttsLab} onStartCreating={() => setCurrentPage('tts-generator')} onCreditUsed={handleCreditUsed} onUpgradeRequired={() => setIsUpgradeModalOpen(true)} onLoginClick={() => setIsAuthModalOpen(true)} onAudioGenerated={(aud) => { setAudioGallery(p => [aud, ...p]); if (user?.id) saveAudioToDB(aud, user.id); }} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
+      case 'aivoice':
         return <TTSLanding user={user} config={siteConfig.ttsLab} onStartCreating={() => setCurrentPage('tts-generator')} onCreditUsed={handleCreditUsed} onUpgradeRequired={() => setIsUpgradeModalOpen(true)} onLoginClick={() => setIsAuthModalOpen(true)} onAudioGenerated={(aud) => { setAudioGallery(p => [aud, ...p]); if (user?.id) saveAudioToDB(aud, user.id); }} hasApiKey={hasApiKey} onSelectKey={() => {}} onResetKey={() => {}} />;
       case 'tts-generator':
         return <TTSGenerator 
@@ -943,8 +955,6 @@ const App: React.FC = () => {
         return <Gallery images={gallery} videos={videoGallery} audioGallery={audioGallery} onDelete={() => {}} />;
       case 'explore':
         return <ExplorePage user={user} images={gallery} videos={videoGallery} siteConfig={siteConfig} onNavigate={setCurrentPage} />;
-      case 'pricing':
-        return <PricingLanding plans={siteConfig.plans} onSelectPlan={handleSelectPlan} />;
       case 'admin':
         // ...existing admin logic...
         if (!user || !isAdminRole(user.role)) {
