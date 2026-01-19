@@ -182,13 +182,35 @@ const App: React.FC = () => {
   // Show exit-intent popup for guests (not logged in)
   useEffect(() => {
     if (user) return; // Only for guests
+    let popupShown = false;
     const handleMouseLeave = (e: MouseEvent) => {
-      if (e.clientY <= 0) {
+      if (e.clientY <= 0 && !popupShown) {
+        popupShown = true;
         setShowExitPopup(true);
+        console.log('[ExitIntent] Mouse leave detected, showing popup');
+        sessionStorage.setItem('exit_popup_shown', '1');
       }
     };
-    window.addEventListener('mouseout', handleMouseLeave);
-    return () => window.removeEventListener('mouseout', handleMouseLeave);
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!popupShown && !sessionStorage.getItem('exit_popup_shown')) {
+        popupShown = true;
+        setShowExitPopup(true);
+        console.log('[ExitIntent] beforeunload detected, showing popup');
+        sessionStorage.setItem('exit_popup_shown', '1');
+        // Optionally show browser dialog
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+    if (!sessionStorage.getItem('exit_popup_shown')) {
+      window.addEventListener('mouseout', handleMouseLeave);
+      window.addEventListener('beforeunload', handleBeforeUnload);
+    }
+    return () => {
+      window.removeEventListener('mouseout', handleMouseLeave);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, [user]);
 
   // Log user state changes
