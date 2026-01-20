@@ -517,7 +517,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                     >
                       {video.vimeoEmbed ? (
                         <iframe
-                          src={index === currentSlide ? video.url : ''}
+                          src={video.url}
                           width="100%"
                           height="100%"
                           frameBorder="0"
@@ -526,10 +526,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                           title={video.title}
                           className="w-full h-full object-cover"
                           referrerPolicy="strict-origin-when-cross-origin"
-                          onClick={() => {
-                            setIsPaused(true);
-                            setCurrentSlide(index);
-                          }}
+                          style={{ pointerEvents: index === currentSlide ? 'auto' : 'none' }}
                         />
                       ) : (
                         <video
