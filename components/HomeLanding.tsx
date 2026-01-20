@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { Image as ImageIcon, Video, Mic2, Globe2, ArrowRight, Upload, X, Play, Pause, Mic, ChevronLeft, ChevronRight } from 'lucide-react';
 import VideoCarousel from './VideoCarousel';
+const VimeoEmbed = dynamic(() => import('./VimeoEmbed'), { ssr: false });
 import { useLanguage } from '../utils/i18n';
 
 interface HomeLandingProps {
@@ -516,16 +518,10 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                       style={{ pointerEvents: index === currentSlide ? 'auto' : 'none' }}
                     >
                       {video.vimeoEmbed ? (
-                        <iframe
-                          src={video.url}
-                          width="100%"
-                          height="100%"
-                          frameBorder="0"
-                          allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
-                          allowFullScreen
+                        <VimeoEmbed
+                          url={video.url}
                           title={video.title}
                           className="w-full h-full object-cover"
-                          referrerPolicy="strict-origin-when-cross-origin"
                           style={{ pointerEvents: index === currentSlide ? 'auto' : 'none' }}
                         />
                       ) : (
