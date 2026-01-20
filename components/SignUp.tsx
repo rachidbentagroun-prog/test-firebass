@@ -33,6 +33,7 @@ export default function SignUp() {
           plan: 'free',
           signup_method: 'email',
         });
+        // Redirect to signup-success page
         window.location.href = '/signup-success';
         return;
       } else {
@@ -95,6 +96,7 @@ export default function SignUp() {
                     signup_method: 'google',
                     is_new_user: res.isNew,
                   });
+                  // Redirect to signup-success page
                   window.location.href = '/signup-success';
                   return;
                 }

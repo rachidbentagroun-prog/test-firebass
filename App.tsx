@@ -1003,10 +1003,10 @@ const App: React.FC = () => {
         // Always show HomeLanding for home page and fallback
         return <HomeLanding 
           onSubmitPrompt={(promptText) => { setInitialPrompt(promptText); setCurrentPage('dashboard'); }}
-          onGoToImage={() => setCurrentPage('dashboard')}
-          onGoToVideo={() => setCurrentPage('video-generator')}
+          onGoToImage={() => setCurrentPage('aiimage')}
+          onGoToVideo={() => setCurrentPage('aivideo')}
           onGoToWebsite={() => setCurrentPage('chat-landing')}
-          onGoToAudio={() => setCurrentPage('tts-generator')}
+          onGoToAudio={() => setCurrentPage('aivoice')}
         />;
     }
   };
