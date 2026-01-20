@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import dynamic from 'next/dynamic';
+import React, { Suspense } from 'react';
 import { Image as ImageIcon, Video, Mic2, Globe2, ArrowRight, Upload, X, Play, Pause, Mic, ChevronLeft, ChevronRight } from 'lucide-react';
 import VideoCarousel from './VideoCarousel';
-const VimeoEmbed = dynamic(() => import('./VimeoEmbed'), { ssr: false });
+const VimeoEmbed = React.lazy(() => import('./VimeoEmbed'));
 import { useLanguage } from '../utils/i18n';
 
 interface HomeLandingProps {
@@ -518,12 +518,16 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                       style={{ pointerEvents: index === currentSlide ? 'auto' : 'none' }}
                     >
                       {video.vimeoEmbed ? (
-                        <VimeoEmbed
-                          url={video.url}
-                          title={video.title}
-                          className="w-full h-full object-cover"
-                          style={{ pointerEvents: index === currentSlide ? 'auto' : 'none' }}
-                        />
+                        typeof window !== 'undefined' ? (
+                          <Suspense fallback={<div className="w-full h-full bg-black flex items-center justify-center">Loading…</div>}>
+                            <VimeoEmbed
+                              url={video.url}
+                              title={video.title}
+                              className="w-full h-full object-cover"
+                              style={{ pointerEvents: index === currentSlide ? 'auto' : 'none' }}
+                            />
+                          </Suspense>
+                        ) : null
                       ) : (
                         <video
                           ref={(el) => {

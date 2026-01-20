@@ -1,6 +1,6 @@
 import React from 'react';
-import dynamic from 'next/dynamic';
-const VimeoEmbed = dynamic(() => import('./VimeoEmbed'), { ssr: false });
+import React, { Suspense } from 'react';
+const VimeoEmbed = React.lazy(() => import('./VimeoEmbed'));
 import { GeneratedImage, GeneratedVideo, SiteConfig, User } from '../types';
 import { Compass, Image as ImageIcon, Video as VideoIcon, Sparkles, Play, Maximize2 } from 'lucide-react';
 import { useLanguage } from '../utils/i18n';
