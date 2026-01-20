@@ -179,37 +179,27 @@ const App: React.FC = () => {
   });
 
 
-  // Show exit-intent popup for guests (not logged in)
+  // Show ExitIntentPopup after guest stays on website for more than 9 seconds (not for registered users)
   useEffect(() => {
-    if (user) return; // Only for guests
+    // Only show for guests (no user or not registered)
+    if (user && user.isRegistered) return;
     let popupShown = false;
-    const handleMouseLeave = (e: MouseEvent) => {
-      if (e.clientY <= 0 && !popupShown) {
-        popupShown = true;
-        setShowExitPopup(true);
-        console.log('[ExitIntent] Mouse leave detected, showing popup');
-        sessionStorage.setItem('exit_popup_shown', '1');
-      }
-    };
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    const showPopup = () => {
       if (!popupShown && !sessionStorage.getItem('exit_popup_shown')) {
         popupShown = true;
         setShowExitPopup(true);
-        console.log('[ExitIntent] beforeunload detected, showing popup');
         sessionStorage.setItem('exit_popup_shown', '1');
-        // Optionally show browser dialog
-        e.preventDefault();
-        e.returnValue = '';
-        return '';
+        console.log('[ExitIntent] Popup shown after 9s (guest only)');
       }
     };
+    let timerId: number | undefined;
     if (!sessionStorage.getItem('exit_popup_shown')) {
-      window.addEventListener('mouseout', handleMouseLeave);
-      window.addEventListener('beforeunload', handleBeforeUnload);
+      timerId = window.setTimeout(() => {
+        showPopup();
+      }, 9000);
     }
     return () => {
-      window.removeEventListener('mouseout', handleMouseLeave);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      if (timerId) clearTimeout(timerId);
     };
   }, [user]);
 

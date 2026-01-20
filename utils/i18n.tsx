@@ -254,74 +254,25 @@ const DICTS: Record<Language, Record<string, string>> = {
   },
 };
 
+
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState<Language>(() => {
-    // Priority: URL > Cookie > localStorage > Browser > Default
-    try {
-      // Check URL path for language prefix
-      if (typeof window !== 'undefined') {
-        const pathLang = window.location.pathname.split('/')[1];
-        if (pathLang && ['en', 'ar', 'fr'].includes(pathLang)) {
-          return pathLang as Language;
-        }
-      }
+  // Force Arabic as the only language, always
+  const [language, setLanguageState] = useState<Language>('ar');
 
-      // Check cookie
-      const cookieLang = Cookies.get(COOKIE_KEY);
-      if (cookieLang && ['en', 'ar', 'fr'].includes(cookieLang)) {
-        return cookieLang as Language;
-      }
-
-      // Check localStorage
-      const saved = localStorage.getItem(STORAGE_KEY) as Language | null;
-      if (saved && ['en', 'ar', 'fr'].includes(saved)) {
-        return saved;
-      }
-
-      // Check browser language
-      if (typeof navigator !== 'undefined') {
-        const browserLang = navigator.language.split('-')[0];
-        if (['en', 'ar', 'fr'].includes(browserLang)) {
-          return browserLang as Language;
-        }
-      }
-    } catch {
-      // Ignore errors
-    }
-    return 'ar'; // Default language is now Arabic
-  });
-
-  const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
-    
-    // Persist to cookie (30 days expiry)
-    try { 
-      Cookies.set(COOKIE_KEY, lang, { expires: 30, path: '/' });
-    } catch {}
-    
-    // Persist to localStorage as backup
-    try { 
-      localStorage.setItem(STORAGE_KEY, lang); 
-    } catch {}
-
-    // Update URL if not already correct
+  // Ignore all setLanguage calls and always force Arabic
+  const setLanguage = (_lang: Language) => {
+    setLanguageState('ar');
+    try { Cookies.set(COOKIE_KEY, 'ar', { expires: 30, path: '/' }); } catch {}
+    try { localStorage.setItem(STORAGE_KEY, 'ar'); } catch {}
     if (typeof window !== 'undefined') {
       const currentPath = window.location.pathname;
       const pathLang = currentPath.split('/')[1];
-      
-      // If URL doesn't have language prefix or has wrong language
-      if (!['en', 'ar', 'fr'].includes(pathLang) || pathLang !== lang) {
+      if (!['ar'].includes(pathLang)) {
         let newPath = currentPath;
-        
-        // Remove existing language prefix if present
-        if (['en', 'ar', 'fr'].includes(pathLang)) {
-          newPath = currentPath.substring(3); // Remove /xx
+        if (['en', 'fr'].includes(pathLang)) {
+          newPath = currentPath.substring(3);
         }
-        
-        // Add new language prefix
-        newPath = `/${lang}${newPath || '/'}`;
-        
-        // Update URL without reload
+        newPath = `/ar${newPath || '/'}`;
         window.history.replaceState({}, '', newPath);
       }
     }

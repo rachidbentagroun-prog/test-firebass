@@ -1274,20 +1274,25 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
             </div>
 
             {/* Right Preview Column */}
-            <div className="lg:col-span-7 bg-black/40 border border-white/5 rounded-xl sm:rounded-2xl md:rounded-[2rem] lg:rounded-[3rem] p-2 sm:p-3 md:p-4 lg:p-5 min-h-[45vh] sm:min-h-[50vh] md:min-h-[55vh] lg:min-h-[60vh] mobile-viewport flex flex-col relative overflow-hidden">
-              <div className="flex-1 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-[2.5rem] overflow-hidden bg-dark-950 flex flex-col items-center justify-center relative group/viewport"
-                ref={zoomContainerRef}>
-                <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-indigo-600/5 via-transparent to-purple-600/5 pointer-events-none" />
-                
+            <div className="lg:col-span-7 bg-black/40 border border-white/5 rounded-[3rem] p-2.5 min-h-[500px] flex flex-col relative overflow-hidden">
+              <div className="flex-1 rounded-[2.5rem] overflow-hidden bg-dark-950 flex flex-col items-center justify-center relative group/viewport" ref={zoomContainerRef}>
+                {/* Gradient Overlay */}
+                <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-indigo-600/5 via-transparent to-purple-600/5 pointer-events-none z-10" />
                 {resultImage && !isEditing ? (
                   <div className="relative w-full h-full flex items-center justify-center p-2 sm:p-3 md:p-4">
                     <img 
                       src={resultImage.url} 
                       alt="Generated" 
-                      className="max-h-full responsive-media object-contain transition-transform duration-300"
+                      className="max-h-full w-auto object-contain transition-transform duration-300"
                       style={{ transform: `scale(${previewZoom})` }}
                     />
-                    
+                    {/* Generation Status Badge */}
+                    <div className="absolute top-6 right-6 z-20">
+                      <div className="bg-gradient-to-r from-green-600/90 to-emerald-600/90 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 shadow-2xl flex items-center gap-2 animate-fade-in">
+                        <Check className="w-4 h-4 text-white" />
+                        <span className="text-white text-xs font-bold uppercase tracking-wider">Your Generated Image</span>
+                      </div>
+                    </div>
                     {/* Image Controls Overlay */}
                     <div className="absolute bottom-2 sm:bottom-3 md:bottom-4 lg:bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-1 sm:gap-1.5 md:gap-2 bg-dark-900/90 backdrop-blur-md border border-white/10 rounded-lg sm:rounded-xl lg:rounded-2xl p-1.5 sm:p-2 md:p-3 shadow-2xl">
                       <button 
@@ -1328,97 +1333,23 @@ export const Generator: React.FC<GeneratorProps> = ({ user, gallery, onCreditUse
                     />
                   </div>
                 ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-3 sm:p-6 md:p-8 lg:p-12 pointer-events-none overflow-y-auto">
-                    {/* Animated Illustration - Text to Image Flow */}
-                    <div className="relative mb-4 sm:mb-6 md:mb-8">
-                      {/* Text Input Visualization - Responsive */}
-                      <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 mb-4 sm:mb-6">
-                        <div className="relative group">
-                          <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 rounded-lg sm:rounded-2xl border-2 border-indigo-500/30 flex items-center justify-center backdrop-blur-sm flex-shrink-0">
-                            <FileText className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 text-indigo-400 animate-pulse" />
-                          </div>
-                          <div className="absolute -bottom-6 sm:-bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                            <span className="text-[8px] sm:text-xs font-black text-indigo-400 uppercase tracking-wider">Your Prompt</span>
-                          </div>
-                        </div>
-                        
-                        {/* Animated Arrow - Responsive */}
-                        <div className="flex flex-row sm:flex-col items-center gap-2">
-                          <div className="flex items-center gap-1 sm:gap-2">
-                            <div className="w-4 h-0.5 sm:w-8 sm:h-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 animate-pulse" />
-                            <ArrowRightLeft className="w-4 h-4 sm:w-6 sm:h-6 md:w-8 md:h-8 text-purple-500 animate-bounce" style={{ animationDuration: '2s' }} />
-                            <div className="w-4 h-0.5 sm:w-8 sm:h-0.5 bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" />
-                          </div>
-                          <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-yellow-400 animate-spin" style={{ animationDuration: '3s' }} />
-                          <div className="text-[7px] sm:text-[9px] font-black text-purple-400 uppercase tracking-wider px-1.5 sm:px-2 py-0.5 sm:py-1 bg-purple-600/10 rounded-full border border-purple-500/20">
-                            AI Magic
-                          </div>
-                        </div>
-                        
-                        {/* Real AI Generated Image Sample */}
-                        <div className="relative group">
-                          <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-lg sm:rounded-2xl border-2 border-purple-500/50 overflow-hidden shadow-2xl ring-4 ring-purple-600/20 animate-pulse flex-shrink-0" style={{ animationDuration: '3s' }}>
-                            <img 
-                              src="https://images.unsplash.com/photo-1680382948929-2d092cd01263?w=400&h=400&fit=crop&q=80"
-                              alt="AI Generated Sample" 
-                              className="w-full h-full object-cover"
-                              loading="eager"
-                              onError={(e) => {
-                                // Fallback gradient if image fails to load
-                                (e.target as HTMLImageElement).style.display = 'none';
-                                const parent = (e.target as HTMLElement).parentElement;
-                                if (parent) {
-                                  parent.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-                                  const icon = document.createElement('div');
-                                  icon.innerHTML = `<svg class="w-10 sm:w-12 md:w-16 h-10 sm:h-12 md:h-16 text-white/60 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>`;
-                                  parent.appendChild(icon.firstChild as Node);
-                                }
-                              }}
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-purple-600/30 via-transparent to-indigo-600/20 pointer-events-none" />
-                            <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-green-500/90 backdrop-blur-sm rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 flex items-center gap-0.5 sm:gap-1">
-                              <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
-                              <span className="text-[7px] sm:text-[8px] font-black text-white uppercase">AI</span>
-                            </div>
-                          </div>
-                          <div className="absolute -bottom-6 sm:-bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                            <span className="text-[8px] sm:text-xs font-black text-purple-400 uppercase tracking-wider">{t('generator.generatedImage')}</span>
-                          </div>
-                        </div>
+                  <>
+                    {/* Demo AI Image Preview and Overlay */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-12 group-hover/viewport:opacity-0 transition-opacity pointer-events-none z-10">
+                      <div className="w-20 h-20 bg-indigo-600 rounded-full flex items-center justify-center shadow-2xl mb-6">
+                        <ImageIcon className="w-10 h-10 text-white" />
+                      </div>
+                      <h4 className="text-2xl font-black uppercase italic tracking-tighter mb-2">AI Image Viewport</h4>
+                      <p className="text-gray-500 text-sm max-w-xs font-medium leading-relaxed uppercase tracking-widest">Preview your generated images here.</p>
+                    </div>
+                    {/* AI Generated Example Badge */}
+                    <div className="absolute top-6 right-6 z-20">
+                      <div className="bg-gradient-to-r from-indigo-600/90 to-purple-600/90 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 shadow-2xl flex items-center gap-2 animate-fade-in">
+                        <Sparkles className="w-4 h-4 text-white" />
+                        <span className="text-white text-xs font-bold uppercase tracking-wider">AI Generated Example</span>
                       </div>
                     </div>
-
-                    {/* Title & Description */}
-                    <div className="mt-4 sm:mt-6 md:mt-8">
-                      <h4 className="text-lg sm:text-xl md:text-2xl font-black uppercase italic tracking-tighter mb-2 sm:mb-3 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                        {t('generator.aiImageGenerator')}
-                      </h4>
-                      <p className="text-gray-400 text-[11px] sm:text-xs md:text-sm max-w-sm mx-auto font-medium leading-relaxed mb-2 sm:mb-3">
-                        {t('generator.transformPrompts')}
-                      </p>
-                      <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-[8px] sm:text-[10px] text-gray-500 uppercase tracking-widest">
-                        <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500" />
-                        <span>{t('generator.writePromptGenerate')}</span>
-                        <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500" />
-                      </div>
-                    </div>
-
-                    {/* Feature Badges */}
-                    <div className="flex flex-wrap gap-2 sm:gap-3 mt-4 sm:mt-6 justify-center">
-                      <div className="px-2 sm:px-3 py-1 sm:py-1.5 bg-indigo-600/10 border border-indigo-500/20 rounded-full text-[8px] sm:text-[10px] font-black text-indigo-400 uppercase tracking-wider">
-                        <span className="inline-block w-1.5 h-1.5 bg-indigo-400 rounded-full mr-1 animate-pulse" />
-                        {t('generator.fast')}
-                      </div>
-                      <div className="px-2 sm:px-3 py-1 sm:py-1.5 bg-purple-600/10 border border-purple-500/20 rounded-full text-[8px] sm:text-[10px] font-black text-purple-400 uppercase tracking-wider">
-                        <span className="inline-block w-1.5 h-1.5 bg-purple-400 rounded-full mr-1 animate-pulse" style={{ animationDelay: '0.3s' }} />
-                        {t('generator.hd')}
-                      </div>
-                      <div className="px-2 sm:px-3 py-1 sm:py-1.5 bg-pink-600/10 border border-pink-500/20 rounded-full text-[8px] sm:text-[10px] font-black text-pink-400 uppercase tracking-wider">
-                        <span className="inline-block w-1.5 h-1.5 bg-pink-400 rounded-full mr-1 animate-pulse" style={{ animationDelay: '0.6s' }} />
-                        {t('generator.multiEngine')}
-                      </div>
-                    </div>
-                  </div>
+                  </>
                 )}
 
                 {/* Background Animation */}

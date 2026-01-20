@@ -32,29 +32,23 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
   // Video slideshow state
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isSliderVisible, setIsSliderVisible] = useState(false);
+  const sliderRef = useRef<HTMLDivElement | null>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   
   // UGC Style Product Videos
   const videoExamples = [
     {
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-      title: 'Skincare Morning Routine',
-      description: 'Authentic unboxing & first impressions'
+      vimeoEmbed: true,
+      url: 'https://player.vimeo.com/video/1156344244?badge=0&autopause=0&player_id=0&app_id=58479',
+      title: 'Vimeo Video 2',
+      description: 'Second Vimeo video in the slideshow.'
     },
     {
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-      title: 'Tech Gadget Review',
-      description: 'Real user experience & honest feedback'
-    },
-    {
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-      title: 'Fashion Haul Video',
-      description: 'Try-on session with styling tips'
-    },
-    {
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
-      title: 'Coffee Product Demo',
-      description: 'Day-in-life with product integration'
+      vimeoEmbed: true,
+      url: 'https://player.vimeo.com/video/1156344229?badge=0&autopause=0&player_id=0&app_id=58479',
+      title: 'كيف تعمل فيديوهات إعلانية تجيب مبيعات',
+      description: '#fyp #fypシ #fypreelsシ゚ #foryou #foryoupage'
     }
   ];
 
@@ -118,27 +112,61 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
     }
   }, []);
   
-  // Video slideshow auto-play logic
+
+  // Custom autoplay: first video plays to end, then auto-advance; autoplay starts when slider is visible
   useEffect(() => {
-    if (isPaused) return;
-    
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % videoExamples.length);
-    }, 4000); // Change slide every 4 seconds
-    
-    return () => clearInterval(interval);
-  }, [isPaused, videoExamples.length]);
+    if (!isSliderVisible || isPaused) return;
+    const playCurrent = () => {
+      const currentVideo = videoRefs.current[currentSlide];
+      if (currentVideo) {
+        currentVideo.currentTime = 0;
+        currentVideo.play();
+        const handleEnded = () => {
+          setCurrentSlide((prev) => (prev + 1) % videoExamples.length);
+        };
+        currentVideo.addEventListener('ended', handleEnded);
+        return () => {
+          currentVideo.removeEventListener('ended', handleEnded);
+        };
+      }
+      return undefined;
+    };
+    // Only autoplay if first slide
+    if (currentSlide === 0) {
+      return playCurrent();
+    } else {
+      // For other slides, play and auto-advance as before
+      return playCurrent();
+    }
+  }, [currentSlide, isPaused, isSliderVisible, videoExamples.length]);
+
+  // Reset pause state when slider becomes visible
+  useEffect(() => {
+    if (isSliderVisible) setIsPaused(false);
+  }, [isSliderVisible]);
+
+  // IntersectionObserver to detect slider visibility
+  useEffect(() => {
+    const sliderEl = sliderRef.current;
+    if (!sliderEl) return;
+    const observer = new window.IntersectionObserver(
+      ([entry]) => {
+        setIsSliderVisible(entry.isIntersecting);
+      },
+      { threshold: 0.5 }
+    );
+    observer.observe(sliderEl);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
   
   // Handle video playback
   useEffect(() => {
-    videoRefs.current.forEach((video, index) => {
+    videoRefs.current.forEach((video) => {
       if (video) {
-        if (index === currentSlide) {
-          video.play().catch(err => console.log('Autoplay prevented:', err));
-        } else {
-          video.pause();
-          video.currentTime = 0;
-        }
+        video.pause();
+        video.currentTime = 0;
       }
     });
   }, [currentSlide]);
@@ -464,37 +492,13 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
               </div>
             </div>
 
-            {/* Quick Ideas Section */}
-            <div className="mt-12 text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-4">{t('homeLanding.quickInspiration')}</p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {[
-                  { text: t('homeLanding.idea1'), type: "🖼️" },
-                  { text: t('homeLanding.idea2'), type: "🎥" },
-                  { text: t('homeLanding.idea3'), type: "🔊" }
-                ].map((idea) => (
-                  <button 
-                    key={idea.text} 
-                    onClick={() => {
-                      setPrompt(idea.text);
-                      setDetectedIntent(detectPromptIntent(idea.text));
-                    }} 
-                    className="group relative text-left px-5 py-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:shadow-md hover:border-slate-300 transition-all duration-300 hover:-translate-y-1 overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-50 to-purple-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="relative flex items-start gap-2">
-                      <span className="text-lg flex-shrink-0">{idea.type}</span>
-                      <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900">{idea.text}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
+
             
             {/* AI Video Examples Slideshow */}
             <div className="mt-16">
               <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">{t('homeLanding.ugcTitle')}</h3>
+                <div className="mb-2 text-xs font-bold uppercase tracking-widest text-indigo-700"><b>THIS WEBSITE PARTNER WITH OPENAI .</b></div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-2">{t('homeLanding.ugcTitleShort')}</h3>
                 <p className="text-slate-600">{t('homeLanding.watchExamples')}</p>
               </div>
               
@@ -502,26 +506,61 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
                 className="relative max-w-md mx-auto group"
               >
                 {/* Video Container - 9:16 aspect ratio for vertical videos */}
-                <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-slate-900" style={{ aspectRatio: '9/16' }}>
+                <div ref={sliderRef} className="relative rounded-2xl overflow-hidden shadow-2xl bg-slate-900" style={{ aspectRatio: '9/16' }}>
                   {videoExamples.map((video, index) => (
                     <div
                       key={index}
                       className={`absolute inset-0 transition-opacity duration-700 ${
                         index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
                       }`}
+                      style={{ pointerEvents: index === currentSlide ? 'auto' : 'none' }}
                     >
-                      <video
-                        ref={(el) => {
-                          videoRefs.current[index] = el;
-                        }}
-                        src={video.url}
-                        className="w-full h-full object-cover"
-                        loop
-                        muted
-                        playsInline
-                        preload={index === currentSlide || index === (currentSlide + 1) % videoExamples.length ? 'auto' : 'none'}
-                      />
-                      
+                      {video.vimeoEmbed ? (
+                        <iframe
+                          src={index === currentSlide ? video.url : ''}
+                          width="100%"
+                          height="100%"
+                          frameBorder="0"
+                          allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
+                          allowFullScreen
+                          title={video.title}
+                          className="w-full h-full object-cover"
+                          referrerPolicy="strict-origin-when-cross-origin"
+                          onClick={() => {
+                            setIsPaused(true);
+                            setCurrentSlide(index);
+                          }}
+                        />
+                      ) : (
+                        <video
+                          ref={(el) => {
+                            videoRefs.current[index] = el;
+                            if (el) {
+                              el.muted = index !== currentSlide;
+                            }
+                          }}
+                          src={video.url}
+                          className="w-full h-full object-cover"
+                          playsInline
+                          muted={index !== currentSlide}
+                          controls={false}
+                          preload={index === currentSlide || index === (currentSlide + 1) % videoExamples.length ? 'auto' : 'none'}
+                          onClick={(e) => {
+                            setIsPaused(true);
+                            videoRefs.current.forEach((v, idx) => {
+                              if (v) {
+                                v.pause();
+                                v.currentTime = 0;
+                                v.muted = true;
+                              }
+                            });
+                            const vid = e.currentTarget;
+                            vid.muted = false;
+                            vid.play();
+                            setCurrentSlide(index);
+                          }}
+                        />
+                      )}
                       {/* Video Info Overlay */}
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6">
                         <h4 className="text-white font-semibold text-lg mb-1">{video.title}</h4>
