@@ -1,4 +1,3 @@
-import React from 'react';
 import React, { Suspense } from 'react';
 const VimeoEmbed = React.lazy(() => import('./VimeoEmbed'));
 import { GeneratedImage, GeneratedVideo, SiteConfig, User } from '../types';

@@ -46,9 +46,26 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16'>('16:9');
   const [resolution, setResolution] = useState<'720p' | '1080p'>('720p');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [textPrompt, setTextPrompt] = useState('');
+  const [textPrompt, setTextPrompt] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('prompt') || '';
+    }
+    return '';
+  });
   const [videoGuidance, setVideoGuidance] = useState('');
   const [referenceFrame, setReferenceFrame] = useState<string | null>(null);
+
+  // On mount, check for reference image in localStorage
+  useEffect(() => {
+    try {
+      const refImg = localStorage.getItem('ai_video_reference_image');
+      if (refImg) {
+        setReferenceFrame(refImg);
+        localStorage.removeItem('ai_video_reference_image');
+      }
+    } catch {}
+  }, []);
 
   const [isDimMenuOpen, setIsDimMenuOpen] = useState(false);
   const [isQualityMenuOpen, setIsQualityMenuOpen] = useState(false);

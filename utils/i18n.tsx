@@ -256,24 +256,30 @@ const DICTS: Record<Language, Record<string, string>> = {
 
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Force Arabic as the only language, always
-  const [language, setLanguageState] = useState<Language>('ar');
-
-  // Ignore all setLanguage calls and always force Arabic
-  const setLanguage = (_lang: Language) => {
-    setLanguageState('ar');
-    try { Cookies.set(COOKIE_KEY, 'ar', { expires: 30, path: '/' }); } catch {}
-    try { localStorage.setItem(STORAGE_KEY, 'ar'); } catch {}
+  // Default language is Arabic, but allow user to change
+  const getInitialLang = () => {
     if (typeof window !== 'undefined') {
-      const currentPath = window.location.pathname;
-      const pathLang = currentPath.split('/')[1];
-      if (!['ar'].includes(pathLang)) {
-        let newPath = currentPath;
-        if (['en', 'fr'].includes(pathLang)) {
-          newPath = currentPath.substring(3);
-        }
-        newPath = `/ar${newPath || '/'}`;
-        window.history.replaceState({}, '', newPath);
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored && ['ar','en','fr'].includes(stored)) return stored as Language;
+      const cookie = Cookies.get(COOKIE_KEY);
+      if (cookie && ['ar','en','fr'].includes(cookie)) return cookie as Language;
+    }
+    return 'ar';
+  };
+  const [language, setLanguageState] = useState<Language>(getInitialLang());
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    try { Cookies.set(COOKIE_KEY, lang, { expires: 30, path: '/' }); } catch {}
+    try { localStorage.setItem(STORAGE_KEY, lang); } catch {}
+    if (typeof window !== 'undefined') {
+      document.documentElement.lang = lang;
+      if (lang === 'ar') {
+        document.documentElement.setAttribute('dir', 'rtl');
+        document.body.style.direction = 'rtl';
+      } else {
+        document.documentElement.setAttribute('dir', 'ltr');
+        document.body.style.direction = 'ltr';
       }
     }
   };

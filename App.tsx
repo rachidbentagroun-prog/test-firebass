@@ -992,11 +992,8 @@ const App: React.FC = () => {
       default:
         // Always show HomeLanding for home page and fallback
         return <HomeLanding 
-          onSubmitPrompt={(promptText) => { setInitialPrompt(promptText); setCurrentPage('dashboard'); }}
-          onGoToImage={() => setCurrentPage('aiimage')}
           onGoToVideo={() => setCurrentPage('aivideo')}
-          onGoToWebsite={() => setCurrentPage('chat-landing')}
-          onGoToAudio={() => setCurrentPage('aivoice')}
+          onNavigate={setCurrentPage}
         />;
     }
   };

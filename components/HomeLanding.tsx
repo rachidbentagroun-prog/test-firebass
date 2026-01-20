@@ -1,45 +1,36 @@
-import React, { useState, useRef, useEffect } from 'react';
+            {/* CTA button at end of homepage */}
+            <div className="w-full flex justify-center py-10 bg-transparent">
+              <button
+                onClick={() => onNavigate('aivideo')}
+                className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 text-xl"
+              >
+                <Video className="h-6 w-6" />
+                <span>أنشئ الفيديو الخاص بك</span>
+              </button>
+            </div>
 import React, { Suspense } from 'react';
-import { Image as ImageIcon, Video, Mic2, Globe2, ArrowRight, Upload, X, Play, Pause, Mic, ChevronLeft, ChevronRight } from 'lucide-react';
-import VideoCarousel from './VideoCarousel';
+import { Video, ArrowRight } from 'lucide-react';
 const VimeoEmbed = React.lazy(() => import('./VimeoEmbed'));
 import { useLanguage } from '../utils/i18n';
 
 interface HomeLandingProps {
-  onSubmitPrompt: (prompt: string) => void;
-  onGoToImage: () => void;
   onGoToVideo: () => void;
-  onGoToWebsite: () => void;
-  onGoToAudio: () => void;
+  onNavigate: (page: string) => void;
 }
 
-export const HomeLanding: React.FC<HomeLandingProps> = ({
-  onSubmitPrompt,
-  onGoToImage,
-  onGoToVideo,
-  onGoToWebsite,
-  onGoToAudio,
-}) => {
-  const [prompt, setPrompt] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recognition, setRecognition] = useState<any>(null);
-  const [detectedIntent, setDetectedIntent] = useState<'image' | 'video' | 'audio' | null>(null);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Get translation function
-  const { t } = useLanguage();
-  
-  // Video slideshow state
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const [isSliderVisible, setIsSliderVisible] = useState(false);
-  const sliderRef = useRef<HTMLDivElement | null>(null);
-  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
-  
-  // UGC Style Product Videos
-  const videoExamples = [
+export const HomeLanding = ({ onGoToVideo, onNavigate }: HomeLandingProps): React.ReactElement => {
+  const { t, language, setLanguage } = useLanguage();
+  const [inputValue, setInputValue] = React.useState('');
+  const navigateToVideoLab = () => {
+    if (inputValue.trim()) {
+      // Use window.location for navigation with query param (if no router)
+      window.location.href = `/videolab?prompt=${encodeURIComponent(inputValue.trim())}`;
+    } else {
+      // fallback: just go to video lab
+      window.location.href = '/videolab';
+    }
+  };
+  const homepageVideos = [
     {
       vimeoEmbed: true,
       url: 'https://player.vimeo.com/video/1156344244?badge=0&autopause=0&player_id=0&app_id=58479',
@@ -53,711 +44,187 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({
       description: '#fyp #fypシ #fypreelsシ゚ #foryou #foryoupage'
     }
   ];
-
-  // Initialize Speech Recognition
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const recognitionInstance = new SpeechRecognition();
-        recognitionInstance.continuous = true;
-        recognitionInstance.interimResults = true;
-        recognitionInstance.lang = 'en-US';
-
-        recognitionInstance.onresult = (event: any) => {
-          let interimTranscript = '';
-          let finalTranscript = '';
-
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-              finalTranscript += transcript + ' ';
-              setIsTranscribing(false);
-            } else {
-              interimTranscript += transcript;
-              setIsTranscribing(true);
-            }
-          }
-
-          // Update prompt with final transcript
-          if (finalTranscript) {
-            setPrompt((prev) => {
-              const newPrompt = prev + finalTranscript;
-              // Update detected intent
-              setDetectedIntent(detectPromptIntent(newPrompt));
-              return newPrompt;
-            });
-          }
-        };
-
-        recognitionInstance.onerror = (event: any) => {
-          console.error('Speech recognition error:', event.error);
-          setIsRecording(false);
-          setIsTranscribing(false);
-          
-          if (event.error === 'not-allowed') {
-            alert('🎙️ Microphone access denied.\n\nPlease allow microphone permission in your browser settings.');
-          } else if (event.error === 'no-speech') {
-            // Silent timeout, don't show error
-          } else {
-            console.log('Recognition error:', event.error);
-          }
-        };
-
-        recognitionInstance.onend = () => {
-          setIsRecording(false);
-          setIsTranscribing(false);
-        };
-
-        setRecognition(recognitionInstance);
-      }
-    }
-  }, []);
   
-
-  // Custom autoplay: first video plays to end, then auto-advance; autoplay starts when slider is visible
-  useEffect(() => {
-    if (!isSliderVisible || isPaused) return;
-    const playCurrent = () => {
-      const currentVideo = videoRefs.current[currentSlide];
-      if (currentVideo) {
-        currentVideo.currentTime = 0;
-        currentVideo.play();
-        const handleEnded = () => {
-          setCurrentSlide((prev) => (prev + 1) % videoExamples.length);
-        };
-        currentVideo.addEventListener('ended', handleEnded);
-        return () => {
-          currentVideo.removeEventListener('ended', handleEnded);
-        };
-      }
-      return undefined;
-    };
-    // Only autoplay if first slide
-    if (currentSlide === 0) {
-      return playCurrent();
-    } else {
-      // For other slides, play and auto-advance as before
-      return playCurrent();
-    }
-  }, [currentSlide, isPaused, isSliderVisible, videoExamples.length]);
-
-  // Reset pause state when slider becomes visible
-  useEffect(() => {
-    if (isSliderVisible) setIsPaused(false);
-  }, [isSliderVisible]);
-
-  // IntersectionObserver to detect slider visibility
-  useEffect(() => {
-    const sliderEl = sliderRef.current;
-    if (!sliderEl) return;
-    const observer = new window.IntersectionObserver(
-      ([entry]) => {
-        setIsSliderVisible(entry.isIntersecting);
-      },
-      { threshold: 0.5 }
-    );
-    observer.observe(sliderEl);
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-  
-  // Handle video playback
-  useEffect(() => {
-    videoRefs.current.forEach((video) => {
-      if (video) {
-        video.pause();
-        video.currentTime = 0;
-      }
-    });
-  }, [currentSlide]);
-  
-  const goToSlide = (index: number) => {
-    setCurrentSlide(index);
-  };
-  
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % videoExamples.length);
-  };
-  
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + videoExamples.length) % videoExamples.length);
-  };
-  
-  // TODO: Replace with your Supabase Storage URLs after uploading videos
-  // Format: https://[supabase-url]/storage/v1/object/public/ai-video-previews/[filename].mp4
-  const videoUrls = [
-    'https://via.placeholder.com/1080x1920/000000/ffffff?text=Video+1', // Replace with your CDN URL
-    'https://via.placeholder.com/1080x1920/1a1a2e/0f3460?text=Video+2', // Replace with your CDN URL
-    'https://via.placeholder.com/1080x1920/16213e/e94560?text=Video+3', // Replace with your CDN URL
-    'https://via.placeholder.com/1080x1920/0f3460/533483?text=Video+4', // Replace with your CDN URL
-    'https://via.placeholder.com/1080x1920/2d3561/a8dadc?text=Video+5'  // Replace with your CDN URL
-  ];
-
-  // Smart prompt detection and routing
-  const detectPromptIntent = (text: string): 'image' | 'video' | 'audio' | null => {
-    const lowerText = text.toLowerCase();
-    
-    // Image keywords
-    const imageKeywords = [
-      'image', 'photo', 'picture', 'illustration', 'artwork', 'portrait', 
-      'logo', 'design', 'poster', 'background', 'realistic', 'anime',
-      'drawing', 'sketch', 'painting', 'render', 'art', 'graphic',
-      'wallpaper', 'icon', 'banner', 'thumbnail', 'cover'
-    ];
-    
-    // Video keywords
-    const videoKeywords = [
-      'video', 'cinematic', 'clip', 'animation', 'reel', 'shorts',
-      'movie', 'scene', 'footage', 'motion', 'vlog', 'film',
-      'cinematic', 'trailer', 'sequence', 'montage', 'timelapse'
-    ];
-    
-    // Audio/Voice keywords
-    const audioKeywords = [
-      'voice', 'audio', 'narration', 'speech', 'podcast', 'voiceover',
-      'sound', 'music', 'song', 'talking', 'speak', 'narrator',
-      'announcement', 'dialogue', 'conversation', 'interview'
-    ];
-    
-    // Count keyword matches
-    const imageScore = imageKeywords.filter(keyword => lowerText.includes(keyword)).length;
-    const videoScore = videoKeywords.filter(keyword => lowerText.includes(keyword)).length;
-    const audioScore = audioKeywords.filter(keyword => lowerText.includes(keyword)).length;
-    
-    // Determine intent based on highest score
-    if (imageScore === 0 && videoScore === 0 && audioScore === 0) {
-      return null; // No clear intent
-    }
-    
-    const maxScore = Math.max(imageScore, videoScore, audioScore);
-    
-    if (imageScore === maxScore) return 'image';
-    if (videoScore === maxScore) return 'video';
-    if (audioScore === maxScore) return 'audio';
-    
-    return null;
-  };
-
-  const handleSubmit = () => {
-    const trimmedPrompt = prompt.trim();
-    if (!trimmedPrompt) return;
-    
-    // Detect intent and route intelligently
-    const intent = detectPromptIntent(trimmedPrompt);
-    
-    // Submit prompt first
-    onSubmitPrompt(trimmedPrompt);
-    
-    // Route to appropriate page
-    if (intent === 'image') {
-      onGoToImage();
-    } else if (intent === 'video') {
-      onGoToVideo();
-    } else if (intent === 'audio') {
-      onGoToAudio();
-    }
-    // If no clear intent detected, stay on current page
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSubmit();
-    }
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
-    }
-  };
-
-  const toggleRecording = () => {
-    if (!recognition) {
-      // Check if speech recognition is available
-      if (typeof window !== 'undefined') {
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-          alert('🎙️ Voice input is not supported in your browser.\n\nPlease use Chrome, Edge, or Safari for voice recording.');
-          return;
-        }
-      }
-      alert('Voice recognition is initializing. Please try again in a moment.');
-      return;
-    }
-
-    if (isRecording) {
-      recognition.stop();
-      setIsRecording(false);
-    } else {
-      try {
-        recognition.start();
-        setIsRecording(true);
-      } catch (error) {
-        console.error('Error starting speech recognition:', error);
-        alert('Unable to start voice recording. Please check your microphone permissions.');
-      }
-    }
-  };
-
-  const removeFile = () => {
-    setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const buttonBase = 'group relative flex items-center justify-center gap-2.5 rounded-full border border-transparent bg-white hover:bg-slate-50 hover:border-slate-200 hover:shadow-md transition-all duration-300 text-sm font-medium py-3.5 px-5 min-h-[44px]';
-
+  // Only static homepageVideos and useLanguage remain
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900">
-      
-      {/* Premium Hero Section with Motion Design */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-20 pb-20 px-4">
-        {/* Animated background elements */}
-        <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none">
-          {/* Soft gradient orbs */}
-          <div className="absolute top-0 -left-40 w-96 h-96 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full blur-3xl opacity-30 animate-float" />
-          <div className="absolute bottom-0 -right-40 w-96 h-96 bg-gradient-to-br from-pink-100 to-purple-100 rounded-full blur-3xl opacity-30 animate-float-delayed" />
-          
-          {/* Subtle grid pattern */}
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:14rem_14rem] opacity-[0.03]" />
-        </div>
-
-        {/* Main content */}
-        <div className="relative z-10 w-full max-w-4xl space-y-10">
-          {/* Hero Headline with Sparkles */}
-          <div className="text-center space-y-6">
-            <div className="relative inline-block animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-              {/* Decorative sparkles */}
-              <span className="absolute -top-4 -left-8 text-2xl animate-sparkle" style={{ animationDelay: '400ms' }}>✨</span>
-              <span className="absolute -top-2 -right-6 text-xl animate-sparkle" style={{ animationDelay: '600ms' }}>✨</span>
-              
-              <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-slate-900 leading-[1.1] tracking-tight">
-                {t('homeLanding.heroTitle')}
-              </h1>
-            </div>
-            
-            {/* Subheadline with delay */}
-            <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed animate-fade-in" style={{ animationDelay: '300ms' }}>
-              {t('homeLanding.heroSubtitle')}
-            </p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900">
+        <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-20 pb-20 px-4">
+          <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none">
+            <div className="absolute top-0 -left-40 w-96 h-96 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full blur-3xl opacity-30 animate-float" />
+            <div className="absolute bottom-0 -right-40 w-96 h-96 bg-gradient-to-br from-pink-100 to-purple-100 rounded-full blur-3xl opacity-30 animate-float-delayed" />
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:14rem_14rem] opacity-[0.03]" />
           </div>
-
-          {/* Premium Prompt Input Box with Motion */}
-          <div className="mt-12 mx-auto w-full max-w-3xl animate-scale-in" style={{ animationDelay: '450ms' }}>
-            <div className="relative group">
-              {/* Ambient glow underneath */}
-              <div className="pointer-events-none absolute -inset-4 bg-gradient-to-r from-pink-200 via-purple-200 to-indigo-200 rounded-3xl blur-2xl opacity-0 group-hover:opacity-40 group-focus-within:opacity-50 transition-all duration-700 -z-10" />
-              
-              {/* Main input container */}
-              <div className="relative z-20 rounded-2xl bg-white shadow-xl hover:shadow-2xl focus-within:shadow-2xl transition-all duration-500 overflow-hidden border border-slate-200">
-                {/* Animated top gradient border */}
-                <div className="pointer-events-none absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 animate-border-flow transition-opacity duration-500"></div>
-                
-                {/* Input section */}
-                <div className="flex flex-col gap-3 p-5 sm:p-8">
-                  {/* Selected file indicator (shown above input on mobile, inline on desktop) */}
-                  {selectedFile && (
-                    <div className="flex items-center gap-2 rounded-xl bg-indigo-50 px-4 py-2.5 border border-indigo-200 animate-fade-in">
-                      <span className="text-sm font-medium text-slate-900 truncate">{selectedFile.name}</span>
-                      <button onClick={removeFile} className="text-slate-500 hover:text-red-500 transition-colors flex-shrink-0 hover:scale-110" type="button">
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-                  
-                  {/* Main input row with input field and generate button */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                    {/* Hidden file input */}
-                    <input ref={fileInputRef} type="file" onChange={handleFileSelect} className="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx" />
-                    
-                    {/* Input field with upload button on left and microphone on right */}
-                    <div className="relative flex-1 min-w-0">
-                      {/* Upload button - positioned inside input on left */}
-                      <div className="pointer-events-auto absolute inset-y-1 left-1 flex items-center">
-                        <button
-                          onClick={() => fileInputRef.current?.click()}
-                          className={`relative flex h-11 w-11 items-center justify-center rounded-lg transition-all duration-300 hover:scale-105 active:scale-95 ${
-                            selectedFile 
-                              ? 'bg-indigo-100 text-indigo-600 shadow-md ring-2 ring-indigo-200' 
-                              : 'bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-slate-200'
-                          }`}
-                          title={t('homeLanding.uploadRef')}
-                          type="button"
-                          aria-label={t('homeLanding.uploadRef')}
-                        >
-                          <Upload className="h-[20px] w-[20px]" />
-                        </button>
-                      </div>
-                      
-                      <input 
-                        value={prompt}
-                        onChange={(e) => {
-                          setPrompt(e.target.value);
-                          // Update detected intent as user types
-                          if (e.target.value.trim()) {
-                            setDetectedIntent(detectPromptIntent(e.target.value));
-                          } else {
-                            setDetectedIntent(null);
-                          }
-                        }}
-                        onKeyDown={handleKeyDown}
-                        placeholder={isRecording ? (isTranscribing ? t('common.loading') : t('homeLanding.inputPlaceholder')) : t('homeLanding.inputPlaceholder')}
-                        className="h-[56px] w-full rounded-xl bg-slate-50/60 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2 focus:ring-offset-white text-[16px] sm:text-lg font-medium transition-all duration-300 pl-14 pr-14 text-center placeholder:text-center"
-                        style={{ WebkitAppearance: 'none' }}
-                      />
-                      
-                      {/* Microphone button for speech-to-text - positioned inside input on right */}
-                      <div className="pointer-events-auto absolute inset-y-1 right-1 flex items-center">
-                        <button
-                          onClick={toggleRecording}
-                          className={`relative flex h-11 w-11 items-center justify-center rounded-lg transition-all duration-300 hover:scale-105 active:scale-95 ${
-                            isRecording 
-                              ? 'bg-red-500 text-white shadow-lg shadow-red-200' 
-                              : 'bg-white text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'
-                          }`}
-                          title={isRecording ? 'Stop recording' : 'Click to speak'}
-                          type="button"
-                          aria-label={isRecording ? 'Stop recording' : 'Start voice input'}
-                        >
-                          <Mic className="h-[20px] w-[20px]" />
-                          {/* Recording pulse animation */}
-                          {isRecording && (
-                            <>
-                              <span className="absolute inset-0 rounded-lg bg-red-500 animate-ping opacity-60"></span>
-                              <span className="absolute inset-0 rounded-lg bg-red-400 animate-pulse"></span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {/* Generate button - aligned with input */}
-                    <button 
-                      onClick={handleSubmit} 
-                      className="relative h-[56px] flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold px-8 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-95 flex-shrink-0"
-                    >
-                      {t('homeLanding.generate')} 
-                      <ArrowRight className="h-5 w-5 transition-transform duration-300" />
-                      
-                      {/* Smart routing indicator */}
-                      {detectedIntent && (
-                        <span className="absolute -top-2 -right-2 flex items-center gap-1 px-2 py-0.5 bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-lg animate-fade-in">
-                          {detectedIntent === 'image' && '🖼️'}
-                          {detectedIntent === 'video' && '🎥'}
-                          {detectedIntent === 'audio' && '🔊'}
-                        </span>
-                      )}
-                    </button>
-                  </div>
+          <div className="relative z-10 w-full max-w-4xl space-y-10">
+            <div className="text-center space-y-6">
+              <div className="relative inline-block animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+                <span className="absolute -top-4 -left-8 text-2xl animate-sparkle" style={{ animationDelay: '400ms' }}>✨</span>
+                <span className="absolute -top-2 -right-6 text-xl animate-sparkle" style={{ animationDelay: '600ms' }}>✨</span>
+                <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-slate-900 leading-[1.1] tracking-tight">
+                  {t('homeLanding.heroTitle')}
+                </h1>
+              </div>
+              <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed animate-fade-in" style={{ animationDelay: '300ms' }}>
+                {t('homeLanding.heroSubtitle')}
+              </p>
+              {/* Restored Input Box with Upload, Audio, and 4 Buttons */}
+              <div className="mt-8 flex flex-col items-center w-full">
+                {/* Futuristic, glassmorphic, responsive input box */}
+                <div className="w-full max-w-xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 px-2 py-2 flex items-center gap-2 sm:gap-3 glassmorphism-input transition-all duration-300 ring-1 ring-indigo-100/30 focus-within:ring-2 focus-within:ring-indigo-400/40">
+                  {/* Upload Icon (left) */}
+                  <label className="flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-indigo-100/60 to-white/30 hover:from-indigo-200/80 hover:to-white/60 border border-indigo-200/30 shadow-md transition cursor-pointer" title="Upload file">
+                    <svg className="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12" /></svg>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          try {
+                            localStorage.setItem('ai_video_reference_image', reader.result as string);
+                          } catch {}
+                          onNavigate('aivideo');
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                    />
+                  </label>
+                  {/* Input Field */}
+                  <input
+                    type="text"
+                    className="flex-1 h-11 sm:h-12 px-3 sm:px-4 rounded-xl border-none focus:ring-2 focus:ring-indigo-200 text-base sm:text-lg bg-transparent outline-none placeholder:text-slate-400 placeholder:font-medium"
+                    placeholder="صف ما تريد إنشاءه... (مثال: 'منظر مدينة مستقبلي عند الغروب')"
+                    value={inputValue}
+                    onChange={e => setInputValue(e.target.value)}
+                  />
+                  {/* Audio Record Icon (right) - functional */}
+                  <button
+                    className="flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-pink-100/60 to-white/30 hover:from-pink-200/80 hover:to-white/60 border border-pink-200/30 shadow-md transition"
+                    title="Record audio"
+                    type="button"
+                    onClick={() => {
+                      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                        alert('متصفحك لا يدعم تحويل الصوت إلى نص. يرجى استخدام متصفح حديث مثل Chrome.');
+                        return;
+                      }
+                      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+                      const recognition = new SpeechRecognition();
+                      recognition.lang = language || 'ar';
+                      recognition.interimResults = false;
+                      recognition.maxAlternatives = 1;
+                      recognition.onresult = (event: any) => {
+                        const transcript = event.results[0][0].transcript;
+                        setInputValue(transcript);
+                      };
+                      recognition.onerror = (event: any) => {
+                        alert('حدث خطأ أثناء التسجيل: ' + event.error);
+                      };
+                      recognition.start();
+                    }}
+                  >
+                    <svg className="w-6 h-6 text-pink-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18v4m0 0h4m-4 0H8m8-4a4 4 0 01-8 0V6a4 4 0 018 0v8z" /></svg>
+                  </button>
+                  {/* Create Button */}
+                  <button
+                    className="flex items-center justify-center h-11 sm:h-12 px-5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-sm shadow-lg transition ml-2"
+                    title="Create"
+                    onClick={navigateToVideoLab}
+                  >
+                    إنشاء
+                  </button>
                 </div>
-                
-                {/* Quick actions pills */}
-                <div className="px-5 sm:px-8 py-6 border-t border-slate-100/80 bg-gradient-to-b from-slate-50/80 to-white/50">
-                  <div className="flex flex-wrap items-center justify-center gap-3">
-                    <button 
-                      className={`${buttonBase} shadow-sm hover:scale-105 active:scale-95`} 
-                      onClick={onGoToImage} 
-                      title="Create Image"
-                    >
-                      <ImageIcon className="h-[18px] w-[18px] text-indigo-600" strokeWidth={2.5} />
-                      <span className="text-slate-900 font-semibold">{t('homeLanding.button.image')}</span>
-                    </button>
-                    <button 
-                      className={`${buttonBase} shadow-sm hover:scale-105 active:scale-95`} 
-                      onClick={onGoToVideo} 
-                      title="Create Video"
-                    >
-                      <Video className="h-[18px] w-[18px] text-purple-600" strokeWidth={2.5} />
-                      <span className="text-slate-900 font-semibold">{t('homeLanding.button.video')}</span>
-                    </button>
-                    <button 
-                      className={`${buttonBase} shadow-sm hover:scale-105 active:scale-95`} 
-                      onClick={onGoToWebsite} 
-                      title="Create Website"
-                    >
-                      <Globe2 className="h-[18px] w-[18px] text-blue-600" strokeWidth={2.5} />
-                      <span className="text-slate-900 font-semibold">{t('homeLanding.button.website')}</span>
-                    </button>
-                    <button 
-                      className={`${buttonBase} shadow-sm hover:scale-105 active:scale-95`} 
-                      onClick={onGoToAudio} 
-                      title="Create Audio"
-                    >
-                      <Mic2 className="h-[18px] w-[18px] text-pink-600" strokeWidth={2.5} />
-                      <span className="text-slate-900 font-semibold">{t('homeLanding.button.audio')}</span>
-                    </button>
-                  </div>
+                {/* Quick Action Buttons - responsive grid */}
+                <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3 mt-4 w-full max-w-xl">
+                  <button
+                    className="flex items-center justify-center gap-2 px-4 py-3 sm:px-5 sm:py-3 rounded-xl bg-white/80 text-indigo-700 font-bold text-xs sm:text-sm hover:bg-indigo-50 border border-indigo-100 shadow transition backdrop-blur-md"
+                    onClick={() => onNavigate('aiimage')}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" /></svg>
+                    Image
+                  </button>
+                  <button
+                    className="flex items-center justify-center gap-2 px-4 py-3 sm:px-5 sm:py-3 rounded-xl bg-white/80 text-purple-700 font-bold text-xs sm:text-sm hover:bg-purple-50 border border-purple-100 shadow transition backdrop-blur-md"
+                    onClick={() => onNavigate('aivideo')}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                    Video
+                  </button>
+                  <button
+                    className="flex items-center justify-center gap-2 px-4 py-3 sm:px-5 sm:py-3 rounded-xl bg-white/80 text-blue-700 font-bold text-xs sm:text-sm hover:bg-blue-50 border border-blue-100 shadow transition backdrop-blur-md"
+                    onClick={() => onNavigate('chat-landing')}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M2 12h20" /></svg>
+                    Website
+                  </button>
+                  <button
+                    className="flex items-center justify-center gap-2 px-4 py-3 sm:px-5 sm:py-3 rounded-xl bg-white/80 text-pink-700 font-bold text-xs sm:text-sm hover:bg-pink-50 border border-pink-100 shadow transition backdrop-blur-md"
+                    onClick={() => onNavigate('aivoice')}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 19V6a3 3 0 016 0v13" /><rect x="5" y="19" width="14" height="2" rx="1" /></svg>
+                    Audio
+                  </button>
                 </div>
               </div>
             </div>
-
-
-            
-            {/* AI Video Examples Slideshow */}
             <div className="mt-16">
               <div className="text-center mb-8">
                 <div className="mb-2 text-xs font-bold uppercase tracking-widest text-indigo-700"><b>THIS WEBSITE PARTNER WITH OPENAI .</b></div>
                 <h3 className="text-2xl font-bold text-slate-900 mb-2">{t('homeLanding.ugcTitleShort')}</h3>
                 <p className="text-slate-600">{t('homeLanding.watchExamples')}</p>
               </div>
-              
-              <div 
-                className="relative max-w-md mx-auto group"
-              >
-                {/* Video Container - 9:16 aspect ratio for vertical videos */}
-                <div ref={sliderRef} className="relative rounded-2xl overflow-hidden shadow-2xl bg-slate-900" style={{ aspectRatio: '9/16' }}>
-                  {videoExamples.map((video, index) => (
-                    <div
-                      key={index}
-                      className={`absolute inset-0 transition-opacity duration-700 ${
-                        index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
-                      }`}
-                      style={{ pointerEvents: index === currentSlide ? 'auto' : 'none' }}
-                    >
-                      {video.vimeoEmbed ? (
-                        typeof window !== 'undefined' ? (
-                          <Suspense fallback={<div className="w-full h-full bg-black flex items-center justify-center">Loading…</div>}>
-                            <VimeoEmbed
-                              url={video.url}
-                              title={video.title}
-                              className="w-full h-full object-cover"
-                              style={{ pointerEvents: index === currentSlide ? 'auto' : 'none' }}
-                            />
-                          </Suspense>
-                        ) : null
-                      ) : (
-                        <video
-                          ref={(el) => {
-                            videoRefs.current[index] = el;
-                            if (el) {
-                              el.muted = index !== currentSlide;
-                            }
-                          }}
-                          src={video.url}
-                          className="w-full h-full object-cover"
-                          playsInline
-                          muted={index !== currentSlide}
-                          controls={false}
-                          preload={index === currentSlide || index === (currentSlide + 1) % videoExamples.length ? 'auto' : 'none'}
-                          onClick={(e) => {
-                            setIsPaused(true);
-                            videoRefs.current.forEach((v, idx) => {
-                              if (v) {
-                                v.pause();
-                                v.currentTime = 0;
-                                v.muted = true;
-                              }
-                            });
-                            const vid = e.currentTarget;
-                            vid.muted = false;
-                            vid.play();
-                            setCurrentSlide(index);
-                          }}
-                        />
-                      )}
-                      {/* Video Info Overlay */}
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6">
-                        <h4 className="text-white font-semibold text-lg mb-1">{video.title}</h4>
-                        <p className="text-white/80 text-sm">{video.description}</p>
-                      </div>
+                <div className="relative max-w-md mx-auto group flex flex-col gap-8">
+                  {/* First Vimeo video */}
+                  <div className="rounded-2xl overflow-hidden shadow-2xl bg-slate-900" style={{ aspectRatio: '9/16' }}>
+                    <Suspense fallback={<div className="w-full h-full bg-black flex items-center justify-center">Loading…</div>}>
+                      <VimeoEmbed
+                        url={homepageVideos[0].url}
+                        title={homepageVideos[0].title}
+                        className="w-full h-full object-cover"
+                      />
+                    </Suspense>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6">
+                      <h4 className="text-white font-semibold text-lg mb-1">{homepageVideos[0].title}</h4>
+                      <p className="text-white/80 text-sm">{homepageVideos[0].description}</p>
                     </div>
-                  ))}
-                </div>
-                
-                {/* Dot Indicators */}
-                <div className="flex items-center justify-center gap-2 mt-6">
-                  {videoExamples.map((_, index) => (
+                  </div>
+                  {/* CTA button between videos */}
+                  <div className="w-full flex justify-center py-8 bg-transparent">
                     <button
-                      key={index}
-                      onClick={() => goToSlide(index)}
-                      className={`transition-all duration-300 rounded-full ${
-                        index === currentSlide
-                          ? 'w-8 h-2 bg-indigo-600'
-                          : 'w-2 h-2 bg-slate-300 hover:bg-slate-400'
-                      }`}
-                      aria-label={`Go to slide ${index + 1}`}
-                    />
-                  ))}
-                </div>
-                
-                {/* CTA Button */}
-                <div className="text-center mt-8">
-                  <button
-                    onClick={onGoToVideo}
-                    className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-                  >
-                    <Video className="h-5 w-5" />
-                    <span>{t('homeLanding.createYourOwnVideo')}</span>
-                    <ArrowRight className="h-5 w-5" />
-                  </button>
-                </div>
+                      onClick={() => onNavigate('aivideo')}
+                      className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 text-xl"
+                    >
+                      <span>أنشئ الفيديو الخاص بك</span>
+                    </button>
+                  </div>
+                  {/* Second Vimeo video */}
+                  <div className="rounded-2xl overflow-hidden shadow-2xl bg-slate-900" style={{ aspectRatio: '9/16' }}>
+                    <Suspense fallback={<div className="w-full h-full bg-black flex items-center justify-center">Loading…</div>}>
+                      <VimeoEmbed
+                        url={homepageVideos[1].url}
+                        title={homepageVideos[1].title}
+                        className="w-full h-full object-cover"
+                      />
+                    </Suspense>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6">
+                      <h4 className="text-white font-semibold text-lg mb-1">{homepageVideos[1].title}</h4>
+                      <p className="text-white/80 text-sm">{homepageVideos[1].description}</p>
+                    </div>
+                  </div>
+            {/* CTA button at end of homepage */}
+            <div className="w-full flex justify-center py-10 bg-transparent">
+              <button
+                onClick={() => onNavigate('aivideo')}
+                className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 text-xl"
+              >
+                <span>أنشئ الفيديو الخاص بك</span>
+              </button>
+            </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
-      
-      <style>{`
-        /* Premium Motion Design Animations */
-        
-        @keyframes fade-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(15px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-        
-        @keyframes scale-in {
-          from {
-            opacity: 0;
-            transform: scale(0.97);
-            filter: blur(4px);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-            filter: blur(0px);
-          }
-        }
-        
-        @keyframes sparkle {
-          0% {
-            opacity: 0;
-            transform: scale(0.8) rotate(0deg);
-          }
-          50% {
-            opacity: 0.6;
-            transform: scale(1) rotate(10deg);
-          }
-          100% {
-            opacity: 0.3;
-            transform: scale(0.9) rotate(5deg);
-          }
-        }
-        
-        @keyframes gradient-shift {
-          0%, 100% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-        }
-        
-        @keyframes border-flow {
-          0% {
-            transform: translateX(-100%);
-          }
-          100% {
-            transform: translateX(100%);
-          }
-        }
-        
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0) translateX(0);
-          }
-          50% {
-            transform: translateY(-20px) translateX(10px);
-          }
-        }
-        
-        @keyframes float-delayed {
-          0%, 100% {
-            transform: translateY(0) translateX(0);
-          }
-          50% {
-            transform: translateY(20px) translateX(-10px);
-          }
-        }
-        
-        /* Apply Animations */
-        .animate-fade-in-up {
-          animation: fade-in-up 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          opacity: 0;
-        }
-        
-        .animate-fade-in {
-          animation: fade-in 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          opacity: 0;
-        }
-        
-        .animate-scale-in {
-          animation: scale-in 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          opacity: 0;
-        }
-        
-        .animate-sparkle {
-          animation: sparkle 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          opacity: 0;
-          display: inline-block;
-          filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.3));
-        }
-        
-        .animate-gradient-shift {
-          background-size: 200% 200%;
-          animation: gradient-shift 6s ease-in-out infinite;
-        }
-        
-        .animate-border-flow {
-          animation: border-flow 3s linear infinite;
-        }
-        
-        .animate-float {
-          animation: float 20s ease-in-out infinite;
-        }
-        
-        .animate-float-delayed {
-          animation: float-delayed 25s ease-in-out infinite;
-        }
-        
-        /* Focus Pulse Effect */
-        input:focus {
-          animation: focus-pulse 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        
-        @keyframes focus-pulse {
-          0% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.002);
-          }
-          100% {
-            transform: scale(1);
-          }
-        }
-        
-        /* Smooth all transitions */
-        * {
-          transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        /* Hide scrollbars for pill list on mobile */
-        .no-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        .no-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
-    </div>
-  );
-};
+        </section>
+      </div>
+    );
+  };
