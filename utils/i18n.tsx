@@ -256,7 +256,7 @@ const DICTS: Record<Language, Record<string, string>> = {
 
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Default language is Arabic, but allow user to change
+  // Always default to Arabic unless user has chosen another language
   const getInitialLang = () => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem(STORAGE_KEY);

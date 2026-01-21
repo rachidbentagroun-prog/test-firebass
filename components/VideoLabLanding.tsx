@@ -358,7 +358,7 @@ export const VideoLabLanding: React.FC<VideoLabLandingProps> = ({
                        </div>
 
                        <button onClick={handleCTAClick} disabled={isGenerating || showIdentityCheck} className="w-full py-6 bg-indigo-600 hover:bg-indigo-500 disabled:bg-white/10 disabled:text-white/50 disabled:cursor-not-allowed text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02] active:scale-[0.98]">
-                         {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5 fill-white" />} GENERATE IMAGE NOW (3 CREDIT)
+                         {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5 fill-white" />} GENERATE VIDEO NOW (3 CREDIT)
                        </button>
                     </div>
                  </div>
