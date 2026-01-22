@@ -179,17 +179,17 @@ const App: React.FC = () => {
   });
 
 
-  // Show ExitIntentPopup after guest stays on website for more than 9 seconds (not for registered users)
+  // Show ExitIntentPopup after registered users stay on website for more than 9 seconds
   useEffect(() => {
-    // Only show for guests (no user or not registered)
-    if (user && user.isRegistered) return;
+    // Only show for registered users
+    if (!user || !user.isRegistered) return;
     let popupShown = false;
     const showPopup = () => {
       if (!popupShown && !sessionStorage.getItem('exit_popup_shown')) {
         popupShown = true;
         setShowExitPopup(true);
         sessionStorage.setItem('exit_popup_shown', '1');
-        console.log('[ExitIntent] Popup shown after 9s (guest only)');
+        console.log('[ExitIntent] Popup shown after 9s (registered user only)');
       }
     };
     let timerId: number | undefined;
@@ -1024,15 +1024,7 @@ const App: React.FC = () => {
             ? '' /* No theme class for admin - uses inline styles */
             : 'landing-theme bg-gradient-to-b from-white via-gray-50 to-white text-gray-900'
         }`}>
-        {showExitPopup && (
-          <ExitIntentPopup
-            onClose={() => setShowExitPopup(false)}
-            onSignup={() => {
-              setShowExitPopup(false);
-              setCurrentPage('signup');
-            }}
-          />
-        )}
+
       <Navbar 
         user={user} 
         onLogout={handleLogout} 

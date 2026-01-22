@@ -1,13 +1,3 @@
-            {/* CTA button at end of homepage */}
-            <div className="w-full flex justify-center py-10 bg-transparent">
-              <button
-                onClick={() => onNavigate('aivideo')}
-                className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 text-xl"
-              >
-                <Video className="h-6 w-6" />
-                <span>أنشئ الفيديو الخاص بك</span>
-              </button>
-            </div>
 import React, { Suspense } from 'react';
 import { Video, ArrowRight } from 'lucide-react';
 const VimeoEmbed = React.lazy(() => import('./VimeoEmbed'));
@@ -31,12 +21,6 @@ export const HomeLanding = ({ onGoToVideo, onNavigate }: HomeLandingProps): Reac
     }
   };
   const homepageVideos = [
-    {
-      vimeoEmbed: true,
-      url: 'https://player.vimeo.com/video/1156344244?badge=0&autopause=0&player_id=0&app_id=58479',
-      title: 'Vimeo Video 2',
-      description: 'Second Vimeo video in the slideshow.'
-    },
     {
       vimeoEmbed: true,
       url: 'https://player.vimeo.com/video/1156344229?badge=0&autopause=0&player_id=0&app_id=58479',
@@ -184,44 +168,102 @@ export const HomeLanding = ({ onGoToVideo, onNavigate }: HomeLandingProps): Reac
                         className="w-full h-full object-cover"
                       />
                     </Suspense>
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6">
-                      <h4 className="text-white font-semibold text-lg mb-1">{homepageVideos[0].title}</h4>
-                      <p className="text-white/80 text-sm">{homepageVideos[0].description}</p>
-                    </div>
                   </div>
-                  {/* CTA button between videos */}
-                  <div className="w-full flex justify-center py-8 bg-transparent">
-                    <button
-                      onClick={() => onNavigate('aivideo')}
-                      className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 text-xl"
-                    >
-                      <span>أنشئ الفيديو الخاص بك</span>
-                    </button>
-                  </div>
-                  {/* Second Vimeo video */}
-                  <div className="rounded-2xl overflow-hidden shadow-2xl bg-slate-900" style={{ aspectRatio: '9/16' }}>
+
+                  {/* New UGC AI Video */}
+                  <div className="rounded-2xl overflow-hidden shadow-2xl bg-slate-900 mt-8" style={{ aspectRatio: '9/16' }}>
                     <Suspense fallback={<div className="w-full h-full bg-black flex items-center justify-center">Loading…</div>}>
                       <VimeoEmbed
-                        url={homepageVideos[1].url}
-                        title={homepageVideos[1].title}
+                        url="https://player.vimeo.com/video/1157034884?badge=0&autopause=0&player_id=0&app_id=58479"
                         className="w-full h-full object-cover"
                       />
                     </Suspense>
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6">
-                      <h4 className="text-white font-semibold text-lg mb-1">{homepageVideos[1].title}</h4>
-                      <p className="text-white/80 text-sm">{homepageVideos[1].description}</p>
+                  </div>
+
+                  {/* Third Vimeo video: Video Ads For Product */}
+                  <div className="rounded-2xl overflow-hidden shadow-2xl bg-slate-900 mt-8" style={{ aspectRatio: '9/16' }}>
+                    <Suspense fallback={<div className="w-full h-full bg-black flex items-center justify-center">Loading…</div>}>
+                      <VimeoEmbed
+                        url="https://player.vimeo.com/video/1157036736?badge=0&autopause=0&player_id=0&app_id=58479"
+                        className="w-full h-full object-cover"
+                      />
+                    </Suspense>
+                  </div>
+
+                  {/* New Section: AI Audience */}
+                  <div className="w-full flex justify-center items-center py-6">
+                    <div className="bg-gradient-to-r from-orange-100 to-yellow-100 border border-orange-300 rounded-2xl shadow-lg px-6 py-6 max-w-xl w-full flex flex-col items-center justify-center text-right text-lg font-bold text-orange-900 leading-relaxed" style={{ direction: 'rtl' }}>
+                      <div className="mb-2 text-2xl text-center w-full">🔥 هذا الذكاء الإصطناعي مخصص لـ:</div>
+                      <div className="flex flex-col gap-2 text-xl items-center w-full">
+                        <div className="w-full text-center">🛍️ أصحاب المتاجر الإلكترونية</div>
+                        <div className="w-full text-center">📈 Media Buyers و المسوقين</div>
+                        <div className="w-full text-center">🎥 صناع الإعلانات UGC</div>
+                        <div className="w-full text-center">🧴 براندات التجميل و المنتجات</div>
+                        <div className="w-full text-center">🚀 المبتدئين اللي حابين يبيعو أونلاين</div>
+                      </div>
                     </div>
                   </div>
-            {/* CTA button at end of homepage */}
-            <div className="w-full flex justify-center py-10 bg-transparent">
-              <button
-                onClick={() => onNavigate('aivideo')}
-                className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 text-xl"
-              >
-                <span>أنشئ الفيديو الخاص بك</span>
-              </button>
-            </div>
+
               </div>
+            </div>
+          </div>
+          <div className="w-full flex justify-center mt-8">
+            <div className="flex flex-col items-center w-full">
+              <div className="mb-2 text-xl font-bold text-center text-orange-900">هذه نتائج إستخدام الذكاء الإصطناعي (مشاهدات أكتر وربح أكبر)</div>
+              <a href="https://test-firebass.vercel.app">
+                <img 
+                  src="https://iili.io/frbAE91.png" 
+                  alt="frbAE91.png" 
+                  className="rounded-lg shadow-md max-w-[220px] w-full h-auto sm:max-w-[320px] md:max-w-[400px] lg:max-w-[480px] xl:max-w-[540px]"
+                  style={{ border: 0 }}
+                />
+              </a>
+                          {/* New AI Results Section: YouTube Videos */}
+                          <div className="flex flex-col items-center w-full mt-8">
+                            <div className="mb-2 text-xl font-bold text-center text-orange-900">هذه نتائج الذكاء الإصطناعي بعد صنع فيديوهات يوتيوب</div>
+                            <a href="https://freeimage.host/i/frbAVta">
+                              <img 
+                                src="https://iili.io/frbAVta.md.png" 
+                                alt="frbAVta.md.png" 
+                                className="rounded-lg shadow-md max-w-[220px] w-full h-auto sm:max-w-[320px] md:max-w-[400px] lg:max-w-[480px] xl:max-w-[540px]"
+                                style={{ border: 0 }}
+                              />
+                            </a>
+                            {/* New AI Ad Campaign Results Section */}
+                            <div className="flex flex-col items-center w-full mt-8">
+                              <div className="mb-2 text-xl font-bold text-center text-orange-900">نتائج حملة إعلانية بإستخدام فيديو إعلاني بالذكاء الإصطناعي</div>
+                              <a href="https://freeimage.host/i/frbA5nj">
+                                <img 
+                                  src="https://iili.io/frbA5nj.md.png" 
+                                  alt="frbA5nj.md.png" 
+                                  className="rounded-lg shadow-md max-w-[220px] w-full h-auto sm:max-w-[320px] md:max-w-[400px] lg:max-w-[480px] xl:max-w-[540px]"
+                                  style={{ border: 0 }}
+                                />
+                              </a>
+                            </div>
+                            {/* New Tutorial Video Section */}
+                            <div className="flex flex-col items-center w-full mt-8">
+                              <div className="mb-6 text-xl font-bold text-center text-orange-900">تعلم طريقة إنشاء فيديو إعلاني بالذكاء الإصطناعي على موقعنا</div>
+                              <div className="w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl bg-slate-900">
+                                <div style={{ padding: '53.36% 0 0 0', position: 'relative' }}>
+                                  <iframe 
+                                    src="https://player.vimeo.com/video/1157319775?badge=0&autopause=0&player_id=0&app_id=58479" 
+                                    frameBorder="0" 
+                                    allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" 
+                                    referrerPolicy="strict-origin-when-cross-origin" 
+                                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} 
+                                    title="تعلم ريقة إنشاء فيديو إعلاني بالذكاء الإصطناعي"
+                                  />
+                                </div>
+                              </div>
+                              <button
+                                className="mt-8 px-8 py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-lg shadow-lg transition"
+                                onClick={() => onNavigate('aivideo')}
+                              >
+                                أنشئ الفيديو الخاص بك الأن
+                              </button>
+                            </div>
+                          </div>
             </div>
           </div>
         </section>

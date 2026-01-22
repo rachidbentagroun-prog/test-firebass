@@ -1,5 +1,6 @@
 
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo, useState } from 'react';
+import { detectUserCurrency, fetchExchangeRates, formatCurrency, Currency } from '../utils/currency';
 import { Check, ExternalLink, Sparkles, Zap, Crown, Rocket } from 'lucide-react';
 import { Plan } from '../types';
 import { useLanguage } from '../utils/i18n';
@@ -12,6 +13,14 @@ interface PricingLandingProps {
 export const PricingLanding: React.FC<PricingLandingProps> = ({ plans, onSelectPlan }) => {
   const plansContainerRef = useRef<HTMLDivElement>(null);
   const { t, language } = useLanguage();
+  const [userCurrency, setUserCurrency] = useState<Currency>('USD');
+  const [rates, setRates] = useState<Record<Currency, number> | null>(null);
+
+  useEffect(() => {
+    const detected = detectUserCurrency();
+    setUserCurrency(detected);
+    fetchExchangeRates('USD').then(r => setRates(r));
+  }, []);
 
   useEffect(() => {
     if (plansContainerRef.current) {
@@ -19,15 +28,13 @@ export const PricingLanding: React.FC<PricingLandingProps> = ({ plans, onSelectP
     }
   }, []);
 
-  // Memoize translated plans
+  // Memoize translated plans and convert prices
   const translatedPlans = useMemo(() => {
     return plans.map(plan => {
       const translationKey = `pricing.plans.${plan.id}.name`;
       const translatedName = t(translationKey);
-      
       const features: string[] = [];
       const maxFeatures = 10;
-      
       for (let i = 1; i <= maxFeatures; i++) {
         const featureKey = `pricing.plans.${plan.id}.feature${i}`;
         const translatedFeature = t(featureKey);
@@ -35,14 +42,22 @@ export const PricingLanding: React.FC<PricingLandingProps> = ({ plans, onSelectP
           features.push(translatedFeature);
         }
       }
-      
+      // Convert price if possible
+      let displayPrice = plan.price;
+      if (rates && userCurrency && plan.price && plan.price.startsWith('$')) {
+        const usd = parseFloat(plan.price.replace(/[^\d.]/g, ''));
+        if (!isNaN(usd) && rates[userCurrency]) {
+          displayPrice = formatCurrency(usd * rates[userCurrency], userCurrency);
+        }
+      }
       return {
         ...plan,
         translatedName: translatedName.includes('pricing.plans') ? plan.name : translatedName,
-        translatedFeatures: features.length > 0 ? features : plan.features
+        translatedFeatures: features.length > 0 ? features : plan.features,
+        displayPrice,
       };
     });
-  }, [plans, language, t]);
+  }, [plans, language, t, rates, userCurrency]);
 
   const handlePlanClick = (plan: Plan) => {
     // If the plan is free, send guest to signup page
@@ -158,7 +173,7 @@ export const PricingLanding: React.FC<PricingLandingProps> = ({ plans, onSelectP
                 {/* Plan Name & Price */}
                 <h3 className="text-lg sm:text-xl font-black text-slate-900 mb-2">{plan.translatedName}</h3>
                 <div className="flex items-baseline gap-1 mb-4 sm:mb-6">
-                  <span className="text-3xl sm:text-4xl font-black text-slate-900">{plan.price}</span>
+                  <span className="text-3xl sm:text-4xl font-black text-slate-900">{plan.displayPrice || plan.price}</span>
                   <span className="text-sm sm:text-base text-slate-500">/{t('pricing.month')}</span>
                 </div>
 
